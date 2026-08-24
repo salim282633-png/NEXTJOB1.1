@@ -10,8 +10,6 @@ interface ReportFraudModalProps {
   targetType: 'job' | 'candidate';
   targetId: string;
   targetTitle: string;
-  // Kept for backwards-compatible App props. Persistence is enforced here so
-  // the report, dedupe lock and rate-limit slot are one atomic transaction.
   onSubmitReport?: (report: Omit<FraudReport, 'id' | 'createdAt' | 'status'>) => Promise<void> | void;
 }
 
@@ -55,22 +53,18 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
         throw new Error('AUTH_REQUIRED');
       }
 
-      // Footer-level reports have no specific target. They are kept in the
-      // same protected queue under a stable platform target.
       const effectiveTargetType = targetId ? targetType : 'general';
       const effectiveTargetId = targetId || 'platform';
       const effectiveTargetTitle = targetTitle || 'بلاغ عام عن احتيال أو طلب رسوم';
-      const dedupeId = `${currentUser.uid}__${effectiveTargetType}__${effectiveTargetId}`;
+      const targetKey = `${effectiveTargetType}__${effectiveTargetId}`;
 
       const reportRef = doc(collection(db, 'fraudReports'));
-      const dedupeRef = doc(db, 'reportDedupe', dedupeId);
+      const dedupeRef = doc(db, 'reportDedupe', currentUser.uid, 'targets', targetKey);
       const slotRefs = REPORT_QUOTA_SLOTS.map(slot =>
         doc(db, 'reportRateLimits', currentUser.uid, 'slots', slot)
       );
 
       await runTransaction(db, async transaction => {
-        // All reads happen before writes. Security Rules independently enforce
-        // the same 24-hour windows, so local clock manipulation cannot bypass it.
         const dedupeSnap = await transaction.get(dedupeRef);
         const slotSnaps = [];
         for (const slotRef of slotRefs) {
@@ -161,53 +155,37 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-200" id="report-modal">
         <div className="p-5 bg-rose-700 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/15 backdrop-blur-md rounded-xl">
-              <ShieldAlert className="w-5 h-5 text-white" />
-            </div>
+            <div className="p-2 bg-white/15 backdrop-blur-md rounded-xl"><ShieldAlert className="w-5 h-5 text-white" /></div>
             <div>
               <h2 className="text-lg font-bold">إبلاغ عن محتوى أو مخالفة</h2>
               <p className="text-xs text-rose-100">لحماية مجتمع الباحثين وأصحاب العمل من أي احتيال</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white" aria-label="إغلاق">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white" aria-label="إغلاق"><X className="w-5 h-5" /></button>
         </div>
 
         {isSuccess ? (
           <div className="p-8 text-center space-y-3">
-            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
+            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 className="w-8 h-8" /></div>
             <h3 className="text-base font-bold text-slate-800">تم حفظ البلاغ بنجاح</h3>
-            <p className="text-xs text-slate-600 max-w-xs mx-auto">
-              تم تسجيل البلاغ في Firestore وسيظهر للإدارة لاتخاذ الإجراء المناسب.
-            </p>
+            <p className="text-xs text-slate-600 max-w-xs mx-auto">تم تسجيل البلاغ في Firestore وسيظهر للإدارة لاتخاذ الإجراء المناسب.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             {errorMsg && (
               <div className="flex items-center gap-2.5 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 font-medium">
-                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>{errorMsg}</span>
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" /><span>{errorMsg}</span>
               </div>
             )}
 
             <div className="bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-start gap-2.5 text-xs text-rose-900">
               <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-              <div>
-                <strong>الإبلاغ بخصوص:</strong>
-                <p className="font-semibold text-slate-800 mt-0.5 line-clamp-1">"{targetTitle || 'بلاغ عام عن احتيال أو طلب رسوم'}"</p>
-              </div>
+              <div><strong>الإبلاغ بخصوص:</strong><p className="font-semibold text-slate-800 mt-0.5 line-clamp-1">"{targetTitle || 'بلاغ عام عن احتيال أو طلب رسوم'}"</p></div>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">سبب البلاغ *</label>
-              <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value as FraudReport['reason'])}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 text-slate-900 font-medium"
-              >
+              <select value={reason} onChange={(e) => setReason(e.target.value as FraudReport['reason'])} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 text-slate-900 font-medium">
                 <option value="طلب مبالغ أو عمولات توظيف">طلب مبالغ مالية أو عمولات مقابل الوظيفة</option>
                 <option value="إعلان وهمي / احتيال">إعلان وهمي أو جهة غير موجودة</option>
                 <option value="بيانات اتصال خاطئة أو مضللة">بيانات اتصال خاطئة أو مضللة</option>
@@ -218,28 +196,13 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">تفاصيل الشكوى أو ما حدث معك *</label>
-              <textarea
-                required
-                rows={3}
-                maxLength={2000}
-                placeholder="يرجى كتابة ما حدث باختصار..."
-                value={details}
-                onChange={(e) => setDetails(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 text-slate-900"
-              />
+              <textarea required rows={3} maxLength={2000} placeholder="يرجى كتابة ما حدث باختصار..." value={details} onChange={(e) => setDetails(e.target.value)} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 text-slate-900" />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">رقم جوالك للتحقق (اختياري وسري)</label>
               <div className="relative">
-                <input
-                  type="tel"
-                  maxLength={30}
-                  placeholder="05xxxxxxxx"
-                  value={reporterPhone}
-                  onChange={(e) => setReporterPhone(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 text-slate-900"
-                />
+                <input type="tel" maxLength={30} placeholder="05xxxxxxxx" value={reporterPhone} onChange={(e) => setReporterPhone(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 text-slate-900" />
                 <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
               </div>
               <span className="text-[10px] text-slate-500">لا تتم مشاركة رقم المبلّغ مع صاحب الإعلان أو صاحب الملف.</span>
@@ -250,12 +213,8 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
             </div>
 
             <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100">
-              <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">
-                إلغاء
-              </button>
-              <button type="submit" disabled={isSubmitting} className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-xs font-bold transition-all shadow-sm">
-                {isSubmitting ? 'جاري الحفظ...' : 'إرسال البلاغ'}
-              </button>
+              <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">إلغاء</button>
+              <button type="submit" disabled={isSubmitting} className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-xs font-bold transition-all shadow-sm">{isSubmitting ? 'جاري الحفظ...' : 'إرسال البلاغ'}</button>
             </div>
           </form>
         )}
