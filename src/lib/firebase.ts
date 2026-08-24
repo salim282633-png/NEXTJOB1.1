@@ -3,6 +3,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  browserPopupRedirectResolver,
   signInAnonymously,
   signOut,
   User
@@ -136,7 +137,11 @@ googleProvider.setCustomParameters({
 
 export async function loginWithGoogle(): Promise<User | null> {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
+    const result = await signInWithPopup(
+      auth,
+      googleProvider,
+      browserPopupRedirectResolver
+    );
     return result.user;
   } catch (error) {
     console.error('Google login error:', error);
