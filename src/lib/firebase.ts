@@ -178,16 +178,35 @@ export async function testFirestoreConnection() {
   }
 }
 
+function normalizeSaudiPhoneForOwnership(value: string): string {
+  let digits = value.trim().replace(/\D/g, '');
+
+  if (digits.startsWith('966')) {
+    digits = digits.slice(3);
+  }
+  if (digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+
+  return /^5\d{8}$/.test(digits) ? `+966${digits}` : '';
+}
+
 /**
  * Revoke stale candidate claims for a phone only after Firebase Authentication
  * proves that the currently signed-in user owns that exact E.164 number.
  * Firestore rules independently re-check the same ownership token, so this
  * cannot be bypassed by calling the function manually from the browser.
  */
-export async function resolvePhoneSquatting(phoneE164: string, excludeUserId: string): Promise<void> {
+export async function resolvePhoneSquatting(phoneInput: string, excludeUserId: string): Promise<void> {
   const currentUser = auth.currentUser;
+  const phoneE164 = normalizeSaudiPhoneForOwnership(phoneInput);
 
-  if (!currentUser || currentUser.phoneNumber !== phoneE164 || currentUser.uid !== excludeUserId) {
+  if (
+    !currentUser ||
+    !phoneE164 ||
+    currentUser.phoneNumber !== phoneE164 ||
+    currentUser.uid !== excludeUserId
+  ) {
     throw new Error('Verified Firebase phone ownership is required before reclaiming this number.');
   }
 
