@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   UserCheck,
   MapPin,
@@ -17,7 +17,8 @@ import {
   Lock,
   PhoneOff
 } from 'lucide-react';
-import { Candidate } from '../types';
+import { Candidate, CandidateContact } from '../types';
+import { getCandidateContact } from '../lib/firebase';
 
 interface CandidateCardProps {
   candidate: Candidate;
@@ -26,12 +27,75 @@ interface CandidateCardProps {
   onReportCandidate?: (cand: Candidate) => void;
 }
 
+function localContactFromCandidate(candidate: Candidate): CandidateContact | null {
+  if (!candidate.phone || candidate.phone === 'رقم محذوف') return null;
+
+  return {
+    candidateId: candidate.id,
+    phone: candidate.phone,
+    phoneE164: candidate.phoneE164 || '',
+    whatsapp: candidate.whatsapp || '',
+    phoneVerified: candidate.phoneVerified,
+    userId: candidate.userId || null,
+    schemaVersion: 2,
+    phoneClaimRevokedAt: candidate.phoneClaimRevokedAt
+  };
+}
+
 export const CandidateCard: React.FC<CandidateCardProps> = ({
   candidate,
   onQuickWhatsApp,
   onViewCV,
   onReportCandidate
 }) => {
+  const [contact, setContact] = useState<CandidateContact | null>(() => localContactFromCandidate(candidate));
+  const [isContactLoading, setIsContactLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (candidate.allowContact === false) {
+      setContact(null);
+      setIsContactLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const localContact = localContactFromCandidate(candidate);
+    if (localContact) {
+      setContact(localContact);
+      setIsContactLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setIsContactLoading(true);
+    getCandidateContact(candidate.id)
+      .then(result => {
+        if (!cancelled) setContact(result);
+      })
+      .finally(() => {
+        if (!cancelled) setIsContactLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [candidate.id, candidate.allowContact, candidate.phone, candidate.phoneE164, candidate.whatsapp, candidate.phoneVerified, candidate.userId]);
+
+  const candidateWithContact: Candidate = contact
+    ? {
+        ...candidate,
+        phone: contact.phone,
+        phoneE164: contact.phoneE164,
+        whatsapp: contact.whatsapp,
+        phoneVerified: contact.phoneVerified,
+        userId: contact.userId || candidate.userId
+      }
+    : candidate;
+
   return (
     <div
       id={`candidate-card-${candidate.id}`}
@@ -107,12 +171,12 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({
           </div>
         )}
 
-        {/* Phone remains visible when contact is enabled, even if unverified. */}
-        {candidate.allowContact !== false && candidate.phone && candidate.phone !== 'رقم محذوف' && (
+        {/* Contact is stored separately and is readable only when allowed by Firestore Rules. */}
+        {candidate.allowContact !== false && contact?.phone && (
           <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
             <PhoneCall className="w-4 h-4 text-emerald-700 shrink-0" />
-            <span dir="ltr" className="font-mono font-bold text-slate-800">{candidate.phone}</span>
-            {candidate.phoneVerified ? (
+            <span dir="ltr" className="font-mono font-bold text-slate-800">{contact.phone}</span>
+            {contact.phoneVerified ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-lg" title="تم التحقق من ملكية رقم الجوال عبر Firebase SMS">
                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                 <span>رقم موثق</span>
@@ -124,6 +188,10 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({
             )}
           </div>
         )}
+
+        {candidate.allowContact !== false && isContactLoading && (
+          <div className="mb-4 text-[11px] text-slate-400">جارٍ تحميل بيانات التواصل المسموح بها...</div>
+        )}
       </div>
 
       {/* Action row */}
@@ -132,7 +200,7 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({
           <span>{candidate.createdAt}</span>
           {onViewCV && (
             <button
-              onClick={() => onViewCV(candidate)}
+              onClick={() => onViewCV(candidateWithContact)}
               className="text-emerald-700 hover:underline font-bold flex items-center gap-1 text-[11px]"
             >
               <FileText className="w-3 h-3" />
@@ -147,43 +215,53 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({
               <PhoneOff className="w-3.5 h-3.5" />
               التواصل موقوف
             </span>
-          ) : (
+          ) : contact ? (
             <>
               {/* WhatsApp Direct */}
-              <button
-                id={`btn-cand-wa-${candidate.id}`}
-                onClick={() => {
-                  if (!candidate.phoneVerified) {
-                    if (!window.confirm('هذا الرقم لم يتم تأكيد ملكيته عبر NEXT JOB.\n\nهل تريد المتابعة إلى واتساب؟')) {
-                      return;
+              {(contact.whatsapp || contact.phone) && (
+                <button
+                  id={`btn-cand-wa-${candidate.id}`}
+                  onClick={() => {
+                    if (!contact.phoneVerified) {
+                      if (!window.confirm('هذا الرقم لم يتم تأكيد ملكيته عبر NEXT JOB.\n\nهل تريد المتابعة إلى واتساب؟')) {
+                        return;
+                      }
                     }
-                  }
-                  onQuickWhatsApp(candidate);
-                }}
-                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95"
-                title="تواصل مباشر عبر الواتساب"
-              >
-                <MessageCircle className="w-3.5 h-3.5" />
-                <span>تواصل واتساب</span>
-              </button>
+                    onQuickWhatsApp(candidateWithContact);
+                  }}
+                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95"
+                  title="تواصل مباشر عبر الواتساب"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>تواصل واتساب</span>
+                </button>
+              )}
 
               {/* Phone call */}
-              <button
-                id={`btn-cand-phone-${candidate.id}`}
-                onClick={() => {
-                  if (!candidate.phoneVerified) {
-                    if (!window.confirm('هذا الرقم لم يتم تأكيد ملكيته عبر NEXT JOB.\n\nهل تريد المتابعة للاتصال؟')) {
-                      return;
+              {contact.phone && (
+                <button
+                  id={`btn-cand-phone-${candidate.id}`}
+                  onClick={() => {
+                    if (!contact.phoneVerified) {
+                      if (!window.confirm('هذا الرقم لم يتم تأكيد ملكيته عبر NEXT JOB.\n\nهل تريد المتابعة للاتصال؟')) {
+                        return;
+                      }
                     }
-                  }
-                  window.location.href = `tel:${candidate.phone}`;
-                }}
-                className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-800 p-2 rounded-xl text-xs font-semibold transition-colors"
-                title="اتصال هاتفي"
-              >
-                <PhoneCall className="w-4 h-4 text-emerald-700" />
-              </button>
+                    window.location.href = `tel:${contact.phone}`;
+                  }}
+                  className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-800 p-2 rounded-xl text-xs font-semibold transition-colors"
+                  title="اتصال هاتفي"
+                >
+                  <PhoneCall className="w-4 h-4 text-emerald-700" />
+                </button>
+              )}
             </>
+          ) : (
+            !isContactLoading && (
+              <span className="text-[11px] bg-slate-100 text-slate-500 px-3 py-1.5 rounded-xl font-medium">
+                بيانات التواصل غير متاحة
+              </span>
+            )
           )}
 
           {onReportCandidate && (
