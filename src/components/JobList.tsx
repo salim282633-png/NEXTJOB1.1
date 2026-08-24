@@ -4,6 +4,7 @@ import { Job, JobFilter } from '../types';
 import { JobCard } from './JobCard';
 import { JobApplicationAction } from './JobApplicationAction';
 import { RecommendedJobs } from './RecommendedJobs';
+import { AdSenseSlot } from './AdSenseSlot';
 import { useOwnedCandidate } from '../hooks/useOwnedCandidate';
 import { freshnessMatches, jobActivityMs, salaryMatches, salarySortValue } from '../lib/jobDiscovery';
 
@@ -24,8 +25,6 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
   const [now, setNow] = useState(Date.now());
   const { user, candidate } = useOwnedCandidate();
 
-  // Besides freshness filtering, this tick makes time-limited 24/48h badges
-  // recalculate even if Firestore itself has not emitted another snapshot.
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
@@ -104,6 +103,10 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
           <button onClick={reset} className="text-xs font-bold text-slate-600 bg-slate-100 rounded-xl px-2 py-2">مسح الفلاتر</button>
         </div>
       </div>
+
+      {/* Clearly separated from job cards and application buttons. Renders only
+          when Google production config is READY and a real slot ID is present. */}
+      <AdSenseSlot />
 
       {isLoading && <div className="py-20 text-center flex flex-col items-center gap-3"><RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" /><p className="text-sm font-semibold text-slate-600">جارٍ جلب أحدث الوظائف...</p></div>}
 
