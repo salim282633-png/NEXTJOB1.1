@@ -81,11 +81,12 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
 
         let selectedSlotIndex = -1;
         for (let i = 0; i < slotSnaps.length; i += 1) {
-          if (!slotSnaps[i].exists()) {
+          const slotSnap = slotSnaps[i];
+          if (!slotSnap || !slotSnap.exists()) {
             selectedSlotIndex = i;
             break;
           }
-          const usedAtMs = timestampToMillis(slotSnaps[i].data().usedAt);
+          const usedAtMs = timestampToMillis(slotSnap.data().usedAt);
           if (!usedAtMs || nowMs - usedAtMs >= REPORT_WINDOW_MS) {
             selectedSlotIndex = i;
             break;
@@ -97,6 +98,11 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
         }
 
         const quotaSlot = REPORT_QUOTA_SLOTS[selectedSlotIndex];
+        const quotaSlotRef = slotRefs[selectedSlotIndex];
+        if (!quotaSlot || !quotaSlotRef) {
+          throw new Error('REPORT_RATE_LIMIT');
+        }
+
         const createdAt = new Date().toISOString();
 
         transaction.set(reportRef, {
@@ -121,7 +127,7 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
           usedAt: serverTimestamp()
         });
 
-        transaction.set(slotRefs[selectedSlotIndex], {
+        transaction.set(quotaSlotRef, {
           uid: currentUser.uid,
           reportId: reportRef.id,
           usedAt: serverTimestamp()
