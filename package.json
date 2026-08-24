@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "seo:check": "node --check scripts/publish-yemeni-seo.mjs",
+    "seo:publish": "node scripts/publish-yemeni-seo.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
