@@ -41,7 +41,9 @@ export interface Candidate {
   iqamaStatus: 'إقامة سارية وقابلة للنقل' | 'تأشيرة زيارة / هوية زائر' | 'إقامة سارية دون نقل' | 'مهن فردية / سائق خاص' | 'أخرى';
   experienceYears: string;
   phone: string;
+  phoneE164?: string; // Canonical +9665XXXXXXXX used only for secure ownership checks.
   phoneVerified: boolean;
+  phoneClaimRevokedAt?: string;
   whatsapp: string;
   skills: string[];
   bio: string;
