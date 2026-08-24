@@ -49,14 +49,6 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
           applicantUid: user.uid,
           employerUid: job.userId,
           status: 'submitted',
-          candidateSnapshot: {
-            fullName: candidate.fullName,
-            profession: candidate.profession,
-            city: candidate.city,
-            skills: (candidate.skills || []).slice(0, 12),
-            ...(candidate.avatarUrl ? { avatarUrl: candidate.avatarUrl } : {})
-          },
-          jobSnapshot: { title: job.title, company: job.company, city: job.city },
           createdAt: new Date().toISOString(),
           createdAtServer: serverTimestamp()
         });
