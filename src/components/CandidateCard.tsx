@@ -1,14 +1,14 @@
 import React from 'react';
-import { 
-  UserCheck, 
-  MapPin, 
-  Briefcase, 
-  Clock, 
-  MessageCircle, 
-  PhoneCall, 
-  Car, 
-  CheckCircle2, 
-  ShieldCheck, 
+import {
+  UserCheck,
+  MapPin,
+  Briefcase,
+  Clock,
+  MessageCircle,
+  PhoneCall,
+  Car,
+  CheckCircle2,
+  ShieldCheck,
   Sparkles,
   Tag,
   FileText,
@@ -33,7 +33,7 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({
   onReportCandidate
 }) => {
   return (
-    <div 
+    <div
       id={`candidate-card-${candidate.id}`}
       className={`bg-white rounded-2xl border border-slate-200/90 hover:border-emerald-500/60 p-5 sm:p-6 shadow-xs hover:shadow-lg transition-all duration-200 flex flex-col justify-between ${
         candidate.isHidden ? 'opacity-50' : ''
@@ -51,17 +51,6 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({
             {candidate.yemeniGovernorate && (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-lg">
                 <span>أصل: {candidate.yemeniGovernorate}</span>
-              </span>
-            )}
-
-            {candidate.phoneVerified ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-lg" title="تم التحقق من رقم الجوال عبر رمز OTP">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                <span>رقم موثق</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg" title="لم يتم تأكيد ملكية هذا الرقم عبر رمز التحقق.">
-                <span>رقم غير موثق</span>
               </span>
             )}
           </div>
@@ -117,6 +106,24 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({
             )}
           </div>
         )}
+
+        {/* Phone remains visible when contact is enabled, even if unverified. */}
+        {candidate.allowContact !== false && candidate.phone && candidate.phone !== 'رقم محذوف' && (
+          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+            <PhoneCall className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span dir="ltr" className="font-mono font-bold text-slate-800">{candidate.phone}</span>
+            {candidate.phoneVerified ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-lg" title="تم التحقق من ملكية رقم الجوال عبر Firebase SMS">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span>رقم موثق</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg" title="لم يتم تأكيد ملكية هذا الرقم عبر Firebase SMS">
+                <span>رقم غير موثق</span>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Action row */}
@@ -163,7 +170,7 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({
               {/* Phone call */}
               <button
                 id={`btn-cand-phone-${candidate.id}`}
-                onClick={(e) => {
+                onClick={() => {
                   if (!candidate.phoneVerified) {
                     if (!window.confirm('هذا الرقم لم يتم تأكيد ملكيته عبر NEXT JOB.\n\nهل تريد المتابعة للاتصال؟')) {
                       return;
