@@ -30,6 +30,8 @@ export interface Job {
   urgentStartDate?: string;
   featured?: boolean;
   sourceType?: 'employer' | 'community';
+  sourceSubmissionId?: string;
+  approvedBy?: string;
 }
 
 export interface Candidate {
@@ -128,6 +130,9 @@ export interface CommunityJobSubmission {
   submitterPhone?: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  publishedJobId?: string;
 }
 
 export interface FraudReport {
