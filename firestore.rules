@@ -122,6 +122,20 @@ service cloud.firestore {
         );
     }
 
+    function validCommunityJobApproval(jobId) {
+      return isAdmin() &&
+        incoming().keys().hasAll(['sourceType', 'sourceSubmissionId', 'approvedBy']) &&
+        incoming().sourceType == 'community' &&
+        incoming().sourceSubmissionId is string &&
+        incoming().approvedBy == request.auth.uid &&
+        exists(/databases/$(database)/documents/communitySubmissions/$(incoming().sourceSubmissionId)) &&
+        get(/databases/$(database)/documents/communitySubmissions/$(incoming().sourceSubmissionId)).data.status == 'pending' &&
+        existsAfter(/databases/$(database)/documents/communitySubmissions/$(incoming().sourceSubmissionId)) &&
+        getAfter(/databases/$(database)/documents/communitySubmissions/$(incoming().sourceSubmissionId)).data.status == 'approved' &&
+        getAfter(/databases/$(database)/documents/communitySubmissions/$(incoming().sourceSubmissionId)).data.reviewedBy == request.auth.uid &&
+        getAfter(/databases/$(database)/documents/communitySubmissions/$(incoming().sourceSubmissionId)).data.publishedJobId == jobId;
+    }
+
     // =========================================================
     // Admin authorization markers
     // =========================================================
@@ -130,6 +144,75 @@ service cloud.firestore {
       // They cannot enumerate admins or grant/revoke privileges from the app.
       allow get: if isSignedIn() && request.auth.uid == adminId;
       allow list, create, update, delete: if false;
+    }
+
+    // =========================================================
+    // Community opportunity moderation queue
+    // Submit -> pending -> admin review -> approved/rejected -> publish on approval.
+    // =========================================================
+    match /communitySubmissions/{submissionId} {
+      // Submission is intentionally write-only for the public because it can
+      // contain unpublished employer and submitter contact information.
+      allow create: if isValidId(submissionId) &&
+        incoming().keys().hasAll([
+          'title', 'companyOrShop', 'city', 'category',
+          'contactNumber', 'details', 'status', 'submittedAt'
+        ]) &&
+        !incoming().keys().hasAny([
+          'reviewedAt', 'reviewedBy', 'publishedJobId'
+        ]) &&
+        incoming().status == 'pending' &&
+        incoming().title is string &&
+        incoming().title.size() > 0 &&
+        incoming().title.size() <= 150 &&
+        incoming().companyOrShop is string &&
+        incoming().companyOrShop.size() > 0 &&
+        incoming().companyOrShop.size() <= 100 &&
+        incoming().city is string &&
+        incoming().city.size() > 0 &&
+        incoming().city.size() <= 60 &&
+        incoming().category is string &&
+        incoming().category.size() > 0 &&
+        incoming().category.size() <= 60 &&
+        incoming().contactNumber is string &&
+        incoming().contactNumber.size() > 0 &&
+        incoming().contactNumber.size() <= 30 &&
+        incoming().details is string &&
+        incoming().details.size() > 0 &&
+        incoming().details.size() <= 3000 &&
+        incoming().submittedAt is string &&
+        (!incoming().keys().hasAny(['salary']) || (incoming().salary is string && incoming().salary.size() <= 120)) &&
+        (!incoming().keys().hasAny(['submitterName']) || (incoming().submitterName is string && incoming().submitterName.size() <= 100)) &&
+        (!incoming().keys().hasAny(['submitterPhone']) || (incoming().submitterPhone is string && incoming().submitterPhone.size() <= 30));
+
+      allow get, list: if isAdmin();
+
+      // Admin may only transition an untouched pending submission to approved
+      // or rejected. The original submitted content cannot be rewritten here.
+      allow update: if isAdmin() &&
+        existing().status == 'pending' &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'status', 'reviewedAt', 'reviewedBy', 'publishedJobId'
+        ]) &&
+        incoming().reviewedAt is string &&
+        incoming().reviewedBy == request.auth.uid &&
+        (
+          (
+            incoming().status == 'rejected' &&
+            !incoming().keys().hasAny(['publishedJobId'])
+          ) ||
+          (
+            incoming().status == 'approved' &&
+            incoming().publishedJobId is string &&
+            existsAfter(/databases/$(database)/documents/jobs/$(incoming().publishedJobId)) &&
+            getAfter(/databases/$(database)/documents/jobs/$(incoming().publishedJobId)).data.sourceType == 'community' &&
+            getAfter(/databases/$(database)/documents/jobs/$(incoming().publishedJobId)).data.sourceSubmissionId == submissionId &&
+            getAfter(/databases/$(database)/documents/jobs/$(incoming().publishedJobId)).data.approvedBy == request.auth.uid
+          )
+        );
+
+      // Keep moderation history for auditability.
+      allow delete: if false;
     }
 
     // =========================================================
@@ -156,7 +239,12 @@ service cloud.firestore {
         incoming().description is string &&
         incoming().description.size() <= 3000 &&
         incoming().phone is string &&
-        incoming().phone.size() <= 30;
+        incoming().phone.size() <= 30 &&
+        (
+          !incoming().keys().hasAny(['sourceType']) ||
+          incoming().sourceType != 'community' ||
+          validCommunityJobApproval(jobId)
+        );
 
       allow update: if isValidId(jobId) && (
         isAdmin() ||
