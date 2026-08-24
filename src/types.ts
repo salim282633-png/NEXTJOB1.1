@@ -103,6 +103,7 @@ export interface Application {
 
 export interface JobFilter {
   keyword: string;
+  profession?: string;
   category: string;
   city: string;
   sponsorshipOnly: boolean;
