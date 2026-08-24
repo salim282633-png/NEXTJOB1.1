@@ -2,7 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny: every collection below must opt in explicitly.
     match /{document=**} {
       allow read, write: if false;
     }
@@ -77,8 +76,7 @@ service cloud.firestore {
     }
 
     function publicCandidateReadable(data) {
-      return data.schemaVersion == 2 &&
-        data.isHidden == false;
+      return data.schemaVersion == 2 && data.isHidden == false;
     }
 
     function publicContactReadable(candidateId) {
@@ -110,10 +108,7 @@ service cloud.firestore {
         validContactOwner(data) &&
         (
           data.phoneVerified == false ||
-          (
-            authOwnsPhone(data.phoneE164) &&
-            data.userId == request.auth.uid
-          )
+          (authOwnsPhone(data.phoneE164) && data.userId == request.auth.uid)
         );
     }
 
@@ -144,14 +139,11 @@ service cloud.firestore {
 
     function validFraudTarget(data) {
       return (
-        data.targetType == 'general' &&
-        data.targetId == 'platform'
+        data.targetType == 'general' && data.targetId == 'platform'
       ) || (
-        data.targetType == 'job' &&
-        exists(/databases/$(database)/documents/jobs/$(data.targetId))
+        data.targetType == 'job' && exists(/databases/$(database)/documents/jobs/$(data.targetId))
       ) || (
-        data.targetType == 'candidate' &&
-        exists(/databases/$(database)/documents/candidates/$(data.targetId))
+        data.targetType == 'candidate' && exists(/databases/$(database)/documents/candidates/$(data.targetId))
       );
     }
 
@@ -165,17 +157,29 @@ service cloud.firestore {
         getAfter(/databases/$(database)/documents/reportRateLimits/$(request.auth.uid)/slots/$(data.quotaSlot)).data.usedAt == request.time;
     }
 
-    // =========================================================
-    // Admin authorization markers
-    // =========================================================
+    function validJobCore(data) {
+      return data.title is string &&
+        data.title.size() > 0 && data.title.size() <= 150 &&
+        data.company is string &&
+        data.company.size() > 0 && data.company.size() <= 100 &&
+        data.city is string && data.city.size() > 0 && data.city.size() <= 60 &&
+        data.category is string && data.category.size() > 0 && data.category.size() <= 60 &&
+        data.description is string && data.description.size() > 0 && data.description.size() <= 3000 &&
+        data.phone is string && data.phone.size() > 0 && data.phone.size() <= 30 &&
+        data.status is string &&
+        (
+          data.status == 'active' ||
+          data.status == 'recently_confirmed' ||
+          data.status == 'awaiting_confirmation' ||
+          data.status == 'closed'
+        );
+    }
+
     match /admins/{adminId} {
       allow get: if isSignedIn() && request.auth.uid == adminId;
       allow list, create, update, delete: if false;
     }
 
-    // =========================================================
-    // Fraud reports: persistent queue + real abuse controls.
-    // =========================================================
     match /fraudReports/{reportId} {
       allow create: if isValidId(reportId) &&
         isTrustedReporter() &&
@@ -191,36 +195,23 @@ service cloud.firestore {
         incoming().reporterUid == request.auth.uid &&
         incoming().targetType is string &&
         (incoming().targetType == 'job' || incoming().targetType == 'candidate' || incoming().targetType == 'general') &&
-        incoming().targetId is string &&
-        incoming().targetId.size() > 0 &&
-        incoming().targetId.size() <= 80 &&
-        incoming().targetTitle is string &&
-        incoming().targetTitle.size() > 0 &&
-        incoming().targetTitle.size() <= 200 &&
-        incoming().reason is string &&
-        incoming().reason.size() > 0 &&
-        incoming().reason.size() <= 100 &&
-        incoming().details is string &&
-        incoming().details.size() > 0 &&
-        incoming().details.size() <= 2000 &&
+        incoming().targetId is string && incoming().targetId.size() > 0 && incoming().targetId.size() <= 80 &&
+        incoming().targetTitle is string && incoming().targetTitle.size() > 0 && incoming().targetTitle.size() <= 200 &&
+        incoming().reason is string && incoming().reason.size() > 0 && incoming().reason.size() <= 100 &&
+        incoming().details is string && incoming().details.size() > 0 && incoming().details.size() <= 2000 &&
         (!incoming().keys().hasAny(['reporterPhone']) || (incoming().reporterPhone is string && incoming().reporterPhone.size() <= 30)) &&
-        incoming().quotaSlot is string &&
-        incoming().quotaSlot.matches('^[1-5]$') &&
-        incoming().createdAt is string &&
-        incoming().createdAt.size() <= 50 &&
+        incoming().quotaSlot is string && incoming().quotaSlot.matches('^[1-5]$') &&
+        incoming().createdAt is string && incoming().createdAt.size() <= 50 &&
         incoming().createdAtServer == request.time &&
         incoming().status == 'pending' &&
         validFraudTarget(incoming()) &&
         validFraudGuards(reportId, incoming());
 
-      // Reports may contain confidential reporter contact details.
       allow get, list: if isAdmin();
 
       allow update: if isAdmin() &&
         existing().status == 'pending' &&
-        incoming().diff(existing()).affectedKeys().hasOnly([
-          'status', 'reviewedAt', 'reviewedBy'
-        ]) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'reviewedAt', 'reviewedBy']) &&
         (incoming().status == 'reviewed' || incoming().status == 'dismissed') &&
         incoming().reviewedAt is string &&
         incoming().reviewedBy == request.auth.uid;
@@ -228,8 +219,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // One dedupe lock per authenticated user + target. It can only be reused
-    // after 24 hours and must be linked atomically to the new fraud report.
     match /reportDedupe/{uid}/targets/{targetKey} {
       allow get: if isTrustedReporter() && request.auth.uid == uid;
       allow list: if false;
@@ -237,9 +226,7 @@ service cloud.firestore {
       allow create: if isTrustedReporter() &&
         request.auth.uid == uid &&
         targetKey == incoming().targetType + '__' + incoming().targetId &&
-        incoming().keys().hasOnly([
-          'reporterUid', 'targetType', 'targetId', 'reportId', 'usedAt'
-        ]) &&
+        incoming().keys().hasOnly(['reporterUid', 'targetType', 'targetId', 'reportId', 'usedAt']) &&
         incoming().reporterUid == uid &&
         incoming().usedAt == request.time &&
         incoming().reportId is string &&
@@ -253,9 +240,7 @@ service cloud.firestore {
         existing().usedAt is timestamp &&
         request.time >= existing().usedAt + duration.value(24, 'h') &&
         targetKey == incoming().targetType + '__' + incoming().targetId &&
-        incoming().keys().hasOnly([
-          'reporterUid', 'targetType', 'targetId', 'reportId', 'usedAt'
-        ]) &&
+        incoming().keys().hasOnly(['reporterUid', 'targetType', 'targetId', 'reportId', 'usedAt']) &&
         incoming().reporterUid == uid &&
         incoming().usedAt == request.time &&
         incoming().reportId is string &&
@@ -267,8 +252,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Five independent 24-hour slots = at most five reports per authenticated
-    // UID in any 24-hour period. A slot cannot be reused early.
     match /reportRateLimits/{uid}/slots/{slotId} {
       allow get: if isTrustedReporter() && request.auth.uid == uid && slotId.matches('^[1-5]$');
       allow list: if false;
@@ -300,37 +283,20 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // =========================================================
-    // Community opportunity moderation queue
-    // =========================================================
     match /communitySubmissions/{submissionId} {
       allow create: if isValidId(submissionId) &&
         incoming().keys().hasAll([
           'title', 'companyOrShop', 'city', 'category',
           'contactNumber', 'details', 'status', 'submittedAt'
         ]) &&
-        !incoming().keys().hasAny([
-          'reviewedAt', 'reviewedBy', 'publishedJobId'
-        ]) &&
+        !incoming().keys().hasAny(['reviewedAt', 'reviewedBy', 'publishedJobId']) &&
         incoming().status == 'pending' &&
-        incoming().title is string &&
-        incoming().title.size() > 0 &&
-        incoming().title.size() <= 150 &&
-        incoming().companyOrShop is string &&
-        incoming().companyOrShop.size() > 0 &&
-        incoming().companyOrShop.size() <= 100 &&
-        incoming().city is string &&
-        incoming().city.size() > 0 &&
-        incoming().city.size() <= 60 &&
-        incoming().category is string &&
-        incoming().category.size() > 0 &&
-        incoming().category.size() <= 60 &&
-        incoming().contactNumber is string &&
-        incoming().contactNumber.size() > 0 &&
-        incoming().contactNumber.size() <= 30 &&
-        incoming().details is string &&
-        incoming().details.size() > 0 &&
-        incoming().details.size() <= 3000 &&
+        incoming().title is string && incoming().title.size() > 0 && incoming().title.size() <= 150 &&
+        incoming().companyOrShop is string && incoming().companyOrShop.size() > 0 && incoming().companyOrShop.size() <= 100 &&
+        incoming().city is string && incoming().city.size() > 0 && incoming().city.size() <= 60 &&
+        incoming().category is string && incoming().category.size() > 0 && incoming().category.size() <= 60 &&
+        incoming().contactNumber is string && incoming().contactNumber.size() > 0 && incoming().contactNumber.size() <= 30 &&
+        incoming().details is string && incoming().details.size() > 0 && incoming().details.size() <= 3000 &&
         incoming().submittedAt is string &&
         (!incoming().keys().hasAny(['salary']) || (incoming().salary is string && incoming().salary.size() <= 120)) &&
         (!incoming().keys().hasAny(['submitterName']) || (incoming().submitterName is string && incoming().submitterName.size() <= 100)) &&
@@ -340,16 +306,11 @@ service cloud.firestore {
 
       allow update: if isAdmin() &&
         existing().status == 'pending' &&
-        incoming().diff(existing()).affectedKeys().hasOnly([
-          'status', 'reviewedAt', 'reviewedBy', 'publishedJobId'
-        ]) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'reviewedAt', 'reviewedBy', 'publishedJobId']) &&
         incoming().reviewedAt is string &&
         incoming().reviewedBy == request.auth.uid &&
         (
-          (
-            incoming().status == 'rejected' &&
-            !incoming().keys().hasAny(['publishedJobId'])
-          ) ||
+          (incoming().status == 'rejected' && !incoming().keys().hasAny(['publishedJobId'])) ||
           (
             incoming().status == 'approved' &&
             incoming().publishedJobId is string &&
@@ -363,57 +324,141 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // =========================================================
-    // Jobs
-    // =========================================================
     match /jobs/{jobId} {
-      allow read: if true;
+      function ownsJob() {
+        return isSignedIn() &&
+          existing().keys().hasAll(['userId']) &&
+          existing().userId == request.auth.uid;
+      }
+
+      function bumpReady() {
+        return !existing().keys().hasAny(['lastBumpedAt']) ||
+          (existing().lastBumpedAt is timestamp && request.time >= existing().lastBumpedAt + duration.value(24, 'h'));
+      }
+
+      function confirmReady() {
+        return !existing().keys().hasAny(['lastConfirmedAtServer']) ||
+          (existing().lastConfirmedAtServer is timestamp && request.time >= existing().lastConfirmedAtServer + duration.value(24, 'h'));
+      }
+
+      function ownerEdit() {
+        return ownsJob() &&
+          incoming().userId == existing().userId &&
+          incoming().status == existing().status &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'company', 'city', 'category', 'salary', 'jobType',
+            'sponsorshipTransfer', 'accommodationProvided', 'transportationProvided',
+            'mealsProvided', 'overtimeAvailable', 'experienceYears', 'description',
+            'requirements', 'phone', 'whatsapp', 'contactPerson', 'urgent',
+            'urgentStartDate', 'urgentExpiresAt', 'updatedAt', 'updatedAtServer'
+          ]) &&
+          incoming().updatedAt is string &&
+          incoming().updatedAtServer == request.time &&
+          validJobCore(incoming());
+      }
+
+      function ownerClose() {
+        return ownsJob() &&
+          existing().status != 'closed' &&
+          incoming().status == 'closed' &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'status', 'closedAt', 'updatedAt', 'updatedAtServer'
+          ]) &&
+          incoming().closedAt == request.time &&
+          incoming().updatedAt is string &&
+          incoming().updatedAtServer == request.time;
+      }
+
+      function ownerReopen() {
+        return ownsJob() &&
+          existing().status == 'closed' &&
+          incoming().status == 'active' &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'status', 'reopenedAt', 'updatedAt', 'updatedAtServer'
+          ]) &&
+          incoming().reopenedAt == request.time &&
+          incoming().updatedAt is string &&
+          incoming().updatedAtServer == request.time;
+      }
+
+      function ownerConfirm() {
+        return ownsJob() &&
+          existing().status != 'closed' &&
+          confirmReady() &&
+          incoming().status == 'recently_confirmed' &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'status', 'lastConfirmedAt', 'lastConfirmedAtServer',
+            'updatedAt', 'updatedAtServer'
+          ]) &&
+          incoming().lastConfirmedAt is string &&
+          incoming().lastConfirmedAtServer == request.time &&
+          incoming().updatedAt is string &&
+          incoming().updatedAtServer == request.time;
+      }
+
+      function ownerBump() {
+        return ownsJob() &&
+          existing().status != 'closed' &&
+          bumpReady() &&
+          incoming().status == existing().status &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'lastBumpedAt', 'activityAt', 'updatedAt', 'updatedAtServer'
+          ]) &&
+          incoming().lastBumpedAt == request.time &&
+          incoming().activityAt == request.time &&
+          incoming().updatedAt is string &&
+          incoming().updatedAtServer == request.time;
+      }
+
+      allow get: if
+        existing().status != 'closed' ||
+        isAdmin() ||
+        ownsJob();
+
+      // Public clients must query only non-closed statuses. Owners may query
+      // their complete lifecycle with where('userId', '==', request.auth.uid).
+      allow list: if
+        existing().status != 'closed' ||
+        isAdmin() ||
+        ownsJob();
 
       allow create: if isValidId(jobId) &&
-        incoming().keys().hasAll([
-          'title', 'company', 'city', 'category', 'description', 'phone'
-        ]) &&
-        incoming().title is string &&
-        incoming().title.size() <= 150 &&
-        incoming().title.size() > 0 &&
-        incoming().company is string &&
-        incoming().company.size() <= 100 &&
-        incoming().city is string &&
-        incoming().city.size() <= 50 &&
-        incoming().category is string &&
-        incoming().category.size() <= 50 &&
-        incoming().description is string &&
-        incoming().description.size() <= 3000 &&
-        incoming().phone is string &&
-        incoming().phone.size() <= 30 &&
+        validJobCore(incoming()) &&
         (
-          !incoming().keys().hasAny(['sourceType']) ||
-          incoming().sourceType != 'community' ||
-          validCommunityJobApproval(jobId)
+          validCommunityJobApproval(jobId) ||
+          (
+            isSignedIn() &&
+            incoming().keys().hasAll([
+              'userId', 'createdAt', 'createdAtServer', 'activityAt',
+              'lastBumpedAt', 'lastConfirmedAt', 'lastConfirmedAtServer'
+            ]) &&
+            incoming().userId == request.auth.uid &&
+            (!incoming().keys().hasAny(['sourceType']) || incoming().sourceType == 'employer') &&
+            incoming().status == 'recently_confirmed' &&
+            incoming().createdAt is string &&
+            incoming().createdAtServer == request.time &&
+            incoming().activityAt == request.time &&
+            incoming().lastBumpedAt == request.time &&
+            incoming().lastConfirmedAt is string &&
+            incoming().lastConfirmedAtServer == request.time
+          )
         );
 
-      allow update: if isValidId(jobId) && (
-        isAdmin() ||
+      allow update: if isValidId(jobId) &&
         (
-          isSignedIn() &&
-          existing().userId == request.auth.uid &&
-          (
-            incoming().diff(existing()).affectedKeys().hasOnly([
-              'title', 'company', 'city', 'category', 'description',
-              'phone', 'whatsapp', 'updatedAt', 'status'
-            ]) ||
-            incoming().diff(existing()).affectedKeys().hasOnly(['views'])
-          )
-        )
-      );
+          isAdmin() ||
+          ownerEdit() ||
+          ownerClose() ||
+          ownerReopen() ||
+          ownerConfirm() ||
+          ownerBump()
+        );
 
-      allow delete: if isValidId(jobId) &&
-        (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      // Closing is the owner-facing lifecycle action; physical deletion is
+      // reserved for admins so history/abuse evidence is not destroyed.
+      allow delete: if isAdmin();
     }
 
-    // =========================================================
-    // Candidate public profiles
-    // =========================================================
     match /candidates/{candidateId} {
       allow get: if
         publicCandidateReadable(existing()) ||
@@ -441,20 +486,12 @@ service cloud.firestore {
           'fullName', 'profession', 'city', 'iqamaStatus', 'bio',
           'phoneVerified', 'isHidden', 'allowContact', 'schemaVersion'
         ]) &&
-        !incoming().keys().hasAny([
-          'phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId'
-        ]) &&
-        incoming().fullName is string &&
-        incoming().fullName.size() > 0 &&
-        incoming().fullName.size() <= 100 &&
-        incoming().profession is string &&
-        incoming().profession.size() <= 100 &&
-        incoming().city is string &&
-        incoming().city.size() <= 50 &&
-        incoming().iqamaStatus is string &&
-        incoming().iqamaStatus.size() <= 80 &&
-        incoming().bio is string &&
-        incoming().bio.size() <= 2000 &&
+        !incoming().keys().hasAny(['phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId']) &&
+        incoming().fullName is string && incoming().fullName.size() > 0 && incoming().fullName.size() <= 100 &&
+        incoming().profession is string && incoming().profession.size() <= 100 &&
+        incoming().city is string && incoming().city.size() <= 50 &&
+        incoming().iqamaStatus is string && incoming().iqamaStatus.size() <= 80 &&
+        incoming().bio is string && incoming().bio.size() <= 2000 &&
         incoming().phoneVerified is bool &&
         incoming().isHidden is bool &&
         incoming().allowContact is bool &&
@@ -467,9 +504,7 @@ service cloud.firestore {
         (
           ownsCandidate(candidateId) &&
           incoming().schemaVersion == 2 &&
-          !incoming().keys().hasAny([
-            'phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId'
-          ]) &&
+          !incoming().keys().hasAny(['phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId']) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
             'fullName', 'profession', 'city', 'yemeniGovernorate',
             'iqamaStatus', 'experienceYears', 'educationLevel', 'skills',
@@ -481,9 +516,7 @@ service cloud.firestore {
         ) ||
         (
           verifiedPhoneOwnsCandidateContact(candidateId) &&
-          incoming().diff(existing()).affectedKeys().hasOnly([
-            'phoneVerified', 'allowContact', 'phoneClaimRevokedAt'
-          ]) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['phoneVerified', 'allowContact', 'phoneClaimRevokedAt']) &&
           incoming().phoneVerified == false &&
           incoming().allowContact == false &&
           incoming().phoneClaimRevokedAt is string
@@ -494,12 +527,9 @@ service cloud.firestore {
           authOwnsPhone(existing().phoneE164) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
             'phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId',
-            'schemaVersion', 'phoneVerified', 'allowContact',
-            'phoneClaimRevokedAt'
+            'schemaVersion', 'phoneVerified', 'allowContact', 'phoneClaimRevokedAt'
           ]) &&
-          !incoming().keys().hasAny([
-            'phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId'
-          ]) &&
+          !incoming().keys().hasAny(['phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId']) &&
           incoming().schemaVersion == 2 &&
           incoming().phoneVerified == false &&
           incoming().allowContact == false &&
@@ -511,9 +541,6 @@ service cloud.firestore {
         (isAdmin() || ownsCandidate(candidateId));
     }
 
-    // =========================================================
-    // Candidate contact data
-    // =========================================================
     match /candidateContacts/{candidateId} {
       allow get: if
         isAdmin() ||
@@ -522,10 +549,7 @@ service cloud.firestore {
 
       allow list: if
         isAdmin() ||
-        (
-          hasVerifiedSaudiPhone() &&
-          existing().phoneE164 == request.auth.token.phone_number
-        );
+        (hasVerifiedSaudiPhone() && existing().phoneE164 == request.auth.token.phone_number);
 
       allow create: if isValidId(candidateId) &&
         validContactState(incoming(), candidateId) &&
@@ -542,8 +566,7 @@ service cloud.firestore {
           incoming().schemaVersion == existing().schemaVersion &&
           incoming().userId == existing().userId &&
           incoming().diff(existing()).affectedKeys().hasOnly([
-            'phone', 'phoneE164', 'whatsapp', 'phoneVerified',
-            'phoneClaimRevokedAt'
+            'phone', 'phoneE164', 'whatsapp', 'phoneVerified', 'phoneClaimRevokedAt'
           ]) &&
           validContactState(incoming(), candidateId)
         ) ||
@@ -551,8 +574,7 @@ service cloud.firestore {
           hasVerifiedSaudiPhone() &&
           authOwnsPhone(existing().phoneE164) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
-            'phone', 'phoneE164', 'whatsapp', 'phoneVerified',
-            'phoneClaimRevokedAt'
+            'phone', 'phoneE164', 'whatsapp', 'phoneVerified', 'phoneClaimRevokedAt'
           ]) &&
           incoming().phone == '' &&
           incoming().phoneE164 == '' &&
