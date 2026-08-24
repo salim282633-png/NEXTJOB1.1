@@ -1,0 +1,58 @@
+name: Yemen-focused SEO Publisher
+
+on:
+  schedule:
+    # 06:15 Saudi time (UTC+3), one article per day at most.
+    - cron: '15 3 * * *'
+  workflow_dispatch:
+    inputs:
+      keyword:
+        description: 'اختياري: كلمة مستهدفة يجب أن تخص اليمنيين + الوظائف + السعودية'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nextjob-yemeni-seo-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate one production article
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-2.5-flash
+          PUBLIC_SITE_URL: https://nextjob1-1.onrender.com
+          SEO_KEYWORD: ${{ github.event.inputs.keyword || '' }}
+        run: node scripts/publish-yemeni-seo.mjs
+
+      - name: Commit published article
+        shell: bash
+        run: |
+          set -e
+          git add public/guide public/sitemap.xml seo/published
+          if git diff --cached --quiet; then
+            echo "No production SEO article was published."
+            exit 0
+          fi
+          git config user.name "nextjob-seo-bot"
+          git config user.email "nextjob-seo-bot@users.noreply.github.com"
+          git commit -m "Publish Yemen-focused SEO article"
+          git pull --rebase origin main
+          git push origin HEAD:main
