@@ -43,10 +43,12 @@ import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { AuthModal } from './components/AuthModal';
 import { Footer } from './components/Footer';
 import { ToastContainer } from './components/Toast';
+import { useAdminAccess } from './hooks/useAdminAccess';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'guide' | 'saved'>('jobs');
   const [user, setUser] = useState<User | null>(null);
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
 
   // Data states
   const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
@@ -124,6 +126,14 @@ export function App() {
 
     return () => unsubscribeAuth();
   }, []);
+
+  // Fail closed: if the live admins/{uid} marker disappears, close the admin
+  // panel immediately. Ordinary users never get an admin modal instance.
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsAdminSEOOpen(false);
+    }
+  }, [isAdmin]);
 
   // Listen to Firestore 'jobs' collection with fallback
   useEffect(() => {
@@ -390,18 +400,40 @@ export function App() {
     addToast('success', 'تم استلام بلاغك وسيقوم فريق المراجعة بالتحقق فوراً لحماية المجتمع.');
   };
 
-  // Community Moderation Actions
+  const requireAdmin = () => {
+    if (!auth.currentUser || !isAdmin) {
+      setIsAdminSEOOpen(false);
+      addToast('error', 'هذه العملية متاحة لمسؤولي NEXT JOB فقط.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleOpenAdminPanel = () => {
+    if (isCheckingAdmin) {
+      addToast('info', 'جارٍ التحقق من صلاحية الإدارة...');
+      return;
+    }
+    if (!requireAdmin()) return;
+    setIsAdminSEOOpen(true);
+  };
+
+  // Community Moderation Actions. These client-side actions are also gated;
+  // persistent Firestore admin writes remain protected by Security Rules.
   const handleApproveCommunityJob = (submission: CommunityJobSubmission) => {
+    if (!requireAdmin()) return;
     setCommunitySubmissions(prev => prev.map(s => s.id === submission.id ? { ...s, status: 'approved' } : s));
     addToast('success', `تمت الموافقة على نشر: "${submission.title}"`);
   };
 
   const handleRejectCommunityJob = (id: string) => {
+    if (!requireAdmin()) return;
     setCommunitySubmissions(prev => prev.filter(s => s.id !== id));
     addToast('info', 'تم استبعاد المشاركة من قائمة الانتظار');
   };
 
   const handleResolveFraudReport = (id: string) => {
+    if (!requireAdmin()) return;
     setFraudReports(prev => prev.map(r => r.id === id ? { ...r, status: 'reviewed' } : r));
     addToast('success', 'تم اتخاذ الإجراء ومعالجة البلاغ بنجاح');
   };
@@ -426,9 +458,11 @@ export function App() {
     try {
       await logoutUser();
       setUser(null);
+      setIsAdminSEOOpen(false);
       addToast('info', 'تم تسجيل الخروج بنجاح');
     } catch (err) {
       console.error(err);
+      setIsAdminSEOOpen(false);
       addToast('info', 'تم تسجيل الخروج');
     }
   };
@@ -616,8 +650,8 @@ export function App() {
         />
       )}
 
-      {/* Admin, Moderation & SEO Engine Modal */}
-      {isAdminSEOOpen && (
+      {/* Admin, Moderation & SEO Engine Modal: never instantiated for non-admin users. */}
+      {user && isAdmin && isAdminSEOOpen && (
         <AdminAndSEOEngineModal
           isOpen={isAdminSEOOpen}
           onClose={() => setIsAdminSEOOpen(false)}
@@ -673,7 +707,7 @@ export function App() {
           setIsReportFraudOpen(true);
         }}
         onOpenPrivacy={() => setIsPrivacyOpen(true)}
-        onOpenAdminSEO={() => setIsAdminSEOOpen(true)}
+        onOpenAdminSEO={user && isAdmin && !isCheckingAdmin ? handleOpenAdminPanel : undefined}
       />
 
     </div>
