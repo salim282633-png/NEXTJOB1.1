@@ -5,6 +5,6 @@ services:
     repo: https://github.com/salim282633-png/NEXTJOB1.1
     branch: main
     buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
+    staticPublishPath: dist
     autoDeployTrigger: commit
     pullRequestPreviewsEnabled: true
