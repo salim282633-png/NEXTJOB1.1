@@ -410,17 +410,9 @@ service cloud.firestore {
           incoming().updatedAtServer == request.time;
       }
 
-      allow get: if
-        existing().status != 'closed' ||
-        isAdmin() ||
-        ownsJob();
+      allow get: if existing().status != 'closed' || isAdmin() || ownsJob();
 
-      // Public clients must query only non-closed statuses. Owners may query
-      // their complete lifecycle with where('userId', '==', request.auth.uid).
-      allow list: if
-        existing().status != 'closed' ||
-        isAdmin() ||
-        ownsJob();
+      allow list: if existing().status != 'closed' || isAdmin() || ownsJob();
 
       allow create: if isValidId(jobId) &&
         validJobCore(incoming()) &&
@@ -445,18 +437,81 @@ service cloud.firestore {
         );
 
       allow update: if isValidId(jobId) &&
+        (isAdmin() || ownerEdit() || ownerClose() || ownerReopen() || ownerConfirm() || ownerBump());
+
+      allow delete: if isAdmin();
+    }
+
+    // Actual Applications: deterministic one application per job + applicant UID.
+    match /applications/{applicationId} {
+      function applicationJobExists(data) {
+        return exists(/databases/$(database)/documents/jobs/$(data.jobId));
+      }
+
+      function applicationJob(data) {
+        return get(/databases/$(database)/documents/jobs/$(data.jobId)).data;
+      }
+
+      function applicantOwnsCandidate(data) {
+        return isSignedIn() &&
+          exists(/databases/$(database)/documents/candidateContacts/$(data.candidateId)) &&
+          get(/databases/$(database)/documents/candidateContacts/$(data.candidateId)).data.userId == request.auth.uid;
+      }
+
+      allow create: if isSignedIn() &&
+        isValidId(applicationId) &&
+        incoming().keys().hasOnly([
+          'jobId', 'candidateId', 'applicantUid', 'employerUid',
+          'status', 'createdAt', 'createdAtServer'
+        ]) &&
+        incoming().jobId is string &&
+        incoming().candidateId is string &&
+        incoming().applicantUid == request.auth.uid &&
+        incoming().employerUid is string &&
+        incoming().status == 'submitted' &&
+        incoming().createdAt is string &&
+        incoming().createdAtServer == request.time &&
+        applicationId == incoming().jobId + '__' + request.auth.uid &&
+        applicantOwnsCandidate(incoming()) &&
+        applicationJobExists(incoming()) &&
+        applicationJob(incoming()).status != 'closed' &&
+        applicationJob(incoming()).keys().hasAll(['userId']) &&
+        applicationJob(incoming()).userId == incoming().employerUid &&
+        incoming().employerUid != request.auth.uid;
+
+      allow get, list: if isAdmin() ||
+        (isSignedIn() && (
+          existing().applicantUid == request.auth.uid ||
+          existing().employerUid == request.auth.uid
+        ));
+
+      allow update: if isAdmin() ||
         (
-          isAdmin() ||
-          ownerEdit() ||
-          ownerClose() ||
-          ownerReopen() ||
-          ownerConfirm() ||
-          ownerBump()
+          isSignedIn() &&
+          existing().applicantUid == request.auth.uid &&
+          incoming().applicantUid == existing().applicantUid &&
+          incoming().employerUid == existing().employerUid &&
+          incoming().jobId == existing().jobId &&
+          incoming().candidateId == existing().candidateId &&
+          incoming().status == 'withdrawn' &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'updatedAtServer']) &&
+          incoming().updatedAt is string &&
+          incoming().updatedAtServer == request.time
+        ) ||
+        (
+          isSignedIn() &&
+          existing().employerUid == request.auth.uid &&
+          incoming().applicantUid == existing().applicantUid &&
+          incoming().employerUid == existing().employerUid &&
+          incoming().jobId == existing().jobId &&
+          incoming().candidateId == existing().candidateId &&
+          (incoming().status == 'viewed' || incoming().status == 'shortlisted' || incoming().status == 'rejected') &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'updatedAtServer']) &&
+          incoming().updatedAt is string &&
+          incoming().updatedAtServer == request.time
         );
 
-      // Closing is the owner-facing lifecycle action; physical deletion is
-      // reserved for admins so history/abuse evidence is not destroyed.
-      allow delete: if isAdmin();
+      allow delete: if false;
     }
 
     match /candidates/{candidateId} {
@@ -547,8 +602,10 @@ service cloud.firestore {
         (isSignedIn() && existing().userId == request.auth.uid) ||
         publicContactReadable(candidateId);
 
+      // Owners may query only their own contact documents using where(userId == uid).
       allow list: if
         isAdmin() ||
+        (isSignedIn() && existing().userId == request.auth.uid) ||
         (hasVerifiedSaudiPhone() && existing().phoneE164 == request.auth.token.phone_number);
 
       allow create: if isValidId(candidateId) &&
