@@ -58,13 +58,17 @@ export function loadConfiguredGoogleScripts() {
   if (typeof window === 'undefined') return;
   ensureGtag();
 
+  // Analytics can load under Consent Mode defaults when a real Measurement ID
+  // exists. Storage remains denied until the user updates consent.
   if (/^G-[A-Z0-9]+$/.test(googleProductionConfig.gtagId)) {
     addScript('nextjob-google-tag', `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleProductionConfig.gtagId)}`);
     window.gtag!('js', new Date());
     window.gtag!('config', googleProductionConfig.gtagId, { anonymize_ip: true });
   }
 
-  if (googleProductionConfig.adsEnabled && /^ca-pub-\d+$/.test(googleProductionConfig.adsenseClient)) {
+  // Do not load AdSense merely because a ca-pub value exists. The whole
+  // production configuration, including CMP readiness, must be explicitly READY.
+  if (GOOGLE_PRODUCTION_STATUS === 'READY') {
     addScript(
       'nextjob-adsense',
       `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(googleProductionConfig.adsenseClient)}`,
