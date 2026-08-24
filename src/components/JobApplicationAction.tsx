@@ -46,9 +46,9 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
     const createdAt = new Date().toISOString();
     try {
       await runTransaction(db, async tx => {
-        const existing = await tx.get(ref);
+        // No pre-create read of the application document. If it already exists,
+        // this set becomes an update and Security Rules reject the duplicate.
         const jobSnap = await tx.get(doc(db, 'jobs', job.id));
-        if (existing.exists()) throw new Error('ALREADY_EXISTS');
         if (!jobSnap.exists() || jobSnap.data().status === 'closed') throw new Error('JOB_CLOSED');
         if (jobSnap.data().userId !== employerUid) throw new Error('OWNER_CHANGED');
         tx.set(ref, {
@@ -62,9 +62,8 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
         });
       });
       setApplication({ id, jobId:job.id, candidateId, applicantUid, employerUid, status:'submitted', createdAt });
-    } catch (e) {
-      const code = e instanceof Error ? e.message : '';
-      setError(code === 'ALREADY_EXISTS' ? 'سبق إرسال طلب لهذه الوظيفة.' : 'تعذر إرسال الطلب. تحقق من أن الوظيفة ما زالت متاحة.');
+    } catch {
+      setError('تعذر إرسال الطلب. قد يكون سبق التقديم لهذه الوظيفة أو أن الوظيفة لم تعد متاحة.');
     } finally { setBusy(false); }
   };
 
