@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export interface Job {
   id: string;
   title: string;
@@ -19,10 +21,17 @@ export interface Job {
   whatsapp: string;
   contactPerson?: string;
   userId?: string;
-  userEmail?: string;
+  userEmail?: string | null;
   createdAt: string;
+  createdAtServer?: Timestamp;
   updatedAt?: string;
+  updatedAtServer?: Timestamp;
+  activityAt?: Timestamp;
   lastConfirmedAt?: string;
+  lastConfirmedAtServer?: Timestamp;
+  lastBumpedAt?: Timestamp;
+  closedAt?: Timestamp;
+  reopenedAt?: Timestamp;
   status: 'active' | 'recently_confirmed' | 'awaiting_confirmation' | 'closed';
   views?: number;
   urgent?: boolean;
@@ -39,11 +48,9 @@ export interface Candidate {
   fullName: string;
   profession: string;
   city: string;
-  yemeniGovernorate: string; // محافظة الأصل باليمن (صنعاء، تعز، إب، حضرموت، عدن، إلخ)
+  yemeniGovernorate: string;
   iqamaStatus: 'إقامة سارية وقابلة للنقل' | 'تأشيرة زيارة / هوية زائر' | 'إقامة سارية دون نقل' | 'مهن فردية / سائق خاص' | 'أخرى';
   experienceYears: string;
-  // Contact fields are used by form/local seed data only. Production Firestore
-  // stores them in candidateContacts/{candidateId}, not in the public document.
   phone: string;
   phoneE164?: string;
   phoneVerified: boolean;
@@ -56,8 +63,8 @@ export interface Candidate {
   availabilityNote?: string;
   educationLevel?: string;
   avatarUrl?: string;
-  isHidden: boolean; // إخفاء الملف بالكامل
-  allowContact: boolean; // إيقاف استقبال التواصل
+  isHidden: boolean;
+  allowContact: boolean;
   nationality?: string;
   userId?: string;
   userEmail?: string;
@@ -137,13 +144,18 @@ export interface CommunityJobSubmission {
 
 export interface FraudReport {
   id: string;
-  targetType: 'job' | 'candidate';
+  targetType: 'job' | 'candidate' | 'general';
   targetId: string;
   targetTitle: string;
-  reason: 'طلب مبالغ أو عمولات توظيف' | 'إعلان وهمي / احتيال' | 'بيانات اتصال خاطئة أو مضللة' | 'الوظيفة اكتفت أو غير متاحة' | 'محتوى غير لائق أو مخالف';
+  reason: 'طلب مبالغ أو عمولات توظيف' | 'إعلان وهمي / احتيال' | 'بيانات اتصال خاطئة أو مضللة' | 'رقم التواصل لا يخص صاحب الملف' | 'الوظيفة اكتفت أو غير متاحة' | 'محتوى غير لائق أو مخالف';
   details: string;
   reporterPhone?: string;
+  reporterUid?: string;
+  quotaSlot?: string;
   createdAt: string;
+  createdAtServer?: Timestamp;
+  reviewedAt?: string;
+  reviewedBy?: string;
   status: 'pending' | 'reviewed' | 'dismissed';
 }
 
