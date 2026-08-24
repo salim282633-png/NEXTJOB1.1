@@ -1,0 +1,34 @@
+name: Apply candidate hobbies fields
+
+on:
+  push:
+    paths:
+      - 'scripts/apply-candidate-hobbies.mjs'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/apply-candidate-hobbies.mjs
+      - name: Commit changes
+        run: |
+          git add src/types.ts src/components/PostCandidateModal.tsx src/components/CandidateCard.tsx firestore.rules
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git config user.name "nextjob-maintenance-bot"
+          git config user.email "nextjob-maintenance-bot@users.noreply.github.com"
+          git commit -m "Add hobbies and no-experience candidate fields"
+          git pull --rebase origin main
+          git push origin HEAD:main
