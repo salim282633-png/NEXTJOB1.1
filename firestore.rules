@@ -123,6 +123,16 @@ service cloud.firestore {
     }
 
     // =========================================================
+    // Admin authorization markers
+    // =========================================================
+    match /admins/{adminId} {
+      // The signed-in user may only check whether THEIR OWN admin marker exists.
+      // They cannot enumerate admins or grant/revoke privileges from the app.
+      allow get: if isSignedIn() && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    // =========================================================
     // Jobs
     // =========================================================
     match /jobs/{jobId} {
