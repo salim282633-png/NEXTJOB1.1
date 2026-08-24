@@ -50,15 +50,15 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
   const [isHidden, setIsHidden] = useState(false);
   const [allowContact, setAllowContact] = useState(true);
 
-  // Real Firebase Phone Authentication state.
+  // Real Firebase Phone Authentication state. A synthetic/local user is never
+  // treated as verified merely because it has a phoneNumber property.
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState('');
-  const [isPhoneVerified, setIsPhoneVerified] = useState(Boolean(user?.phoneNumber));
+  const [isPhoneVerified, setIsPhoneVerified] = useState(Boolean(auth.currentUser?.phoneNumber));
   const [otpSent, setOtpSent] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isConfirmingOtp, setIsConfirmingOtp] = useState(false);
-  const [verifiedFirebaseUid, setVerifiedFirebaseUid] = useState<string | null>(auth.currentUser?.uid || null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -177,16 +177,18 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
         verifiedUser = result.user;
       }
 
-      setVerifiedFirebaseUid(verifiedUser.uid);
+      // Force a fresh token so Firestore receives the Firebase phone_number
+      // ownership claim before any stale claim is revoked.
+      await verifiedUser.getIdToken(true);
+      await resolvePhoneSquatting(norm.canonical, verifiedUser.uid);
+
       setIsPhoneVerified(true);
       setOtpSent(false);
       setVerificationId(null);
       setOtpCode('');
       setErrorMsg('');
-      setSuccessMsg('تم توثيق رقم الجوال بنجاح عبر Firebase SMS.');
+      setSuccessMsg('تم توثيق رقم الجوال واستعادة ملكيته بأمان عبر Firebase SMS.');
       clearRecaptcha();
-
-      await resolvePhoneSquatting(norm.displayLocal, verifiedUser.uid);
     } catch (error) {
       console.error('Candidate phone verification confirm error:', error);
       setErrorMsg(getAuthErrorMessage(error));
@@ -225,8 +227,22 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
       whatsappNorm = normalizedWhatsapp.canonical.replace('+', '');
     }
 
+    const verifiedForSubmittedPhone = Boolean(
+      isPhoneVerified &&
+      auth.currentUser &&
+      auth.currentUser.phoneNumber === norm.canonical
+    );
+
     try {
       setIsSubmitting(true);
+
+      // A verified publication must complete secure reclaim first. Unverified
+      // publication remains fully allowed and contactable.
+      if (verifiedForSubmittedPhone && auth.currentUser) {
+        await auth.currentUser.getIdToken(true);
+        await resolvePhoneSquatting(norm.canonical, auth.currentUser.uid);
+      }
+
       const skills = skillsInput
         .split(/[,،]/)
         .map(s => s.trim())
@@ -241,7 +257,8 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
         experienceYears: experienceYears.trim() || 'خبرة عملية',
         educationLevel,
         phone: norm.displayLocal,
-        phoneVerified: isPhoneVerified,
+        phoneE164: norm.canonical,
+        phoneVerified: verifiedForSubmittedPhone,
         whatsapp: whatsappNorm,
         skills: skills.length > 0 ? skills : [profession.trim()],
         bio: bio.trim(),
@@ -250,13 +267,15 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
         isHidden,
         allowContact,
         nationality: 'يمني',
-        userId: verifiedFirebaseUid || auth.currentUser?.uid || user?.uid
+        userId: verifiedForSubmittedPhone && auth.currentUser
+          ? auth.currentUser.uid
+          : auth.currentUser?.uid || user?.uid
       });
 
       onClose();
     } catch (err) {
       console.error(err);
-      setErrorMsg('حدث خطأ أثناء نشر الملف الشخصي، يرجى المحاولة مرة أخرى.');
+      setErrorMsg('تعذر إكمال نشر الملف أو استعادة ملكية الرقم. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsSubmitting(false);
     }
@@ -484,7 +503,7 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
                 </div>
                 {!isPhoneVerified && (
                   <div className="mt-2 p-2 bg-slate-100 border border-slate-200 rounded-lg text-[10px] text-slate-600 leading-relaxed">
-                    <strong>تنبيه:</strong> التوثيق اختياري. عند طلب التوثيق سيصلك رمز حقيقي عبر SMS من Firebase، ولن يظهر الرمز داخل الموقع.
+                    <strong>تنبيه:</strong> التوثيق اختياري. سيظل رقمك ظاهرًا بعلامة «رقم غير موثق» ويمكن التقديم والتواصل به. عند التوثيق سيصلك رمز حقيقي عبر SMS من Firebase.
                   </div>
                 )}
               </div>
