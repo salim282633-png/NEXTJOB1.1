@@ -64,6 +64,12 @@ service cloud.firestore {
         contactData(candidateId).userId == request.auth.uid;
     }
 
+    function verifiedPhoneOwnsCandidateContact(candidateId) {
+      return hasVerifiedSaudiPhone() &&
+        contactExists(candidateId) &&
+        authOwnsPhone(contactData(candidateId).phoneE164);
+    }
+
     function publicCandidateReadable(data) {
       return data.schemaVersion == 2 &&
         data.isHidden == false;
@@ -166,12 +172,14 @@ service cloud.firestore {
     // No phone, WhatsApp, E.164 number or email is stored here in schema v2.
     // =========================================================
     match /candidates/{candidateId} {
-      // Direct get: visible public profile, its authenticated owner, or admin.
+      // Direct get: visible public profile, its authenticated owner, admin, or
+      // the verified owner of the exact phone contact during safe reclaim.
       // Legacy documents are not public because they have no schemaVersion=2.
       allow get: if
         publicCandidateReadable(existing()) ||
         ownsCandidate(candidateId) ||
         isAdmin() ||
+        verifiedPhoneOwnsCandidateContact(candidateId) ||
         (
           hasVerifiedSaudiPhone() &&
           existing().keys().hasAll(['phoneE164']) &&
@@ -242,9 +250,7 @@ service cloud.firestore {
         (
           // Secure reclaim of a schema-v2 stale claim. The verified phone
           // owner may only disable contact and verification on that profile.
-          hasVerifiedSaudiPhone() &&
-          contactExists(candidateId) &&
-          authOwnsPhone(contactData(candidateId).phoneE164) &&
+          verifiedPhoneOwnsCandidateContact(candidateId) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
             'phoneVerified', 'allowContact', 'phoneClaimRevokedAt'
           ]) &&
@@ -287,7 +293,7 @@ service cloud.firestore {
     match /candidateContacts/{candidateId} {
       allow get: if
         isAdmin() ||
-        ownsCandidate(candidateId) ||
+        (isSignedIn() && existing().userId == request.auth.uid) ||
         publicContactReadable(candidateId);
 
       // Only admins or a Firebase-authenticated owner of the exact verified
@@ -310,7 +316,8 @@ service cloud.firestore {
       allow update: if isValidId(candidateId) && (
         isAdmin() ||
         (
-          ownsCandidate(candidateId) &&
+          isSignedIn() &&
+          existing().userId == request.auth.uid &&
           incoming().candidateId == existing().candidateId &&
           incoming().schemaVersion == existing().schemaVersion &&
           incoming().userId == existing().userId &&
@@ -341,7 +348,7 @@ service cloud.firestore {
       );
 
       allow delete: if isValidId(candidateId) &&
-        (isAdmin() || ownsCandidate(candidateId));
+        (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
     }
   }
 }
