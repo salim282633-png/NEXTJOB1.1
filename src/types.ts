@@ -86,18 +86,6 @@ export interface CandidateContact {
 }
 
 export type ApplicationStatus = 'submitted' | 'viewed' | 'shortlisted' | 'rejected' | 'withdrawn';
-export interface ApplicationCandidateSnapshot {
-  fullName: string;
-  profession: string;
-  city: string;
-  skills: string[];
-  avatarUrl?: string;
-}
-export interface ApplicationJobSnapshot {
-  title: string;
-  company: string;
-  city: string;
-}
 export interface Application {
   id: string;
   jobId: string;
@@ -105,8 +93,6 @@ export interface Application {
   applicantUid: string;
   employerUid: string;
   status: ApplicationStatus;
-  candidateSnapshot?: ApplicationCandidateSnapshot;
-  jobSnapshot?: ApplicationJobSnapshot;
   createdAt: string;
   createdAtServer?: Timestamp;
   updatedAt?: string;
@@ -186,30 +172,6 @@ export interface FraudReport {
   reviewedAt?: string;
   reviewedBy?: string;
   status: 'pending' | 'reviewed' | 'dismissed';
-}
-
-export interface SEOKeywordMetric {
-  keyword: string;
-  cluster: string;
-  intent: 'commercial' | 'informational' | 'transactional';
-  searchVolumeEst: number;
-  competition: 'منخفضة' | 'متوسطة' | 'مرتفعة';
-  realJobCount: number;
-  indexStatus: 'index' | 'noindex' | 'refresh_needed';
-  cannibalizationRisk: 'منخفض' | 'متوسط' | 'مرتفع';
-  recommendedAction: 'Create' | 'Improve' | 'Refresh' | 'Job Page' | 'Pillar' | 'Skip';
-}
-
-export interface SEODryRunItem {
-  day: number;
-  slot: 'صباحي' | 'مسائي';
-  title: string;
-  cluster: string;
-  targetKeyword: string;
-  realJobSignal: number;
-  cannibalizationScore: number;
-  qualityGatePassed: boolean;
-  status: 'جاهز للنشر' | 'تحديث صفحة موجودة' | 'مستبعد لتشابه المحتوى';
 }
 
 export interface ToastMessage {
