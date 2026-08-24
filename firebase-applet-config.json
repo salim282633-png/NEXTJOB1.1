@@ -1,12 +1,8 @@
 {
-  "projectId": "modern-flow-m7c1c",
-  "appId": "1:747796478382:web:70c39fb5c09aa05e2b703f",
-  "apiKey": "AIzaSyAnKE0JNs_h4ZWne6D8nvRp2l7MR5vnYtA",
-  "authDomain": "modern-flow-m7c1c.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-1f75dba6-07c5-4de7-ac2b-71822c80a7ea",
-  "storageBucket": "modern-flow-m7c1c.firebasestorage.app",
-  "messagingSenderId": "747796478382",
-  "measurementId": "",
-  "oAuthClientId": "747796478382-77dimro9bcstl68ll8s67itiglhuvqil.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "apiKey": "AIzaSyBqlTMFFHU844OrtN-jJv2iiENtRFAy-80",
+  "authDomain": "gen-lang-client-0383747817.firebaseapp.com",
+  "projectId": "gen-lang-client-0383747817",
+  "storageBucket": "gen-lang-client-0383747817.firebasestorage.app",
+  "messagingSenderId": "919927960976",
+  "appId": "1:919927960976:web:3e3870c8a9ceb9ecc56f15"
 }
