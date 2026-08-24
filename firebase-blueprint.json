@@ -1,0 +1,175 @@
+{
+  "entities": {
+    "jobs": {
+      "title": "Job Posting",
+      "description": "Job vacancies posted by employers in Saudi Arabia for job seekers",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Job title or profession",
+          "maxLength": 150
+        },
+        "company": {
+          "type": "string",
+          "description": "Company, store or employer name",
+          "maxLength": 100
+        },
+        "city": {
+          "type": "string",
+          "description": "Saudi city where the job is located",
+          "maxLength": 50
+        },
+        "category": {
+          "type": "string",
+          "description": "Job category",
+          "maxLength": 50
+        },
+        "salary": {
+          "type": "string",
+          "description": "Salary range or amount in SAR",
+          "maxLength": 50
+        },
+        "jobType": {
+          "type": "string",
+          "description": "Full-time, Part-time, Contract, etc.",
+          "maxLength": 50
+        },
+        "sponsorshipTransfer": {
+          "type": "boolean",
+          "description": "Whether sponsorship transfer is available or required"
+        },
+        "accommodationProvided": {
+          "type": "boolean",
+          "description": "Whether accommodation is provided by employer"
+        },
+        "transportationProvided": {
+          "type": "boolean",
+          "description": "Whether transportation is provided"
+        },
+        "experienceYears": {
+          "type": "string",
+          "description": "Required years of experience",
+          "maxLength": 50
+        },
+        "description": {
+          "type": "string",
+          "description": "Full job description and requirements",
+          "maxLength": 3000
+        },
+        "phone": {
+          "type": "string",
+          "description": "Employer contact phone number",
+          "maxLength": 30
+        },
+        "whatsapp": {
+          "type": "string",
+          "description": "Employer WhatsApp number",
+          "maxLength": 30
+        },
+        "contactPerson": {
+          "type": "string",
+          "description": "Name of contact person",
+          "maxLength": 100
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the user who posted the job",
+          "maxLength": 128
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "Email of the poster",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation",
+          "maxLength": 40
+        }
+      },
+      "required": ["title", "company", "city", "category", "phone", "description"]
+    },
+    "candidates": {
+      "title": "Candidate Profile",
+      "description": "Job seeker profile and CV published for employers to view",
+      "type": "object",
+      "properties": {
+        "fullName": {
+          "type": "string",
+          "description": "Full name of candidate",
+          "maxLength": 100
+        },
+        "profession": {
+          "type": "string",
+          "description": "Primary profession or skill",
+          "maxLength": 100
+        },
+        "city": {
+          "type": "string",
+          "description": "Current city in Saudi Arabia",
+          "maxLength": 50
+        },
+        "iqamaStatus": {
+          "type": "string",
+          "description": "Status of residence permit (Transferable, Resident, Visitor, etc.)",
+          "maxLength": 80
+        },
+        "experienceYears": {
+          "type": "string",
+          "description": "Years of experience in the field",
+          "maxLength": 50
+        },
+        "phone": {
+          "type": "string",
+          "description": "Candidate phone number",
+          "maxLength": 30
+        },
+        "whatsapp": {
+          "type": "string",
+          "description": "Candidate WhatsApp number",
+          "maxLength": 30
+        },
+        "skills": {
+          "type": "string",
+          "description": "Comma separated skills or summary",
+          "maxLength": 500
+        },
+        "bio": {
+          "type": "string",
+          "description": "Candidate bio and career summary",
+          "maxLength": 2000
+        },
+        "hasDriverLicense": {
+          "type": "boolean",
+          "description": "Whether candidate has Saudi driving license"
+        },
+        "availableImmediately": {
+          "type": "boolean",
+          "description": "Whether candidate is ready for immediate start"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the user who posted candidate profile",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation",
+          "maxLength": 40
+        }
+      },
+      "required": ["fullName", "profession", "city", "iqamaStatus", "phone", "bio"]
+    }
+  },
+  "firestore": {
+    "/jobs/{jobId}": {
+      "schema": "jobs",
+      "description": "Collection of direct job postings in Saudi Arabia"
+    },
+    "/candidates/{candidateId}": {
+      "schema": "candidates",
+      "description": "Collection of candidate CV profiles available for hire"
+    }
+  }
+}

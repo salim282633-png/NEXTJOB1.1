@@ -1,0 +1,180 @@
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInAnonymously,
+  signOut, 
+  onAuthStateChanged, 
+  User 
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  getDocs, 
+  getDocFromServer,
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  orderBy, 
+  limit, 
+  onSnapshot 
+} from 'firebase/firestore';
+import firebaseConfig from '../../firebase-applet-config.json';
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.warn('Firestore Error Context: ', JSON.stringify(errInfo));
+  return errInfo;
+}
+
+export function getAuthErrorMessage(error: unknown): string {
+  if (!error) return 'حدث خطأ غير متوقع أثناء تسجيل الدخول.';
+  
+  const err = error as { code?: string; message?: string };
+  const code = err.code || '';
+
+  switch (code) {
+    case 'auth/popup-blocked':
+      return 'قام المتصفح بحظر نافذة تسجيل الدخول المنبثقة (Popup). يرجى السماح بالنوافذ المنبثقة في شريط المتصفح أو فتح التطبيق في تبويب مستقل.';
+    case 'auth/popup-closed-by-user':
+      return 'تم إغلاق نافذة تسجيل الدخول قبل إتمامها. يرجى الضغط والمحاولة مرة أخرى.';
+    case 'auth/cancelled-popup-request':
+      return 'تم إلغاء العملية لوجود طلب تسجيل دخول آخر قيد المعالجة.';
+    case 'auth/unauthorized-domain':
+      return 'هذا النطاق غير مصرح به حالياً في إعدادات Firebase Auth. يمكنك استخدام "الدخول السريع / وضع الزائر التجريبي" لمتابعة التصفح.';
+    case 'auth/network-request-failed':
+      return 'تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مجدداً.';
+    case 'auth/invalid-email':
+      return 'صيغة البريد الإلكتروني المدخلة غير صحيحة.';
+    case 'auth/user-disabled':
+      return 'تم تعطيل هذا الحساب مؤقتاً. يرجى التواصل مع الدعم الفني.';
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'بيانات الدخول غير صحيحة (البريد الإلكتروني أو كلمة المرور).';
+    case 'auth/email-already-in-use':
+      return 'هذا البريد الإلكتروني مسجل مسبقاً، يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.';
+    case 'auth/weak-password':
+      return 'كلمة المرور ضعيفة. يجب أن تتكون من 6 خانات على الأقل.';
+    case 'auth/operation-not-allowed':
+      return 'تسجيل الدخول بهذه الطريقة غير مفعّل حالياً في إعدادات النظام.';
+    default:
+      if (err.message && err.message.includes('popup')) {
+        return 'تعذر فتح نافذة تسجيل الدخول. يرجى التحقق من إعدادات النوافذ المنبثقة في متصفحك.';
+      }
+      return err.message || 'تعذر إتمام تسجيل الدخول في الوقت الحالي، يرجى المحاولة لاحقاً.';
+  }
+}
+
+// Initialize Firebase
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
+export async function loginWithGoogle(): Promise<User | null> {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error) {
+    console.error('Google login error:', error);
+    throw error;
+  }
+}
+
+export async function loginAnonymously(): Promise<User | null> {
+  try {
+    const result = await signInAnonymously(auth);
+    return result.user;
+  } catch (error) {
+    console.warn('Anonymous login not enabled in Firebase Console, continuing with demo mode.', error);
+    throw error;
+  }
+}
+
+export async function logoutUser(): Promise<void> {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error('Logout error:', error);
+    throw error;
+  }
+}
+
+// Test Firestore connection on startup as recommended in skill
+export async function testFirestoreConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.warn('Firestore offline notice: Local cache / fallback active.');
+    }
+  }
+}
+
+export async function resolvePhoneSquatting(phone: string, excludeUserId: string): Promise<void> {
+  try {
+    const { getDocs, query, collection, where, updateDoc, doc } = await import('firebase/firestore');
+    const q = query(collection(db, 'candidates'), where('phone', '==', phone));
+    const snapshot = await getDocs(q);
+    
+    const updatePromises = snapshot.docs
+      .filter(d => d.data().userId !== excludeUserId)
+      .map(d => updateDoc(doc(db, 'candidates', d.id), { 
+        phone: 'رقم محذوف', 
+        phoneVerified: false,
+        allowContact: false
+      }));
+      
+    await Promise.all(updatePromises);
+  } catch (error) {
+    console.error('Failed to resolve phone squatting:', error);
+  }
+}

@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Role-based Access (if implemented later)
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Jobs collection
+    match /jobs/{jobId} {
+      // allowContact is enforced on the UI for hiding, but we can't hide specific fields easily in Firestore rules.
+      // We will allow read so the app can fetch them. (In a real app with PII, phone should be in a subcollection,
+      // but since it's already in the main document and we are advised not to rebuild the DB, we leave read open but secure writes)
+      allow read: if true;
+      
+      // Anyone can create a job (as the app allows anonymous posting)
+      allow create: if isValidId(jobId) && 
+        incoming().keys().hasAll(['title', 'company', 'city', 'category', 'description', 'phone']) &&
+        incoming().title is string && incoming().title.size() <= 150 && incoming().title.size() > 0 &&
+        incoming().company is string && incoming().company.size() <= 100 &&
+        incoming().city is string && incoming().city.size() <= 50 &&
+        incoming().category is string && incoming().category.size() <= 50 &&
+        incoming().description is string && incoming().description.size() <= 3000 &&
+        incoming().phone is string && incoming().phone.size() <= 30;
+
+      // Update: strictly limited to the owner or admin. phoneVerified CANNOT be changed maliciously.
+      allow update: if isValidId(jobId) && (
+        isAdmin() || 
+        (
+          isSignedIn() && 
+          existing().userId == request.auth.uid &&
+          (
+            // Either they change non-sensitive fields
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'company', 'city', 'category', 'description', 'phone', 'whatsapp', 'updatedAt', 'status'])
+            // OR the system updates views
+            || incoming().diff(existing()).affectedKeys().hasOnly(['views'])
+          )
+        )
+      );
+
+      allow delete: if isValidId(jobId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+    }
+
+    // Candidates collection
+    match /candidates/{candidateId} {
+      allow read: if true;
+
+      // Allow creation with valid data
+      allow create: if isValidId(candidateId) &&
+        incoming().keys().hasAll(['fullName', 'profession', 'city', 'iqamaStatus', 'phone', 'bio']) &&
+        incoming().fullName is string && incoming().fullName.size() <= 100 && incoming().fullName.size() > 0 &&
+        incoming().profession is string && incoming().profession.size() <= 100 &&
+        incoming().city is string && incoming().city.size() <= 50 &&
+        incoming().iqamaStatus is string && incoming().iqamaStatus.size() <= 80 &&
+        incoming().phone is string && incoming().phone.size() <= 30 &&
+        incoming().bio is string && incoming().bio.size() <= 2000;
+
+      // Update rules: Protect phoneVerified and isHidden
+      allow update: if isValidId(candidateId) && (
+        isAdmin() ||
+        (
+          isSignedIn() &&
+          existing().userId == request.auth.uid &&
+          (
+            // They cannot change phoneVerified to true maliciously.
+            incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'profession', 'city', 'iqamaStatus', 'phone', 'bio', 'whatsapp', 'skills', 'hasDriverLicense', 'availableImmediately', 'isHidden', 'allowContact', 'updatedAt'])
+            || incoming().diff(existing()).affectedKeys().hasOnly(['views'])
+          )
+        )
+      );
+
+      allow delete: if isValidId(candidateId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+    }
+  }
+}

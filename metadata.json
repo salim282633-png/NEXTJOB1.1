@@ -1,0 +1,6 @@
+{
+  "name": "NEXT JOB",
+  "description": "NEXT JOB منصة تقنية تربط اليمنيين المقيمين في السعودية بفرص العمل المناسبة، وتسهّل التواصل المباشر مع أصحاب العمل مجانًا ودون عمولات توظيف.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
