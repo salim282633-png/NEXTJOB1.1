@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Cookie, Settings, ShieldCheck } from 'lucide-react';
-import { GOOGLE_PRODUCTION_STATUS, googleProductionConfig } from '../lib/googleProduction';
+import { GOOGLE_PRODUCTION_STATUS } from '../lib/googleProduction';
 
 interface CookieConsentBannerProps { onOpenPrivacyModal: () => void; }
 
@@ -67,10 +67,8 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onOpen
   }, []);
 
   const save = (analyticsValue: boolean, adsValue: boolean) => {
-    // If AdSense is not configured, advertising consent is stored as denied
-    // even if the UI preference was toggled. This prevents a false READY state.
-    const adsActuallyConfigured = googleProductionConfig.adsEnabled && Boolean(googleProductionConfig.adsenseClient);
-    const consent = buildConsent(analyticsValue, adsValue && adsActuallyConfigured);
+    const advertisingReady = GOOGLE_PRODUCTION_STATUS === 'READY';
+    const consent = buildConsent(analyticsValue, adsValue && advertisingReady);
     localStorage.setItem('nj_google_cmp_consent', JSON.stringify(consent));
     updateGoogleConsentMode(consent);
     setVisible(false);
@@ -101,7 +99,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onOpen
         {preferences && <div className="grid sm:grid-cols-3 gap-2 pt-3 border-t border-slate-800 text-xs">
           <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 flex justify-between"><div><strong>الأمان والوظائف الأساسية</strong><p className="text-[10px] text-slate-400 mt-1">الجلسة، الأمان، التفضيلات الأساسية</p></div><span className="text-emerald-400 font-bold">دائم</span></div>
           <label className="bg-slate-800 border border-slate-700 rounded-xl p-3 flex justify-between gap-3"><div><strong>القياس</strong><p className="text-[10px] text-slate-400 mt-1">Consent Mode: analytics_storage</p></div><input type="checkbox" checked={analytics} onChange={e=>setAnalytics(e.target.checked)} /></label>
-          <label className="bg-slate-800 border border-slate-700 rounded-xl p-3 flex justify-between gap-3"><div><strong>الإعلانات</strong><p className="text-[10px] text-slate-400 mt-1">لا يُفعّل فعليًا حتى تهيئة AdSense</p></div><input type="checkbox" checked={ads} onChange={e=>setAds(e.target.checked)} /></label>
+          <label className="bg-slate-800 border border-slate-700 rounded-xl p-3 flex justify-between gap-3"><div><strong>الإعلانات</strong><p className="text-[10px] text-slate-400 mt-1">تبقى denied حتى READY</p></div><input type="checkbox" checked={ads} onChange={e=>setAds(e.target.checked)} /></label>
           <div className="sm:col-span-3 flex justify-end"><button onClick={()=>save(analytics,ads)} className="px-5 py-2 bg-emerald-600 rounded-xl font-bold flex gap-1"><ShieldCheck className="w-4 h-4" />حفظ التفضيلات</button></div>
         </div>}
       </div>
