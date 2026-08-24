@@ -33,7 +33,18 @@ service cloud.firestore {
     }
 
     function authOwnsPhone(phoneE164) {
-      return hasVerifiedSaudiPhone() && phoneE164 == request.auth.token.phone_number;
+      return hasVerifiedSaudiPhone() &&
+        phoneE164 is string &&
+        phoneE164 == request.auth.token.phone_number;
+    }
+
+    // Legacy candidate records stored phone as 05XXXXXXXX before phoneE164
+    // existed. This derives the local Saudi format directly from the trusted
+    // Firebase ID-token phone_number claim; the client cannot choose it.
+    function authOwnsLegacyLocalPhone(localPhone) {
+      return hasVerifiedSaudiPhone() &&
+        localPhone is string &&
+        localPhone == '0' + request.auth.token.phone_number[4:13];
     }
 
     function validCandidatePhoneState(data) {
@@ -128,10 +139,13 @@ service cloud.firestore {
           incoming().diff(existing()).affectedKeys().hasOnly(['views'])
         ) ||
         (
-          // Secure reclaim: the verified owner of an E.164 phone may revoke
-          // stale/unverified claims on other candidate documents, but may only
-          // clear contact/verification fields—nothing else.
-          authOwnsPhone(existing().phoneE164) &&
+          // Secure reclaim: the verified owner of either the canonical E.164
+          // value or a legacy 05XXXXXXXX value may revoke stale claims, but
+          // may only clear contact/verification fields—nothing else.
+          (
+            authOwnsPhone(existing().get('phoneE164', '')) ||
+            authOwnsLegacyLocalPhone(existing().get('phone', ''))
+          ) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
             'phone', 'phoneE164', 'phoneVerified', 'whatsapp',
             'allowContact', 'phoneClaimRevokedAt'
