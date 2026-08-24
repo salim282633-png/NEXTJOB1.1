@@ -1,23 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  collection, 
-  onSnapshot, 
-  addDoc, 
-  query, 
-  orderBy, 
-  limit, 
-  doc, 
-  updateDoc 
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  doc,
+  updateDoc,
+  writeBatch
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { 
-  auth, 
-  db, 
-  loginWithGoogle, 
-  logoutUser, 
-  testFirestoreConnection, 
+import {
+  auth,
+  db,
+  loginWithGoogle,
+  logoutUser,
+  testFirestoreConnection,
   handleFirestoreError,
-  OperationType 
+  OperationType
 } from './lib/firebase';
 import { INITIAL_JOBS, INITIAL_CANDIDATES, INITIAL_COMMUNITY_SUBMISSIONS, INITIAL_FRAUD_REPORTS } from './lib/data';
 import { Job, Candidate, JobFilter, ToastMessage, CommunityJobSubmission, FraudReport } from './types';
@@ -45,7 +47,7 @@ import { ToastContainer } from './components/Toast';
 export function App() {
   const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'guide' | 'saved'>('jobs');
   const [user, setUser] = useState<User | null>(null);
-  
+
   // Data states
   const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
   const [candidates, setCandidates] = useState<Candidate[]>(INITIAL_CANDIDATES);
@@ -137,7 +139,7 @@ export function App() {
               id: docSnap.id,
               ...docSnap.data()
             } as Job));
-            
+
             // Merge custom posted jobs with initial seed jobs so user always sees rich variety
             const existingIds = new Set(fetchedJobs.map(j => j.id));
             const merged = [
@@ -163,12 +165,19 @@ export function App() {
     }
   }, []);
 
-  // Listen to Firestore 'candidates' collection with fallback
+  // Public candidate listener: Firestore Security Rules require both filters.
+  // Hidden profiles and legacy documents containing contact data are never
+  // returned by this public query.
   useEffect(() => {
     setIsLoadingCandidates(true);
     const candPath = 'candidates';
     try {
-      const q = query(collection(db, candPath), limit(100));
+      const q = query(
+        collection(db, candPath),
+        where('schemaVersion', '==', 2),
+        where('isHidden', '==', false),
+        limit(100)
+      );
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
@@ -232,7 +241,10 @@ export function App() {
   };
 
   const handleQuickWhatsAppCandidate = (candidate: Candidate) => {
-    const cleanPhone = candidate.whatsapp ? candidate.whatsapp.replace(/[^0-9]/g, '') : candidate.phone.replace(/[^0-9]/g, '');
+    const contactNumber = candidate.whatsapp || candidate.phone || '';
+    const cleanPhone = contactNumber.replace(/[^0-9]/g, '');
+    if (!cleanPhone) return;
+
     const text = encodeURIComponent(
       `السلام عليكم أخي ${candidate.fullName}، شاهدت سيرتك الذاتية (${candidate.profession}) في منصة NEXT JOB ولدينا فرصة عمل مناسبة.`
     );
@@ -279,25 +291,55 @@ export function App() {
     }
   };
 
-  // Post Candidate submit handler
+  // Candidate publication is atomic: public profile and sensitive contact data
+  // are written to two separate collections in the same batch.
   const handlePostCandidate = async (candidateData: Omit<Candidate, 'id' | 'createdAt' | 'views'>) => {
     const newCandidateObj: Candidate = {
       ...candidateData,
       id: `cand-${Date.now()}`,
       createdAt: 'الآن',
-      views: 1
+      views: 1,
+      schemaVersion: 2
     };
 
+    const {
+      phone,
+      phoneE164,
+      whatsapp,
+      userId: _submittedUserId,
+      userEmail: _submittedUserEmail,
+      ...publicCandidateData
+    } = candidateData;
+
     try {
-      await addDoc(collection(db, 'candidates'), {
-        ...newCandidateObj,
-        createdAt: new Date().toISOString()
+      const candidateRef = doc(collection(db, 'candidates'));
+      const contactRef = doc(db, 'candidateContacts', candidateRef.id);
+      const ownerUid = auth.currentUser?.uid || null;
+      const createdAt = new Date().toISOString();
+      const batch = writeBatch(db);
+
+      batch.set(candidateRef, {
+        ...publicCandidateData,
+        schemaVersion: 2,
+        createdAt
       });
+
+      batch.set(contactRef, {
+        candidateId: candidateRef.id,
+        phone,
+        phoneE164: phoneE164 || '',
+        whatsapp,
+        phoneVerified: candidateData.phoneVerified,
+        userId: ownerUid,
+        schemaVersion: 2
+      });
+
+      await batch.commit();
       addToast('success', 'تم نشر ملفك وسيرتك الذاتية بنجاح!');
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, 'candidates');
+      handleFirestoreError(err, OperationType.CREATE, 'candidates + candidateContacts');
       setCandidates(prev => [newCandidateObj, ...prev]);
-      addToast('success', 'تم حفظ ونشر ملفك الشخصي بنجاح!');
+      addToast('success', 'تم حفظ ونشر ملفك الشخصي محلياً بنجاح!');
     }
   };
 
@@ -395,7 +437,7 @@ export function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white font-sans antialiased" dir="rtl">
-      
+
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
 
@@ -413,7 +455,7 @@ export function App() {
 
       {/* Main Content Area based on Active Tab */}
       <main className="flex-1">
-        
+
         {/* Tab 1: Jobs */}
         {activeTab === 'jobs' && (
           <div>
@@ -617,7 +659,7 @@ export function App() {
       />
 
       {/* Footer */}
-      <Footer 
+      <Footer
         onNavigate={setActiveTab}
         onOpenWageCalc={() => setIsWageCalcOpen(true)}
         onOpenCVGen={() => {
