@@ -1,26 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  UserPlus, 
-  ShieldCheck, 
-  Phone, 
-  CheckCircle2, 
-  AlertCircle, 
-  KeyRound, 
-  RefreshCw, 
-  Copy, 
-  Clock 
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  X,
+  UserPlus,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  KeyRound
 } from 'lucide-react';
 import { SAUDI_CITIES, YEMENI_GOVERNORATES } from '../lib/data';
 import { Candidate } from '../types';
-import { User } from 'firebase/auth';
+import {
+  PhoneAuthProvider,
+  RecaptchaVerifier,
+  User,
+  linkWithCredential,
+  signInWithCredential,
+  updatePhoneNumber
+} from 'firebase/auth';
 import { checkRateLimit } from '../lib/rateLimit';
-import { 
-  normalizeSaudiPhone, 
-  createOTPChallenge, 
-  verifyOTPChallenge, 
-  OTPChallenge 
-} from '../lib/phone';
+import { auth, getAuthErrorMessage, resolvePhoneSquatting } from '../lib/firebase';
+import { normalizeSaudiPhone } from '../lib/phone';
 
 interface PostCandidateModalProps {
   isOpen: boolean;
@@ -51,63 +50,148 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
   const [isHidden, setIsHidden] = useState(false);
   const [allowContact, setAllowContact] = useState(true);
 
-  // Phone Verification State
-  const [activeChallenge, setActiveChallenge] = useState<OTPChallenge | null>(null);
+  // Real Firebase Phone Authentication state.
+  const [verificationId, setVerificationId] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState('');
-  const [isPhoneVerified, setIsPhoneVerified] = useState(Boolean(user?.emailVerified || user?.phoneNumber));
+  const [isPhoneVerified, setIsPhoneVerified] = useState(Boolean(user?.phoneNumber));
   const [otpSent, setOtpSent] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [resendCooldown, setResendCooldown] = useState<number>(0);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isConfirmingOtp, setIsConfirmingOtp] = useState(false);
+  const [verifiedFirebaseUid, setVerifiedFirebaseUid] = useState<string | null>(auth.currentUser?.uid || null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Countdown timer for OTP
   useEffect(() => {
-    if (!otpSent || !activeChallenge) return;
+    if (resendCooldown <= 0) return;
 
-    const timer = setInterval(() => {
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((activeChallenge.expiresAt - now) / 1000));
-      setTimeLeft(remaining);
-      setResendCooldown(prev => (prev > 0 ? prev - 1 : 0));
+    const timer = window.setInterval(() => {
+      setResendCooldown(previous => Math.max(0, previous - 1));
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [otpSent, activeChallenge]);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
+
+  useEffect(() => {
+    return () => {
+      recaptchaVerifierRef.current?.clear();
+      recaptchaVerifierRef.current = null;
+    };
+  }, []);
 
   if (!isOpen) return null;
 
-  const handleSendOtp = () => {
+  const clearRecaptcha = () => {
+    recaptchaVerifierRef.current?.clear();
+    recaptchaVerifierRef.current = null;
+  };
+
+  const buildRecaptchaVerifier = () => {
+    clearRecaptcha();
+    const verifier = new RecaptchaVerifier(auth, 'post-candidate-recaptcha-container', {
+      size: 'invisible'
+    });
+    recaptchaVerifierRef.current = verifier;
+    return verifier;
+  };
+
+  const resetPhoneVerification = () => {
+    clearRecaptcha();
+    setVerificationId(null);
+    setOtpCode('');
+    setOtpSent(false);
+    setResendCooldown(0);
+    setIsPhoneVerified(false);
+    setSuccessMsg('');
+  };
+
+  const handleSendOtp = async () => {
     const norm = normalizeSaudiPhone(phone);
     if (!norm.isValid) {
       setErrorMsg(norm.error || 'يرجى كتابة رقم جوال سعودي صحيح أولاً.');
       return;
     }
+
+    if (resendCooldown > 0 || isSendingOtp) return;
+
     setErrorMsg('');
-    const challenge = createOTPChallenge(norm.canonical);
-    setActiveChallenge(challenge);
-    setTimeLeft(180);
-    setResendCooldown(60);
-    setOtpSent(true);
-    setSuccessMsg(`تم إرسال رمز التحقق إلى الرقم ${norm.displayLocal}`);
+    setSuccessMsg('');
+    setIsSendingOtp(true);
+
+    try {
+      const verifier = buildRecaptchaVerifier();
+      const provider = new PhoneAuthProvider(auth);
+      const id = await provider.verifyPhoneNumber(norm.canonical, verifier);
+
+      setVerificationId(id);
+      setOtpCode('');
+      setOtpSent(true);
+      setResendCooldown(60);
+      setSuccessMsg(`تم إرسال رمز التحقق عبر SMS إلى الرقم ${norm.displayLocal}`);
+    } catch (error) {
+      console.error('Candidate phone verification send error:', error);
+      clearRecaptcha();
+      setErrorMsg(getAuthErrorMessage(error));
+    } finally {
+      setIsSendingOtp(false);
+    }
   };
 
-  const handleConfirmOtp = () => {
-    if (!otpCode.trim()) {
+  const handleConfirmOtp = async () => {
+    if (!verificationId) {
+      setErrorMsg('اطلب رمز تحقق جديد أولاً.');
+      return;
+    }
+
+    if (!/^\d{6}$/.test(otpCode.trim())) {
       setErrorMsg('يرجى إدخال رمز التحقق المكون من 6 أرقام.');
       return;
     }
 
-    const result = verifyOTPChallenge(otpCode.trim());
-    if (result.success) {
+    const norm = normalizeSaudiPhone(phone);
+    if (!norm.isValid) {
+      setErrorMsg(norm.error || 'رقم الجوال غير صالح.');
+      return;
+    }
+
+    setIsConfirmingOtp(true);
+    setErrorMsg('');
+
+    try {
+      const credential = PhoneAuthProvider.credential(verificationId, otpCode.trim());
+      let verifiedUser: User;
+
+      if (auth.currentUser) {
+        if (auth.currentUser.phoneNumber) {
+          await updatePhoneNumber(auth.currentUser, credential);
+          verifiedUser = auth.currentUser;
+        } else {
+          const result = await linkWithCredential(auth.currentUser, credential);
+          verifiedUser = result.user;
+        }
+      } else {
+        const result = await signInWithCredential(auth, credential);
+        verifiedUser = result.user;
+      }
+
+      setVerifiedFirebaseUid(verifiedUser.uid);
       setIsPhoneVerified(true);
       setOtpSent(false);
+      setVerificationId(null);
+      setOtpCode('');
       setErrorMsg('');
-      setSuccessMsg('تم توثيق رقم الجوال بنجاح! سيظهر برمز التوثيق المعتمد.');
-    } else {
-      setErrorMsg(result.message);
+      setSuccessMsg('تم توثيق رقم الجوال بنجاح عبر Firebase SMS.');
+      clearRecaptcha();
+
+      await resolvePhoneSquatting(norm.displayLocal, verifiedUser.uid);
+    } catch (error) {
+      console.error('Candidate phone verification confirm error:', error);
+      setErrorMsg(getAuthErrorMessage(error));
+    } finally {
+      setIsConfirmingOtp(false);
     }
   };
 
@@ -131,14 +215,22 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
       return;
     }
 
+    let whatsappNorm = norm.canonical.replace('+', '');
+    if (whatsapp.trim()) {
+      const normalizedWhatsapp = normalizeSaudiPhone(whatsapp);
+      if (!normalizedWhatsapp.isValid) {
+        setErrorMsg(normalizedWhatsapp.error || 'رقم الواتساب غير صالح.');
+        return;
+      }
+      whatsappNorm = normalizedWhatsapp.canonical.replace('+', '');
+    }
+
     try {
       setIsSubmitting(true);
       const skills = skillsInput
         .split(/[,،]/)
         .map(s => s.trim())
         .filter(s => s.length > 0);
-
-      const whatsappNorm = whatsapp.trim() ? normalizeSaudiPhone(whatsapp).canonical.replace('+', '') : norm.canonical.replace('+', '');
 
       await onSubmit({
         fullName: fullName.trim(),
@@ -158,7 +250,7 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
         isHidden,
         allowContact,
         nationality: 'يمني',
-        userId: user?.uid
+        userId: verifiedFirebaseUid || auth.currentUser?.uid || user?.uid
       });
 
       onClose();
@@ -172,7 +264,7 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4" dir="rtl">
-      <div 
+      <div
         id="post-candidate-modal-container"
         className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95 duration-200"
       >
@@ -301,9 +393,7 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
           {/* Education & Experience */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                المؤهل الأكاديمي
-              </label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">المؤهل الأكاديمي</label>
               <input
                 type="text"
                 value={educationLevel}
@@ -314,9 +404,7 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                سنوات الخبرة بالسعودية
-              </label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">سنوات الخبرة بالسعودية</label>
               <input
                 id="input-cand-exp"
                 type="text"
@@ -344,11 +432,9 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
             />
           </div>
 
-          {/* Skills (Comma separated) */}
+          {/* Skills */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              المهارات والكلمات المفتاحية (مفصولة بفاصلة)
-            </label>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">المهارات والكلمات المفتاحية (مفصولة بفاصلة)</label>
             <input
               id="input-cand-skills"
               type="text"
@@ -375,7 +461,7 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
                     value={phone}
                     onChange={e => {
                       setPhone(e.target.value);
-                      setIsPhoneVerified(false);
+                      resetPhoneVerification();
                     }}
                     placeholder="05XXXXXXXX"
                     className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-mono font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
@@ -384,9 +470,10 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
                     <button
                       type="button"
                       onClick={handleSendOtp}
-                      className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shrink-0 transition-colors flex items-center gap-1.5"
+                      disabled={isSendingOtp || resendCooldown > 0}
+                      className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shrink-0 transition-colors flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      <span>تأكيد رقم الجوال</span>
+                      <span>{isSendingOtp ? 'جارٍ الإرسال...' : 'تأكيد رقم الجوال'}</span>
                     </button>
                   ) : (
                     <span className="px-3 py-2 bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1">
@@ -397,15 +484,13 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
                 </div>
                 {!isPhoneVerified && (
                   <div className="mt-2 p-2 bg-slate-100 border border-slate-200 rounded-lg text-[10px] text-slate-600 leading-relaxed">
-                    <strong>تنبيه:</strong> رقمك ظاهر حالياً كرقم غير موثق. يمكنك تأكيده اختيارياً لإظهار علامة (رقم موثق). يمكنك تغيير الرقم، إخفاؤه تماماً عبر (إلغاء تفعيل وسيلة التواصل)، أو إخفاء الملف كلياً من الأسفل.
+                    <strong>تنبيه:</strong> التوثيق اختياري. عند طلب التوثيق سيصلك رمز حقيقي عبر SMS من Firebase، ولن يظهر الرمز داخل الموقع.
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                  رقم الواتساب
-                </label>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">رقم الواتساب</label>
                 <input
                   id="input-cand-whatsapp"
                   type="tel"
@@ -418,29 +503,18 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
               </div>
             </div>
 
-            {/* OTP Verification Interactive Prompt */}
-            {otpSent && !isPhoneVerified && activeChallenge && (
-              <div className="p-3.5 bg-white rounded-xl border border-emerald-300 space-y-2 animate-in fade-in">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <KeyRound className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="text-xs font-bold text-slate-800">
-                      رمز التحقق للتجربة: <strong>{activeChallenge.code}</strong>
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setOtpCode(activeChallenge.code)}
-                    className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"
-                  >
-                    <Copy className="w-3 h-3" />
-                    <span>نسخ وتعبئة الرمز</span>
-                  </button>
+            {/* Real Firebase SMS verification */}
+            {otpSent && !isPhoneVerified && verificationId && (
+              <div className="p-3.5 bg-white rounded-xl border border-emerald-300 space-y-3 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800">أدخل رمز التحقق المرسل إلى جوالك عبر SMS</span>
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <input
                     type="text"
+                    inputMode="numeric"
                     dir="ltr"
                     maxLength={6}
                     value={otpCode}
@@ -451,22 +525,31 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
                   <button
                     type="button"
                     onClick={handleConfirmOtp}
-                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+                    disabled={isConfirmingOtp || otpCode.length !== 6}
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    تأكيد التوثيق
+                    {isConfirmingOtp ? 'جارٍ التحقق...' : 'تأكيد التوثيق'}
                   </button>
-                  <span className="text-[11px] text-slate-500 font-mono mr-auto">
-                    الصلاحية: {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-                  </span>
+
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={resendCooldown > 0 || isSendingOtp}
+                    className="text-[11px] font-bold text-emerald-700 disabled:text-slate-400"
+                  >
+                    {resendCooldown > 0 ? `إعادة الإرسال بعد ${resendCooldown}ث` : 'إعادة إرسال الرمز'}
+                  </button>
                 </div>
               </div>
             )}
+
+            <div id="post-candidate-recaptcha-container" />
           </div>
 
           {/* Privacy & Visibility Options */}
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
             <span className="text-xs font-bold text-slate-800 block">خيارات الخصوصية والظهور:</span>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700">
                 <input
@@ -537,7 +620,6 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
             </button>
           </div>
         </form>
-
       </div>
     </div>
   );
