@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Share2, X, CheckCircle2, HeartHandshake, MapPin, Building2, Phone, Tag } from 'lucide-react';
+import { Share2, X, CheckCircle2, HeartHandshake } from 'lucide-react';
 import { SAUDI_CITIES, JOB_CATEGORIES } from '../lib/data';
 import { CommunityJobSubmission } from '../types';
 
 interface CommunityJobModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (submission: Omit<CommunityJobSubmission, 'id' | 'status' | 'submittedAt'>) => void;
+  onSubmit: (submission: Omit<CommunityJobSubmission, 'id' | 'status' | 'submittedAt' | 'reviewedAt' | 'reviewedBy' | 'publishedJobId'>) => Promise<void>;
 }
 
 export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
@@ -25,33 +25,43 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
   const [submitterPhone, setSubmitterPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !companyOrShop || !contactNumber || !details) return;
+    if (!title || !companyOrShop || !contactNumber || !details || isSubmitting) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      onSubmit({
-        title,
-        companyOrShop,
+    setSubmitError('');
+
+    try {
+      await onSubmit({
+        title: title.trim(),
+        companyOrShop: companyOrShop.trim(),
         city,
         category,
-        contactNumber,
-        salary,
-        details,
-        submitterName,
-        submitterPhone
+        contactNumber: contactNumber.trim(),
+        salary: salary.trim(),
+        details: details.trim(),
+        submitterName: submitterName.trim(),
+        submitterPhone: submitterPhone.trim()
       });
-      setIsSubmitting(false);
+
+      // Success means Firestore accepted a pending moderation record.
+      // It does NOT mean the opportunity has been published as a job.
       setIsSuccess(true);
-      setTimeout(() => {
+      window.setTimeout(() => {
         setIsSuccess(false);
         onClose();
-      }, 2000);
-    }, 600);
+      }, 1800);
+    } catch (error) {
+      console.error('Community submission failed:', error);
+      setSubmitError('تعذر إرسال الفرصة للمراجعة. لم يتم نشرها، يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -65,10 +75,10 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-bold">دلّنا على فرصة عمل (مبادرة مجتمعية)</h2>
-              <p className="text-xs text-teal-100 mt-0.5">سمعت عن شاغر في متجر أو شركة؟ ساعد إخوانك الباحثين عن عمل بنشر تفاصيلها مجاناً</p>
+              <p className="text-xs text-teal-100 mt-0.5">أرسل تفاصيل الفرصة، ثم يراجعها فريق الإدارة قبل ظهورها ضمن الوظائف</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
             aria-label="إغلاق"
@@ -82,9 +92,9 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-10 h-10" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800">جزاك الله خيراً!</h3>
+            <h3 className="text-lg font-bold text-slate-800">تم إرسال الفرصة للمراجعة</h3>
             <p className="text-xs text-slate-600 max-w-sm mx-auto">
-              تم استلام الفرصة وسيتم مراجعتها سريعاً ونشرها لإخوانك الباحثين عن عمل في أقرب وقت.
+              حالة الطلب الآن: <strong>بانتظار مراجعة الإدارة</strong>. لن تظهر الفرصة في قائمة الوظائف إلا بعد اعتمادها.
             </p>
           </div>
         ) : (
@@ -92,15 +102,22 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
             <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl text-xs text-emerald-950 flex items-start gap-2.5">
               <Share2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
               <span>
-                <strong>الدال على الخير كفاعله:</strong> هذه الخدمة مخصصة للأفراد والمقيمين الذين يعرفون عن شواغر في محيطهم ويرغبون بنفع غيرهم بدون أي مقابل.
+                <strong>مسار النشر:</strong> إرسال الفرصة ← بانتظار المراجعة ← اعتماد الإدارة ← النشر للعامة.
               </span>
             </div>
+
+            {submitError && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs font-semibold text-rose-700">
+                {submitError}
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">المسمى الوظيفي للشاغر *</label>
               <input
                 type="text"
                 required
+                maxLength={150}
                 placeholder="مثال: كاشير في بقالة، معلم شاورما، سائق نقل خفيف"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -114,6 +131,7 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
                 <input
                   type="text"
                   required
+                  maxLength={100}
                   placeholder="مثال: مطاعم الروابي، تموينات البركة"
                   value={companyOrShop}
                   onChange={(e) => setCompanyOrShop(e.target.value)}
@@ -154,6 +172,7 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
                 <input
                   type="tel"
                   required
+                  maxLength={30}
                   placeholder="05xxxxxxxx"
                   value={contactNumber}
                   onChange={(e) => setContactNumber(e.target.value)}
@@ -166,6 +185,7 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
               <label className="block text-xs font-bold text-slate-700 mb-1">الراتب التقريبي أو المميزات (إن عُلمت)</label>
               <input
                 type="text"
+                maxLength={120}
                 placeholder="مثال: 3500 ريال + سكن"
                 value={salary}
                 onChange={(e) => setSalary(e.target.value)}
@@ -178,6 +198,7 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
               <textarea
                 required
                 rows={3}
+                maxLength={3000}
                 placeholder="مثال: المحل بحي الروضة شارع خالد بن الوليد، يطلبون شاب متفرغ ومعه إقامة سارية ونقل كفالة متاح..."
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
@@ -190,6 +211,7 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
                 <label className="block text-[11px] font-bold text-slate-500 mb-1">اسمك (اختياري)</label>
                 <input
                   type="text"
+                  maxLength={100}
                   placeholder="مثال: فاعل خير / أبو محمد"
                   value={submitterName}
                   onChange={(e) => setSubmitterName(e.target.value)}
@@ -200,6 +222,7 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
                 <label className="block text-[11px] font-bold text-slate-500 mb-1">رقمك للمتابعة (اختياري)</label>
                 <input
                   type="tel"
+                  maxLength={30}
                   placeholder="05xxxxxxxx"
                   value={submitterPhone}
                   onChange={(e) => setSubmitterPhone(e.target.value)}
@@ -208,21 +231,21 @@ export const CommunityJobModal: React.FC<CommunityJobModalProps> = ({
               </div>
             </div>
 
-            {/* Actions */}
             <div className="pt-4 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                disabled={isSubmitting}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
               >
                 إلغاء
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold transition-all shadow-sm"
+                className="px-6 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 disabled:opacity-60 text-white text-xs font-bold transition-all shadow-sm"
               >
-                {isSubmitting ? 'جاري الإرسال...' : 'إرسال الفرصة للمراجعة والنشر'}
+                {isSubmitting ? 'جاري الإرسال...' : 'إرسال للمراجعة'}
               </button>
             </div>
           </form>
