@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
-import { Briefcase, SlidersHorizontal, ArrowUpDown, PlusCircle, Search, RefreshCw } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowUpDown, PlusCircle, RefreshCw, Search } from 'lucide-react';
 import { Job, JobFilter } from '../types';
 import { JobCard } from './JobCard';
+import { JobApplicationAction } from './JobApplicationAction';
+import { RecommendedJobs } from './RecommendedJobs';
+import { useOwnedCandidate } from '../hooks/useOwnedCandidate';
+import { freshnessMatches, jobActivityMs, salaryMatches, salarySortValue } from '../lib/jobDiscovery';
 
 interface JobListProps {
   jobs: Job[];
@@ -15,165 +19,113 @@ interface JobListProps {
   isLoading: boolean;
 }
 
-export const JobList: React.FC<JobListProps> = ({
-  jobs = [],
-  filter,
-  setFilter,
-  onSelectJob,
-  savedJobIds,
-  onToggleSave,
-  onQuickWhatsApp,
-  onOpenPostJob,
-  isLoading
-}) => {
+export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, onSelectJob, savedJobIds, onToggleSave, onQuickWhatsApp, onOpenPostJob, isLoading }) => {
   const [sortBy, setSortBy] = useState<'latest' | 'salary'>('latest');
+  const [now, setNow] = useState(Date.now());
+  const { user, candidate } = useOwnedCandidate();
 
-  // Filter jobs based on active filter state
-  const filteredJobs = (jobs || []).filter(job => {
-    if (!job) return false;
-    if (filter?.keyword) {
-      const q = filter.keyword.toLowerCase();
-      const matchTitle = (job.title || '').toLowerCase().includes(q);
-      const matchCompany = (job.company || '').toLowerCase().includes(q);
-      const matchDesc = (job.description || '').toLowerCase().includes(q);
-      const matchCity = (job.city || '').toLowerCase().includes(q);
-      if (!matchTitle && !matchCompany && !matchDesc && !matchCity) return false;
-    }
+  // Besides freshness filtering, this tick makes time-limited 24/48h badges
+  // recalculate even if Firestore itself has not emitted another snapshot.
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
-    if (filter?.city && job.city !== filter.city) {
-      return false;
-    }
+  const filteredJobs = useMemo(() => {
+    const filtered = jobs.filter(job => {
+      if (!job || job.status === 'closed') return false;
+      if (filter.keyword) {
+        const q = filter.keyword.toLowerCase().trim();
+        const haystack = `${job.title} ${job.company} ${job.description} ${job.city} ${(job.requirements || []).join(' ')}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      if (filter.city && job.city !== filter.city) return false;
+      if (filter.category && filter.category !== 'all' && job.category !== filter.category) return false;
+      if (filter.sponsorshipOnly && !job.sponsorshipTransfer) return false;
+      if (filter.withAccommodation && !job.accommodationProvided) return false;
+      if (filter.withTransportation && !job.transportationProvided) return false;
+      if (filter.withMeals && !job.mealsProvided) return false;
+      if (filter.withOvertime && !job.overtimeAvailable) return false;
+      if (filter.jobType && job.jobType !== filter.jobType) return false;
+      if (!salaryMatches(job, filter.salaryRange)) return false;
+      if (!freshnessMatches(job, filter.freshness, now)) return false;
+      return true;
+    });
 
-    if (filter?.category && filter.category !== 'all' && job.category !== filter.category) {
-      return false;
-    }
+    return filtered.sort((a, b) => {
+      if (sortBy === 'salary') {
+        const salaryDiff = salarySortValue(b) - salarySortValue(a);
+        return salaryDiff || jobActivityMs(b) - jobActivityMs(a);
+      }
+      return jobActivityMs(b) - jobActivityMs(a);
+    });
+  }, [jobs, filter, sortBy, now]);
 
-    if (filter?.sponsorshipOnly && !job.sponsorshipTransfer) {
-      return false;
-    }
-
-    if (filter?.withAccommodation && !job.accommodationProvided) {
-      return false;
-    }
-
-    return true;
+  const reset = () => setFilter({
+    keyword: '', category: 'all', city: '', sponsorshipOnly: false,
+    withAccommodation: false, withTransportation: false, withMeals: false,
+    withOvertime: false, jobType: '', salaryRange: '', freshness: 'all'
   });
 
   return (
     <section className="py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      
-      {/* Section Header & Count */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-display">
-              الوظائف الشاغرة المتاحة
-            </h2>
-            <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">
-              {filteredJobs.length} فرصة
-            </span>
+      {candidate && <RecommendedJobs jobs={jobs} candidate={candidate} onSelectJob={onSelectJob} />}
+
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900">الوظائف الشاغرة المتاحة</h2>
+              <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">{filteredJobs.length} فرصة</span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">النتائج مرتبة من البيانات الفعلية للإعلانات، وليست بيانات Seed.</p>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            يتم تحديث الوظائف والتواصل المباشر مع أصحاب الأعمال على مدار الساعة
-          </p>
+
+          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 text-xs">
+            <span className="text-slate-400 px-2 flex items-center gap-1"><ArrowUpDown className="w-3.5 h-3.5" />الترتيب:</span>
+            <button onClick={() => setSortBy('latest')} className={`px-3 py-1.5 rounded-lg font-semibold ${sortBy === 'latest' ? 'bg-emerald-600 text-white' : 'text-slate-600'}`}>الأحدث</button>
+            <button onClick={() => setSortBy('salary')} className={`px-3 py-1.5 rounded-lg font-semibold ${sortBy === 'salary' ? 'bg-emerald-600 text-white' : 'text-slate-600'}`}>الأعلى راتبًا</button>
+          </div>
         </div>
 
-        {/* Sort Controls */}
-        <div className="flex items-center gap-2 self-stretch sm:self-auto">
-          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 text-xs">
-            <span className="text-slate-400 px-2 flex items-center gap-1">
-              <ArrowUpDown className="w-3.5 h-3.5" />
-              <span>الترتيب:</span>
-            </span>
-            <button
-              id="sort-btn-latest"
-              onClick={() => setSortBy('latest')}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                sortBy === 'latest'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              الأحدث
-            </button>
-            <button
-              id="sort-btn-salary"
-              onClick={() => setSortBy('salary')}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                sortBy === 'salary'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              الأعلى راتباً
-            </button>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 bg-white border border-slate-200 rounded-2xl p-3">
+          <select value={filter.jobType} onChange={e => setFilter(v => ({ ...v, jobType: e.target.value }))} className="border rounded-xl px-2 py-2 text-xs bg-white">
+            <option value="">كل أنواع الدوام</option><option value="دوام كامل">دوام كامل</option><option value="دوام جزئي">دوام جزئي</option><option value="عمل حر / بالقطعة">عمل حر / بالقطعة</option><option value="عقد مؤقت">عقد مؤقت</option>
+          </select>
+          <select value={filter.salaryRange} onChange={e => setFilter(v => ({ ...v, salaryRange: e.target.value }))} className="border rounded-xl px-2 py-2 text-xs bg-white">
+            <option value="">كل الرواتب</option><option value="under3000">أقل من 3,000</option><option value="3000-5000">3,000–5,000</option><option value="5000-8000">5,001–8,000</option><option value="8000+">أكثر من 8,000</option>
+          </select>
+          <select value={filter.freshness || 'all'} onChange={e => setFilter(v => ({ ...v, freshness: e.target.value as JobFilter['freshness'] }))} className="border rounded-xl px-2 py-2 text-xs bg-white">
+            <option value="all">كل التواريخ</option><option value="today">آخر 24 ساعة</option><option value="3days">آخر 3 أيام</option><option value="week">آخر 7 أيام</option>
+          </select>
+          <label className="flex items-center gap-1.5 text-xs px-2"><input type="checkbox" checked={filter.withTransportation} onChange={e => setFilter(v => ({ ...v, withTransportation: e.target.checked }))} />مواصلات</label>
+          <label className="flex items-center gap-1.5 text-xs px-2"><input type="checkbox" checked={Boolean(filter.withMeals)} onChange={e => setFilter(v => ({ ...v, withMeals: e.target.checked }))} />وجبات</label>
+          <label className="flex items-center gap-1.5 text-xs px-2"><input type="checkbox" checked={Boolean(filter.withOvertime)} onChange={e => setFilter(v => ({ ...v, withOvertime: e.target.checked }))} />إضافي</label>
+          <button onClick={reset} className="text-xs font-bold text-slate-600 bg-slate-100 rounded-xl px-2 py-2">مسح الفلاتر</button>
         </div>
       </div>
 
-      {/* Loading state */}
-      {isLoading && (
-        <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
-          <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
-          <p className="text-sm font-semibold text-slate-600">جارٍ جلب أحدث الوظائف المباشرة...</p>
-        </div>
-      )}
+      {isLoading && <div className="py-20 text-center flex flex-col items-center gap-3"><RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" /><p className="text-sm font-semibold text-slate-600">جارٍ جلب أحدث الوظائف...</p></div>}
 
-      {/* Grid of jobs */}
       {!isLoading && filteredJobs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredJobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              onSelect={onSelectJob}
-              isSaved={savedJobIds.has(job.id)}
-              onToggleSave={onToggleSave}
-              onQuickWhatsApp={onQuickWhatsApp}
-            />
+          {filteredJobs.map(job => (
+            <div key={job.id} className="flex flex-col">
+              <JobCard job={job} onSelect={onSelectJob} isSaved={savedJobIds.has(job.id)} onToggleSave={onToggleSave} onQuickWhatsApp={onQuickWhatsApp} />
+              <JobApplicationAction job={job} user={user} candidate={candidate} />
+            </div>
           ))}
         </div>
       )}
 
-      {/* Empty State */}
       {!isLoading && filteredJobs.length === 0 && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 my-6 shadow-xs">
-          <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-            <Search className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-900">لم نعثر على وظائف تطابق بحثك الحالي</h3>
-          <p className="text-sm text-slate-500 leading-relaxed">
-            جرب تعديل الكلمات المفتاحية أو اختيار مدينة وتخصص مختلف، أو قم بنشر طلبك في قسم الباحثين عن عمل ليتواصل معك أصحاب الأعمال مباشرة.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button
-              id="btn-reset-filters-empty"
-              onClick={() => setFilter({
-                keyword: '',
-                category: 'all',
-                city: '',
-                sponsorshipOnly: false,
-                withAccommodation: false,
-                withTransportation: false,
-                jobType: '',
-                salaryRange: ''
-              })}
-              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-colors"
-            >
-              عرض جميع الوظائف
-            </button>
-            <button
-              id="btn-post-job-empty"
-              onClick={onOpenPostJob}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>أعلن عن وظيفة الآن</span>
-            </button>
-          </div>
+        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 my-6">
+          <Search className="w-8 h-8 text-slate-400 mx-auto" />
+          <h3 className="text-lg font-bold text-slate-900">لم نعثر على وظائف تطابق الفلاتر</h3>
+          <p className="text-sm text-slate-500">جرّب تغيير الراتب أو التاريخ أو نوع الدوام أو المدينة.</p>
+          <div className="flex justify-center gap-3"><button onClick={reset} className="px-4 py-2.5 bg-slate-100 rounded-xl text-xs font-bold">عرض جميع الوظائف</button><button onClick={onOpenPostJob} className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"><PlusCircle className="w-4 h-4" />أعلن عن وظيفة</button></div>
         </div>
       )}
-
     </section>
   );
 };
