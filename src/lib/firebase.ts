@@ -178,22 +178,42 @@ export async function testFirestoreConnection() {
   }
 }
 
-export async function resolvePhoneSquatting(phone: string, excludeUserId: string): Promise<void> {
+/**
+ * Revoke stale candidate claims for a phone only after Firebase Authentication
+ * proves that the currently signed-in user owns that exact E.164 number.
+ * Firestore rules independently re-check the same ownership token, so this
+ * cannot be bypassed by calling the function manually from the browser.
+ */
+export async function resolvePhoneSquatting(phoneE164: string, excludeUserId: string): Promise<void> {
+  const currentUser = auth.currentUser;
+
+  if (!currentUser || currentUser.phoneNumber !== phoneE164 || currentUser.uid !== excludeUserId) {
+    throw new Error('Verified Firebase phone ownership is required before reclaiming this number.');
+  }
+
   try {
+    // Refresh the ID token so Firestore immediately sees the new phone_number claim.
+    await currentUser.getIdToken(true);
+
     const { where } = await import('firebase/firestore');
-    const q = query(collection(db, 'candidates'), where('phone', '==', phone));
+    const q = query(collection(db, 'candidates'), where('phoneE164', '==', phoneE164));
     const snapshot = await getDocs(q);
+    const revokedAt = new Date().toISOString();
 
     const updatePromises = snapshot.docs
       .filter(candidateDoc => candidateDoc.data().userId !== excludeUserId)
       .map(candidateDoc => updateDoc(doc(db, 'candidates', candidateDoc.id), {
         phone: 'رقم محذوف',
+        phoneE164: '',
         phoneVerified: false,
-        allowContact: false
+        whatsapp: '',
+        allowContact: false,
+        phoneClaimRevokedAt: revokedAt
       }));
 
     await Promise.all(updatePromises);
   } catch (error) {
     console.error('Failed to resolve phone squatting:', error);
+    throw error;
   }
 }
