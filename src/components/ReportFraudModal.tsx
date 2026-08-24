@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldAlert, X, AlertTriangle, CheckCircle2, Lock } from 'lucide-react';
 import { FraudReport } from '../types';
-import { checkRateLimit } from '../lib/rateLimit';
 
 interface ReportFraudModalProps {
   isOpen: boolean;
@@ -9,7 +8,7 @@ interface ReportFraudModalProps {
   targetType: 'job' | 'candidate';
   targetId: string;
   targetTitle: string;
-  onSubmitReport: (report: Omit<FraudReport, 'id' | 'createdAt' | 'status'>) => void;
+  onSubmitReport: (report: Omit<FraudReport, 'id' | 'createdAt' | 'status'>) => Promise<void>;
 }
 
 export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
@@ -29,40 +28,47 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg('');
-    
-    if (!checkRateLimit('REPORT')) {
-      setErrorMsg('لقد بلغت الحد الأقصى للبلاغات المسموح بها اليوم. يرجى المحاولة غداً.');
-      return;
-    }
-    
-    if (!details) return;
+    if (!details.trim() || isSubmitting) return;
 
+    setErrorMsg('');
     setIsSubmitting(true);
-    setTimeout(() => {
-      onSubmitReport({
+
+    try {
+      await onSubmitReport({
         targetType,
         targetId,
         targetTitle,
         reason,
-        details,
-        reporterPhone
+        details: details.trim(),
+        reporterPhone: reporterPhone.trim()
       });
-      setIsSubmitting(false);
+
       setIsSuccess(true);
-      setTimeout(() => {
+      window.setTimeout(() => {
         setIsSuccess(false);
         onClose();
-      }, 2000);
-    }, 500);
+      }, 1800);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : '';
+      if (code === 'AUTH_REQUIRED') {
+        setErrorMsg('لحماية نظام البلاغات من الإساءة، سجّل الدخول بحساب موثوق أولاً ثم أرسل البلاغ.');
+      } else if (code === 'DUPLICATE_REPORT') {
+        setErrorMsg('سبق أن أرسلت بلاغاً عن هذا المحتوى خلال آخر 24 ساعة.');
+      } else if (code === 'REPORT_RATE_LIMIT') {
+        setErrorMsg('بلغت الحد الأقصى وهو 5 بلاغات خلال 24 ساعة. حاول لاحقاً.');
+      } else {
+        setErrorMsg('تعذر حفظ البلاغ في قاعدة البيانات. لم يتم تسجيل البلاغ، يرجى المحاولة مرة أخرى.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto" id="report-modal-overlay">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-200" id="report-modal">
-        {/* Header */}
         <div className="p-5 bg-rose-700 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/15 backdrop-blur-md rounded-xl">
@@ -73,11 +79,7 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
               <p className="text-xs text-rose-100">لحماية مجتمع الباحثين وأصحاب العمل من أي احتيال</p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
-            aria-label="إغلاق"
-          >
+          <button onClick={onClose} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white" aria-label="إغلاق">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -87,9 +89,9 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
             <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h3 className="text-base font-bold text-slate-800">تم استلام البلاغ بنجاح</h3>
+            <h3 className="text-base font-bold text-slate-800">تم حفظ البلاغ بنجاح</h3>
             <p className="text-xs text-slate-600 max-w-xs mx-auto">
-              شكراً لحرصك، يقوم فريق الإشراف بالتحقق الفوري واتخاذ الإجراء اللازم لحماية الجميع.
+              تم تسجيل البلاغ في نظام المراجعة وسيظهر للإدارة لاتخاذ الإجراء المناسب.
             </p>
           </div>
         ) : (
@@ -100,11 +102,12 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
                 <span>{errorMsg}</span>
               </div>
             )}
+
             <div className="bg-rose-50 border border-rose-200 p-3 rounded-xl flex items-start gap-2.5 text-xs text-rose-900">
               <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <div>
                 <strong>الإبلاغ بخصوص:</strong>
-                <p className="font-semibold text-slate-800 mt-0.5 line-clamp-1">"{targetTitle}"</p>
+                <p className="font-semibold text-slate-800 mt-0.5 line-clamp-1">"{targetTitle || 'بلاغ عام عن احتيال أو طلب رسوم'}"</p>
               </div>
             </div>
 
@@ -112,13 +115,12 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
               <label className="block text-xs font-bold text-slate-700 mb-1.5">سبب البلاغ *</label>
               <select
                 value={reason}
-                onChange={(e) => setReason(e.target.value as any)}
+                onChange={(e) => setReason(e.target.value as FraudReport['reason'])}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 text-slate-900 font-medium"
               >
                 <option value="طلب مبالغ أو عمولات توظيف">طلب مبالغ مالية أو عمولات مقابل الوظيفة (احتيال مالي)</option>
                 <option value="إعلان وهمي / احتيال">إعلان وهمي أو شركة غير موجودة على أرض الواقع</option>
                 <option value="بيانات اتصال خاطئة أو مضللة">رقم التواصل لا يرد / الرقم مغلق أو غير معني</option>
-                <option value="رقم التواصل لا يخص صاحب الملف">رقم التواصل لا يخص صاحب الملف التعريفي</option>
                 <option value="الوظيفة اكتفت أو غير متاحة">الوظيفة تم شغلها بالفعل وانتهت الفرصة</option>
                 <option value="محتوى غير لائق أو مخالف">محتوى مسيء أو مخل بسياسات المنصة</option>
               </select>
@@ -129,7 +131,8 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
               <textarea
                 required
                 rows={3}
-                placeholder="يرجى كتابة ما حدث باختصار (مثال: طلب تحويل مبلغ مالي كرسوم ملف، أو ادعى وجود تأشيرات، إلخ)..."
+                maxLength={2000}
+                placeholder="يرجى كتابة ما حدث باختصار..."
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 text-slate-900"
@@ -141,6 +144,7 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
               <div className="relative">
                 <input
                   type="tel"
+                  maxLength={30}
                   placeholder="05xxxxxxxx"
                   value={reporterPhone}
                   onChange={(e) => setReporterPhone(e.target.value)}
@@ -148,23 +152,19 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
                 />
                 <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
               </div>
-              <span className="text-[10px] text-slate-500">لا يتم مشاركة رقمك أو هويتك مع أي معلن نهائياً.</span>
+              <span className="text-[10px] text-slate-500">لا تتم مشاركة رقم المبلّغ مع صاحب الإعلان أو صاحب الملف.</span>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[10px] text-slate-500 leading-relaxed">
+              للحماية من إساءة الاستخدام: يجب تسجيل الدخول، ويُمنع تكرار البلاغ عن نفس المحتوى خلال 24 ساعة، والحد الأقصى 5 بلاغات خلال 24 ساعة.
             </div>
 
             <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
-              >
+              <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">
                 إلغاء
               </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-sm"
-              >
-                {isSubmitting ? 'جاري الإرسال...' : 'إرسال البلاغ فوراً'}
+              <button type="submit" disabled={isSubmitting} className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-xs font-bold transition-all shadow-sm">
+                {isSubmitting ? 'جاري الحفظ...' : 'إرسال البلاغ'}
               </button>
             </div>
           </form>
