@@ -7,7 +7,8 @@ import {
   where,
   limit,
   doc,
-  writeBatch
+  writeBatch,
+  runTransaction
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import {
@@ -18,7 +19,7 @@ import {
   handleFirestoreError,
   OperationType
 } from './lib/firebase';
-import { INITIAL_COMMUNITY_SUBMISSIONS, INITIAL_FRAUD_REPORTS } from './lib/data';
+import { INITIAL_FRAUD_REPORTS } from './lib/data';
 import { Job, Candidate, JobFilter, ToastMessage, CommunityJobSubmission, FraudReport } from './types';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
@@ -94,8 +95,8 @@ export function App() {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Moderation & Community State
-  const [communitySubmissions, setCommunitySubmissions] = useState<CommunityJobSubmission[]>(INITIAL_COMMUNITY_SUBMISSIONS);
+  // Moderation & Community State. Community queue is Firestore-only.
+  const [communitySubmissions, setCommunitySubmissions] = useState<CommunityJobSubmission[]>([]);
   const [fraudReports, setFraudReports] = useState<FraudReport[]>(INITIAL_FRAUD_REPORTS);
 
   // Toast messages
@@ -131,6 +132,41 @@ export function App() {
       setIsAdminSEOOpen(false);
     }
   }, [isAdmin]);
+
+  // Admin-only real-time moderation queue. Ordinary users cannot read
+  // community submissions because they include unpublished contact details.
+  useEffect(() => {
+    if (!user || !isAdmin) {
+      setCommunitySubmissions([]);
+      return;
+    }
+
+    const submissionsPath = 'communitySubmissions';
+    const q = query(
+      collection(db, submissionsPath),
+      where('status', '==', 'pending'),
+      limit(100)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      snapshot => {
+        const pending = snapshot.docs
+          .map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+          } as CommunityJobSubmission))
+          .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+        setCommunitySubmissions(pending);
+      },
+      error => {
+        handleFirestoreError(error, OperationType.LIST, submissionsPath);
+        setCommunitySubmissions([]);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid, isAdmin]);
 
   // Listen to live Firestore jobs only. Empty/error states stay empty.
   useEffect(() => {
@@ -321,39 +357,23 @@ export function App() {
     }
   };
 
-  // Community Job Submission
-  const handleCommunityJobSubmit = async (submission: Omit<CommunityJobSubmission, 'id' | 'status' | 'submittedAt'>) => {
-    const newSubmission: CommunityJobSubmission = {
-      ...submission,
-      id: `comm-${Date.now()}`,
-      status: 'pending',
-      submittedAt: 'الآن'
-    };
-    setCommunitySubmissions(prev => [newSubmission, ...prev]);
-
-    const newJobObj: Job = {
-      id: newSubmission.id,
-      title: submission.title,
-      company: submission.companyOrShop || 'معلن مجتمعي',
-      city: submission.city,
-      category: submission.category,
-      salary: submission.salary || 'حسب التفاصيل بالإعلان',
-      jobType: 'دوام كامل',
-      experienceYears: 'حسب الكفاءة',
-      sponsorshipTransfer: false,
-      accommodationProvided: false,
-      transportationProvided: false,
-      description: submission.details || 'فرصة عمل تمت مشاركتها من المجتمع في NEXT JOB',
-      phone: submission.contactNumber,
-      whatsapp: submission.contactNumber.replace(/^0/, '966'),
-      createdAt: 'الآن',
-      views: 1,
-      sourceType: 'community',
-      status: 'active'
-    };
-
-    setJobs(prev => [newJobObj, ...prev]);
-    addToast('success', 'شكراً لمساهمتك! تم إرسال الفرصة ومشاركتها مع المجتمع.');
+  // Community flow: submission is saved as pending only. It is deliberately
+  // not inserted into the public jobs state/collection here.
+  const handleCommunityJobSubmit = async (
+    submission: Omit<CommunityJobSubmission, 'id' | 'status' | 'submittedAt' | 'reviewedAt' | 'reviewedBy' | 'publishedJobId'>
+  ) => {
+    try {
+      await addDoc(collection(db, 'communitySubmissions'), {
+        ...submission,
+        status: 'pending',
+        submittedAt: new Date().toISOString()
+      });
+      addToast('success', 'تم إرسال الفرصة للمراجعة. لن تُنشر قبل اعتماد الإدارة.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'communitySubmissions');
+      addToast('error', 'تعذر إرسال الفرصة للمراجعة. حاول مرة أخرى.');
+      throw err;
+    }
   };
 
   // Report Fraud Submission
@@ -386,18 +406,106 @@ export function App() {
     setIsAdminSEOOpen(true);
   };
 
-  // Community Moderation Actions. These client-side actions are also gated;
-  // persistent Firestore admin writes remain protected by Security Rules.
-  const handleApproveCommunityJob = (submission: CommunityJobSubmission) => {
-    if (!requireAdmin()) return;
-    setCommunitySubmissions(prev => prev.map(s => s.id === submission.id ? { ...s, status: 'approved' } : s));
-    addToast('success', `تمت الموافقة على نشر: "${submission.title}"`);
+  const normalizeCommunityWhatsApp = (value: string) => {
+    let digits = value.replace(/\D/g, '');
+    if (digits.startsWith('00')) digits = digits.slice(2);
+    if (digits.startsWith('0')) digits = `966${digits.slice(1)}`;
+    else if (/^5\d{8}$/.test(digits)) digits = `966${digits}`;
+    return digits;
   };
 
-  const handleRejectCommunityJob = (id: string) => {
+  // Admin approval is transactional: the submission must still be pending,
+  // then one transaction publishes the job and records the approval result.
+  const handleApproveCommunityJob = async (submission: CommunityJobSubmission) => {
     if (!requireAdmin()) return;
-    setCommunitySubmissions(prev => prev.filter(s => s.id !== id));
-    addToast('info', 'تم استبعاد المشاركة من قائمة الانتظار');
+
+    const adminUser = auth.currentUser;
+    if (!adminUser) return;
+
+    const submissionRef = doc(db, 'communitySubmissions', submission.id);
+    const jobRef = doc(collection(db, 'jobs'));
+    const reviewedAt = new Date().toISOString();
+
+    try {
+      await runTransaction(db, async transaction => {
+        const currentSubmissionSnap = await transaction.get(submissionRef);
+        if (!currentSubmissionSnap.exists()) {
+          throw new Error('Community submission no longer exists.');
+        }
+
+        const currentSubmission = currentSubmissionSnap.data() as CommunityJobSubmission;
+        if (currentSubmission.status !== 'pending') {
+          throw new Error('Community submission has already been reviewed.');
+        }
+
+        transaction.set(jobRef, {
+          title: currentSubmission.title,
+          company: currentSubmission.companyOrShop || 'معلن مجتمعي',
+          city: currentSubmission.city,
+          category: currentSubmission.category,
+          salary: currentSubmission.salary || 'يحدد لاحقاً',
+          jobType: 'دوام كامل',
+          experienceYears: 'حسب متطلبات صاحب العمل',
+          sponsorshipTransfer: false,
+          accommodationProvided: false,
+          transportationProvided: false,
+          description: currentSubmission.details,
+          phone: currentSubmission.contactNumber,
+          whatsapp: normalizeCommunityWhatsApp(currentSubmission.contactNumber),
+          createdAt: reviewedAt,
+          lastConfirmedAt: reviewedAt,
+          views: 0,
+          sourceType: 'community',
+          sourceSubmissionId: submission.id,
+          approvedBy: adminUser.uid,
+          status: 'active'
+        });
+
+        transaction.update(submissionRef, {
+          status: 'approved',
+          reviewedAt,
+          reviewedBy: adminUser.uid,
+          publishedJobId: jobRef.id
+        });
+      });
+
+      addToast('success', `تم اعتماد ونشر: "${submission.title}"`);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `communitySubmissions/${submission.id} -> jobs/${jobRef.id}`);
+      addToast('error', 'تعذر اعتماد الفرصة أو أنها تمت مراجعتها مسبقاً.');
+    }
+  };
+
+  const handleRejectCommunityJob = async (id: string) => {
+    if (!requireAdmin()) return;
+
+    const adminUser = auth.currentUser;
+    if (!adminUser) return;
+
+    const submissionRef = doc(db, 'communitySubmissions', id);
+    const reviewedAt = new Date().toISOString();
+
+    try {
+      await runTransaction(db, async transaction => {
+        const currentSubmissionSnap = await transaction.get(submissionRef);
+        if (!currentSubmissionSnap.exists()) {
+          throw new Error('Community submission no longer exists.');
+        }
+        if (currentSubmissionSnap.data().status !== 'pending') {
+          throw new Error('Community submission has already been reviewed.');
+        }
+
+        transaction.update(submissionRef, {
+          status: 'rejected',
+          reviewedAt,
+          reviewedBy: adminUser.uid
+        });
+      });
+      addToast('info', 'تم استبعاد الفرصة من قائمة الانتظار دون نشرها.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `communitySubmissions/${id}`);
+      addToast('error', 'تعذر استبعاد الفرصة أو أنها تمت مراجعتها مسبقاً.');
+    }
   };
 
   const handleResolveFraudReport = (id: string) => {
@@ -427,10 +535,12 @@ export function App() {
       await logoutUser();
       setUser(null);
       setIsAdminSEOOpen(false);
+      setCommunitySubmissions([]);
       addToast('info', 'تم تسجيل الخروج بنجاح');
     } catch (err) {
       console.error(err);
       setIsAdminSEOOpen(false);
+      setCommunitySubmissions([]);
       addToast('info', 'تم تسجيل الخروج');
     }
   };
