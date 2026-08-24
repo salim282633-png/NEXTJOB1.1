@@ -201,7 +201,12 @@ export async function resolvePhoneSquatting(phoneE164: string, excludeUserId: st
     const revokedAt = new Date().toISOString();
 
     const updatePromises = snapshot.docs
-      .filter(candidateDoc => candidateDoc.data().userId !== excludeUserId)
+      // Preserve only an already-verified profile owned by this exact Firebase UID.
+      // A forged userId on an unverified profile cannot block a legitimate reclaim.
+      .filter(candidateDoc => {
+        const data = candidateDoc.data();
+        return !(data.userId === excludeUserId && data.phoneVerified === true);
+      })
       .map(candidateDoc => updateDoc(doc(db, 'candidates', candidateDoc.id), {
         phone: 'رقم محذوف',
         phoneE164: '',
