@@ -26,8 +26,7 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
     return onSnapshot(doc(db, 'applications', applicationId), snap => {
       setApplication(snap.exists() ? ({ id: snap.id, ...snap.data() } as Application) : null);
     }, () => {
-      // A non-existent deterministic document may be unreadable until create.
-      // Creation still remains protected by Security Rules below.
+      // A missing deterministic document may not be readable before creation.
     });
   }, [applicationId]);
 
@@ -36,9 +35,13 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
   if (job.userId === user.uid) return null;
   if (!candidate) return <div className="mt-2 text-[11px] text-amber-700">أنشئ ملفك المهني أولًا لربط طلب التقديم بملفك.</div>;
 
+  const employerUid = job.userId;
+  const applicantUid = user.uid;
+  const candidateId = candidate.id;
+
   const submit = async () => {
     setBusy(true); setError('');
-    const id = `${job.id}__${user.uid}`;
+    const id = `${job.id}__${applicantUid}`;
     const ref = doc(db, 'applications', id);
     const createdAt = new Date().toISOString();
     try {
@@ -47,20 +50,18 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
         const jobSnap = await tx.get(doc(db, 'jobs', job.id));
         if (existing.exists()) throw new Error('ALREADY_EXISTS');
         if (!jobSnap.exists() || jobSnap.data().status === 'closed') throw new Error('JOB_CLOSED');
-        if (jobSnap.data().userId !== job.userId) throw new Error('OWNER_CHANGED');
+        if (jobSnap.data().userId !== employerUid) throw new Error('OWNER_CHANGED');
         tx.set(ref, {
           jobId: job.id,
-          candidateId: candidate.id,
-          applicantUid: user.uid,
-          employerUid: job.userId,
+          candidateId,
+          applicantUid,
+          employerUid,
           status: 'submitted',
           createdAt,
           createdAtServer: serverTimestamp()
         });
       });
-      // Keep the current UI consistent even if the pre-create document listener
-      // previously terminated with permission-denied on a missing document.
-      setApplication({ id, jobId:job.id, candidateId:candidate.id, applicantUid:user.uid, employerUid:job.userId, status:'submitted', createdAt });
+      setApplication({ id, jobId:job.id, candidateId, applicantUid, employerUid, status:'submitted', createdAt });
     } catch (e) {
       const code = e instanceof Error ? e.message : '';
       setError(code === 'ALREADY_EXISTS' ? 'سبق إرسال طلب لهذه الوظيفة.' : 'تعذر إرسال الطلب. تحقق من أن الوظيفة ما زالت متاحة.');
@@ -74,7 +75,7 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
       await runTransaction(db, async tx => {
         const ref = doc(db, 'applications', application.id);
         const snap = await tx.get(ref);
-        if (!snap.exists() || snap.data().applicantUid !== user.uid) throw new Error('NOT_OWNER');
+        if (!snap.exists() || snap.data().applicantUid !== applicantUid) throw new Error('NOT_OWNER');
         if (snap.data().status === 'withdrawn') return;
         tx.update(ref, { status: 'withdrawn', updatedAt: new Date().toISOString(), updatedAtServer: serverTimestamp() });
       });
