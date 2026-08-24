@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          git add public/guide public/sitemap.xml seo/published
+          git add -A public/guide public/sitemap.xml seo
           if git diff --cached --quiet; then
             echo "No production SEO article was published."
             exit 0
