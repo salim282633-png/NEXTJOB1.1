@@ -7,6 +7,7 @@ import { RecommendedJobs } from './RecommendedJobs';
 import { AdSenseSlot } from './AdSenseSlot';
 import { useOwnedCandidate } from '../hooks/useOwnedCandidate';
 import { freshnessMatches, jobActivityMs, salaryMatches, salarySortValue } from '../lib/jobDiscovery';
+import { JOB_PROFESSION_FILTERS } from '../lib/jobProfessions';
 
 interface JobListProps {
   jobs: Job[];
@@ -18,6 +19,32 @@ interface JobListProps {
   onQuickWhatsApp: (job: Job) => void;
   onOpenPostJob: () => void;
   isLoading: boolean;
+}
+
+function normalizeProfessionText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[ًٌٍَُِّْـ]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function jobMatchesProfession(job: Job, profession?: string): boolean {
+  if (!profession) return true;
+
+  const haystack = normalizeProfessionText(
+    `${job.title} ${job.category} ${job.description} ${(job.requirements || []).join(' ')}`
+  );
+  const selectedTokens = normalizeProfessionText(profession)
+    .split(' ')
+    .filter(token => token.length > 1);
+
+  return selectedTokens.every(token => haystack.includes(token));
 }
 
 export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, onSelectJob, savedJobIds, onToggleSave, onQuickWhatsApp, onOpenPostJob, isLoading }) => {
@@ -38,6 +65,7 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
         const haystack = `${job.title} ${job.company} ${job.description} ${job.city} ${(job.requirements || []).join(' ')}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
+      if (!jobMatchesProfession(job, filter.profession)) return false;
       if (filter.city && job.city !== filter.city) return false;
       if (filter.category && filter.category !== 'all' && job.category !== filter.category) return false;
       if (filter.sponsorshipOnly && !job.sponsorshipTransfer) return false;
@@ -61,7 +89,7 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
   }, [jobs, filter, sortBy, now]);
 
   const reset = () => setFilter({
-    keyword: '', category: 'all', city: '', sponsorshipOnly: false,
+    keyword: '', profession: '', category: 'all', city: '', sponsorshipOnly: false,
     withAccommodation: false, withTransportation: false, withMeals: false,
     withOvertime: false, jobType: '', salaryRange: '', freshness: 'all'
   });
@@ -87,7 +115,18 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 bg-white border border-slate-200 rounded-2xl p-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-2 bg-white border border-slate-200 rounded-2xl p-3">
+          <select
+            value={filter.profession || ''}
+            onChange={e => setFilter(v => ({ ...v, profession: e.target.value }))}
+            className="col-span-2 border rounded-xl px-2 py-2 text-xs bg-white"
+            aria-label="فلترة الوظائف حسب المهنة"
+          >
+            <option value="">كل المهن</option>
+            {JOB_PROFESSION_FILTERS.map(profession => (
+              <option key={profession} value={profession}>{profession}</option>
+            ))}
+          </select>
           <select value={filter.jobType} onChange={e => setFilter(v => ({ ...v, jobType: e.target.value }))} className="border rounded-xl px-2 py-2 text-xs bg-white">
             <option value="">كل أنواع الدوام</option><option value="دوام كامل">دوام كامل</option><option value="دوام جزئي">دوام جزئي</option><option value="عمل حر / بالقطعة">عمل حر / بالقطعة</option><option value="عقد مؤقت">عقد مؤقت</option>
           </select>
@@ -125,7 +164,7 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 my-6">
           <Search className="w-8 h-8 text-slate-400 mx-auto" />
           <h3 className="text-lg font-bold text-slate-900">لم نعثر على وظائف تطابق الفلاتر</h3>
-          <p className="text-sm text-slate-500">جرّب تغيير الراتب أو التاريخ أو نوع الدوام أو المدينة.</p>
+          <p className="text-sm text-slate-500">جرّب تغيير المهنة أو الراتب أو التاريخ أو نوع الدوام أو المدينة.</p>
           <div className="flex justify-center gap-3"><button onClick={reset} className="px-4 py-2.5 bg-slate-100 rounded-xl text-xs font-bold">عرض جميع الوظائف</button><button onClick={onOpenPostJob} className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"><PlusCircle className="w-4 h-4" />أعلن عن وظيفة</button></div>
         </div>
       )}
