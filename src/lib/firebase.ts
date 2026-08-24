@@ -221,8 +221,10 @@ function normalizeSaudiPhoneForOwnership(value: string): string {
 
 /**
  * Reclaim a verified phone safely. New records keep contact data in
- * candidateContacts/{candidateId}; legacy records that still contain phone
- * fields in candidates are also revoked and stripped of those fields.
+ * candidateContacts/{candidateId}. Transitional legacy records that already
+ * have phoneE164 in candidates are also revoked and stripped. Very old records
+ * without a canonical E.164 value stay non-public under schema-v2 rules and
+ * require an admin migration instead of weakening the public read policy.
  * Security Rules independently verify request.auth.token.phone_number.
  */
 export async function resolvePhoneSquatting(phoneInput: string, excludeUserId: string): Promise<void> {
@@ -241,10 +243,11 @@ export async function resolvePhoneSquatting(phoneInput: string, excludeUserId: s
   try {
     await currentUser.getIdToken(true);
 
-    const displayLocal = `0${phoneE164.slice(4)}`;
+    // Both queries are constrained by the exact Firebase-verified E.164 phone.
+    // This matches the Firestore list rules and prevents arbitrary legacy lookups.
     const [contactSnapshot, legacySnapshot] = await Promise.all([
       getDocs(query(collection(db, 'candidateContacts'), where('phoneE164', '==', phoneE164))),
-      getDocs(query(collection(db, 'candidates'), where('phone', '==', displayLocal)))
+      getDocs(query(collection(db, 'candidates'), where('phoneE164', '==', phoneE164)))
     ]);
 
     const staleContacts = contactSnapshot.docs.filter(contactDoc => {
@@ -278,8 +281,7 @@ export async function resolvePhoneSquatting(phoneInput: string, excludeUserId: s
       }
     });
 
-    // Legacy documents are removed from public contact exposure and upgraded
-    // to schemaVersion 2 without carrying phone/WhatsApp fields forward.
+    // Transitional legacy documents are stripped and upgraded to schema v2.
     legacySnapshot.docs.forEach(legacyDoc => {
       const data = legacyDoc.data();
       if (
@@ -295,6 +297,7 @@ export async function resolvePhoneSquatting(phoneInput: string, excludeUserId: s
         phoneE164: deleteField(),
         whatsapp: deleteField(),
         userEmail: deleteField(),
+        userId: deleteField(),
         schemaVersion: 2,
         phoneVerified: false,
         allowContact: false,
