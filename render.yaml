@@ -8,3 +8,10 @@ services:
     staticPublishPath: dist
     autoDeployTrigger: commit
     pullRequestPreviewsEnabled: true
+    routes:
+      - type: rewrite
+        source: /admin
+        destination: /index.html
+      - type: rewrite
+        source: /admin/*
+        destination: /index.html
