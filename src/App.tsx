@@ -8,7 +8,9 @@ import {
   limit,
   doc,
   writeBatch,
-  runTransaction
+  runTransaction,
+  serverTimestamp,
+  Timestamp
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import {
@@ -41,6 +43,26 @@ import { AuthModal } from './components/AuthModal';
 import { Footer } from './components/Footer';
 import { ToastContainer } from './components/Toast';
 import { useAdminAccess } from './hooks/useAdminAccess';
+
+function firestoreTimeToMillis(value: unknown): number {
+  if (value instanceof Timestamp) return value.toMillis();
+  if (value && typeof (value as { toMillis?: () => number }).toMillis === 'function') {
+    return (value as { toMillis: () => number }).toMillis();
+  }
+  return 0;
+}
+
+function jobActivityMillis(job: Job): number {
+  return firestoreTimeToMillis(job.activityAt) ||
+    firestoreTimeToMillis(job.lastBumpedAt) ||
+    firestoreTimeToMillis(job.createdAtServer) ||
+    Date.parse(job.createdAt) ||
+    0;
+}
+
+function stripUndefined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
+}
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'guide' | 'saved'>('jobs');
@@ -88,10 +110,8 @@ export function App() {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Production moderation queues are Firestore-only. No seed reports/submissions.
   const [communitySubmissions, setCommunitySubmissions] = useState<CommunityJobSubmission[]>([]);
   const [fraudReports, setFraudReports] = useState<FraudReport[]>([]);
-
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = (type: 'success' | 'error' | 'info', message: string) => {
@@ -112,13 +132,11 @@ export function App() {
     if (!isAdmin) setIsAdminSEOOpen(false);
   }, [isAdmin]);
 
-  // Admin-only real-time community moderation queue.
   useEffect(() => {
     if (!user || !isAdmin) {
       setCommunitySubmissions([]);
       return;
     }
-
     const submissionsPath = 'communitySubmissions';
     const q = query(collection(db, submissionsPath), where('status', '==', 'pending'), limit(100));
     const unsubscribe = onSnapshot(
@@ -137,14 +155,11 @@ export function App() {
     return () => unsubscribe();
   }, [user?.uid, isAdmin]);
 
-  // Admin-only real-time fraud report queue. Reporter phone stays hidden from
-  // ordinary users because Security Rules only allow admins to read reports.
   useEffect(() => {
     if (!user || !isAdmin) {
       setFraudReports([]);
       return;
     }
-
     const reportsPath = 'fraudReports';
     const q = query(collection(db, reportsPath), where('status', '==', 'pending'), limit(100));
     const unsubscribe = onSnapshot(
@@ -163,15 +178,24 @@ export function App() {
     return () => unsubscribe();
   }, [user?.uid, isAdmin]);
 
+  // Public jobs never include closed records. Firestore Rules enforce the same
+  // status constraint, so a closed job cannot be recovered by changing the UI.
   useEffect(() => {
     setIsLoadingJobs(true);
     const jobsPath = 'jobs';
     try {
-      const q = query(collection(db, jobsPath), limit(100));
+      const q = query(
+        collection(db, jobsPath),
+        where('status', 'in', ['active', 'recently_confirmed', 'awaiting_confirmation']),
+        limit(100)
+      );
       const unsubscribe = onSnapshot(
         q,
         snapshot => {
-          setJobs(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Job)));
+          const liveJobs = snapshot.docs
+            .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Job))
+            .sort((a, b) => jobActivityMillis(b) - jobActivityMillis(a));
+          setJobs(liveJobs);
           setIsLoadingJobs(false);
         },
         error => {
@@ -251,31 +275,44 @@ export function App() {
     window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
   };
 
-  const handleBumpJob = (jobId: string) => {
-    setJobs(prev => prev.map(j => j.id === jobId ? {
-      ...j,
-      createdAt: 'الآن',
-      status: 'recently_confirmed',
-      lastConfirmedAt: 'اليوم'
-    } : j));
-    addToast('success', 'تم تجديد تاريخ وتأكيد الوظيفة بنجاح ورفعها للأعلى!');
+  const handleOpenPostJob = () => {
+    if (!user) {
+      addToast('info', 'سجّل الدخول أولاً حتى تُربط الوظيفة بحساب صاحب الإعلان.');
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setIsPostJobOpen(true);
   };
 
   const handlePostJob = async (jobData: Omit<Job, 'id' | 'createdAt' | 'views'>) => {
-    const newJobObj: Job = {
+    const owner = auth.currentUser;
+    if (!owner) {
+      addToast('error', 'يجب تسجيل الدخول قبل نشر الوظيفة.');
+      throw new Error('AUTH_REQUIRED');
+    }
+
+    const nowIso = new Date().toISOString();
+    const payload = stripUndefined({
       ...jobData,
-      id: `job-${Date.now()}`,
-      createdAt: 'الآن',
-      views: 1,
+      userId: owner.uid,
+      userEmail: owner.email || null,
+      createdAt: nowIso,
+      createdAtServer: serverTimestamp(),
+      activityAt: serverTimestamp(),
+      lastBumpedAt: serverTimestamp(),
+      lastConfirmedAt: nowIso,
+      lastConfirmedAtServer: serverTimestamp(),
       status: 'recently_confirmed',
-      lastConfirmedAt: 'اليوم'
-    };
+      views: 0
+    });
+
     try {
-      await addDoc(collection(db, 'jobs'), { ...newJobObj, createdAt: new Date().toISOString() });
-      addToast('success', 'تم نشر إعلان الوظيفة بنجاح في منصة NEXT JOB!');
+      await addDoc(collection(db, 'jobs'), payload);
+      addToast('success', 'تم نشر إعلان الوظيفة وربطه بحسابك بنجاح.');
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'jobs');
-      addToast('error', 'تعذر نشر الوظيفة في قاعدة البيانات. لم تتم إضافة بيانات محلية بديلة.');
+      addToast('error', 'تعذر نشر الوظيفة في قاعدة البيانات.');
+      throw err;
     }
   };
 
@@ -388,7 +425,11 @@ export function App() {
           phone: current.contactNumber,
           whatsapp: normalizeCommunityWhatsApp(current.contactNumber),
           createdAt: reviewedAt,
+          createdAtServer: serverTimestamp(),
+          activityAt: serverTimestamp(),
+          lastBumpedAt: serverTimestamp(),
           lastConfirmedAt: reviewedAt,
+          lastConfirmedAtServer: serverTimestamp(),
           views: 0,
           sourceType: 'community',
           sourceSubmissionId: submission.id,
@@ -492,7 +533,7 @@ export function App() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenPostJob={() => setIsPostJobOpen(true)}
+        onOpenPostJob={handleOpenPostJob}
         onOpenPostCandidate={() => setIsPostCandidateOpen(true)}
         savedCount={savedJobIds.size}
         user={user}
@@ -520,7 +561,7 @@ export function App() {
               savedJobIds={savedJobIds}
               onToggleSave={handleToggleSaveJob}
               onQuickWhatsApp={handleQuickWhatsAppJob}
-              onOpenPostJob={() => setIsPostJobOpen(true)}
+              onOpenPostJob={handleOpenPostJob}
               isLoading={isLoadingJobs}
             />
           </div>
@@ -575,7 +616,6 @@ export function App() {
             setFraudTargetCand(null);
             setIsReportFraudOpen(true);
           }}
-          onBumpJob={handleBumpJob}
         />
       )}
 
