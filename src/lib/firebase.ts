@@ -215,16 +215,31 @@ export async function resolvePhoneSquatting(phoneInput: string, excludeUserId: s
     await currentUser.getIdToken(true);
 
     const { where } = await import('firebase/firestore');
-    const q = query(collection(db, 'candidates'), where('phoneE164', '==', phoneE164));
-    const snapshot = await getDocs(q);
-    const revokedAt = new Date().toISOString();
+    const displayLocal = `0${phoneE164.slice(4)}`;
 
-    const updatePromises = snapshot.docs
-      // Preserve only an already-verified profile owned by this exact Firebase UID.
-      // A forged userId on an unverified profile cannot block a legitimate reclaim.
+    // New records are indexed by phoneE164. A second query safely catches
+    // legacy records that only stored 05XXXXXXXX before phoneE164 existed.
+    const [canonicalSnapshot, legacySnapshot] = await Promise.all([
+      getDocs(query(collection(db, 'candidates'), where('phoneE164', '==', phoneE164))),
+      getDocs(query(collection(db, 'candidates'), where('phone', '==', displayLocal)))
+    ]);
+
+    const candidateDocs = [...canonicalSnapshot.docs, ...legacySnapshot.docs]
+      .filter((candidateDoc, index, allDocs) =>
+        allDocs.findIndex(otherDoc => otherDoc.id === candidateDoc.id) === index
+      );
+
+    const revokedAt = new Date().toISOString();
+    const updatePromises = candidateDocs
+      // Preserve only a modern, already-verified profile owned by this exact
+      // Firebase UID. Legacy claims are reclaimed and can be republished safely.
       .filter(candidateDoc => {
         const data = candidateDoc.data();
-        return !(data.userId === excludeUserId && data.phoneVerified === true);
+        return !(
+          data.userId === excludeUserId &&
+          data.phoneVerified === true &&
+          data.phoneE164 === phoneE164
+        );
       })
       .map(candidateDoc => updateDoc(doc(db, 'candidates', candidateDoc.id), {
         phone: 'رقم محذوف',
