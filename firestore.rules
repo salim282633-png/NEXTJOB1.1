@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     match /{document=**} {
       allow read, write: if false;
     }
@@ -9,7 +9,7 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
-    
+
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
@@ -22,20 +22,38 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Role-based Access (if implemented later)
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    function hasVerifiedSaudiPhone() {
+      return isSignedIn() &&
+        request.auth.token.phone_number is string &&
+        request.auth.token.phone_number.matches('^\\+9665[0-9]{8}$');
+    }
+
+    function authOwnsPhone(phoneE164) {
+      return hasVerifiedSaudiPhone() && phoneE164 == request.auth.token.phone_number;
+    }
+
+    function validCandidatePhoneState(data) {
+      return data.phoneE164 is string &&
+        data.phoneE164.matches('^\\+9665[0-9]{8}$') &&
+        data.phoneVerified is bool &&
+        (
+          data.phoneVerified == false ||
+          (
+            authOwnsPhone(data.phoneE164) &&
+            data.userId == request.auth.uid
+          )
+        );
+    }
+
     // Jobs collection
     match /jobs/{jobId} {
-      // allowContact is enforced on the UI for hiding, but we can't hide specific fields easily in Firestore rules.
-      // We will allow read so the app can fetch them. (In a real app with PII, phone should be in a subcollection,
-      // but since it's already in the main document and we are advised not to rebuild the DB, we leave read open but secure writes)
       allow read: if true;
-      
-      // Anyone can create a job (as the app allows anonymous posting)
-      allow create: if isValidId(jobId) && 
+
+      allow create: if isValidId(jobId) &&
         incoming().keys().hasAll(['title', 'company', 'city', 'category', 'description', 'phone']) &&
         incoming().title is string && incoming().title.size() <= 150 && incoming().title.size() > 0 &&
         incoming().company is string && incoming().company.size() <= 100 &&
@@ -44,53 +62,91 @@ service cloud.firestore {
         incoming().description is string && incoming().description.size() <= 3000 &&
         incoming().phone is string && incoming().phone.size() <= 30;
 
-      // Update: strictly limited to the owner or admin. phoneVerified CANNOT be changed maliciously.
       allow update: if isValidId(jobId) && (
-        isAdmin() || 
+        isAdmin() ||
         (
-          isSignedIn() && 
+          isSignedIn() &&
           existing().userId == request.auth.uid &&
           (
-            // Either they change non-sensitive fields
-            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'company', 'city', 'category', 'description', 'phone', 'whatsapp', 'updatedAt', 'status'])
-            // OR the system updates views
-            || incoming().diff(existing()).affectedKeys().hasOnly(['views'])
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'company', 'city', 'category', 'description',
+              'phone', 'whatsapp', 'updatedAt', 'status'
+            ]) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['views'])
           )
         )
       );
 
-      allow delete: if isValidId(jobId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow delete: if isValidId(jobId) &&
+        (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
     }
 
     // Candidates collection
     match /candidates/{candidateId} {
       allow read: if true;
 
-      // Allow creation with valid data
+      // Unverified numbers remain publishable and contactable, but only a
+      // Firebase-authenticated owner of the exact phone_number claim may save
+      // phoneVerified=true.
       allow create: if isValidId(candidateId) &&
-        incoming().keys().hasAll(['fullName', 'profession', 'city', 'iqamaStatus', 'phone', 'bio']) &&
+        incoming().keys().hasAll([
+          'fullName', 'profession', 'city', 'iqamaStatus', 'phone',
+          'phoneE164', 'phoneVerified', 'bio', 'allowContact'
+        ]) &&
         incoming().fullName is string && incoming().fullName.size() <= 100 && incoming().fullName.size() > 0 &&
         incoming().profession is string && incoming().profession.size() <= 100 &&
         incoming().city is string && incoming().city.size() <= 50 &&
         incoming().iqamaStatus is string && incoming().iqamaStatus.size() <= 80 &&
         incoming().phone is string && incoming().phone.size() <= 30 &&
-        incoming().bio is string && incoming().bio.size() <= 2000;
+        incoming().bio is string && incoming().bio.size() <= 2000 &&
+        incoming().allowContact is bool &&
+        validCandidatePhoneState(incoming());
 
-      // Update rules: Protect phoneVerified and isHidden
+      // Owners may edit their profile. Any change to phone ownership fields is
+      // revalidated against the Firebase Auth token.
       allow update: if isValidId(candidateId) && (
         isAdmin() ||
         (
           isSignedIn() &&
           existing().userId == request.auth.uid &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'fullName', 'profession', 'city', 'iqamaStatus', 'phone',
+            'phoneE164', 'phoneVerified', 'bio', 'whatsapp', 'skills',
+            'hasDriverLicense', 'availableImmediately', 'isHidden',
+            'allowContact', 'updatedAt'
+          ]) &&
           (
-            // They cannot change phoneVerified to true maliciously.
-            incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'profession', 'city', 'iqamaStatus', 'phone', 'bio', 'whatsapp', 'skills', 'hasDriverLicense', 'availableImmediately', 'isHidden', 'allowContact', 'updatedAt'])
-            || incoming().diff(existing()).affectedKeys().hasOnly(['views'])
+            !incoming().diff(existing()).affectedKeys().hasAny([
+              'phone', 'phoneE164', 'phoneVerified'
+            ]) ||
+            validCandidatePhoneState(incoming())
           )
+        ) ||
+        (
+          isSignedIn() &&
+          existing().userId == request.auth.uid &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['views'])
+        ) ||
+        (
+          // Secure reclaim: the verified owner of an E.164 phone may revoke
+          // stale/unverified claims on other candidate documents, but may only
+          // clear contact/verification fields—nothing else.
+          authOwnsPhone(existing().phoneE164) &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'phone', 'phoneE164', 'phoneVerified', 'whatsapp',
+            'allowContact', 'phoneClaimRevokedAt'
+          ]) &&
+          incoming().phone == 'رقم محذوف' &&
+          incoming().phoneE164 == '' &&
+          incoming().phoneVerified == false &&
+          incoming().whatsapp == '' &&
+          incoming().allowContact == false &&
+          incoming().phoneClaimRevokedAt is string
         )
       );
 
-      allow delete: if isValidId(candidateId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow delete: if isValidId(candidateId) &&
+        (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
     }
   }
 }
