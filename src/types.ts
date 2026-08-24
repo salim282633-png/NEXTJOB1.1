@@ -40,8 +40,10 @@ export interface Candidate {
   yemeniGovernorate: string; // محافظة الأصل باليمن (صنعاء، تعز، إب، حضرموت، عدن، إلخ)
   iqamaStatus: 'إقامة سارية وقابلة للنقل' | 'تأشيرة زيارة / هوية زائر' | 'إقامة سارية دون نقل' | 'مهن فردية / سائق خاص' | 'أخرى';
   experienceYears: string;
+  // Contact fields are used by form/local seed data only. Production Firestore
+  // stores them in candidateContacts/{candidateId}, not in the public document.
   phone: string;
-  phoneE164?: string; // Canonical +9665XXXXXXXX used only for secure ownership checks.
+  phoneE164?: string;
   phoneVerified: boolean;
   phoneClaimRevokedAt?: string;
   whatsapp: string;
@@ -57,8 +59,20 @@ export interface Candidate {
   nationality?: string;
   userId?: string;
   userEmail?: string;
+  schemaVersion?: 2;
   createdAt: string;
   views?: number;
+}
+
+export interface CandidateContact {
+  candidateId: string;
+  phone: string;
+  phoneE164: string;
+  whatsapp: string;
+  phoneVerified: boolean;
+  userId: string | null;
+  schemaVersion: 2;
+  phoneClaimRevokedAt?: string;
 }
 
 export interface JobFilter {
