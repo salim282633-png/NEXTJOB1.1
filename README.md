@@ -10,11 +10,14 @@ View your app in AI Studio: https://ai.studio/apps/1f75dba6-07c5-4de7-ac2b-71822
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
    `npm install`
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Deployment
+
+NEXT JOB is a Vite static site. On Render use `npm ci && npm run build` as the build command and `dist` as the publish directory. Firebase Phone Authentication is implemented with real SMS verification; the old demo OTP helpers are no longer part of the current `main` branch.
