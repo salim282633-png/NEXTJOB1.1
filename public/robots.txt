@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /applications
+Disallow: /saved
+
+Sitemap: https://nextjob1-1.onrender.com/sitemap.xml
