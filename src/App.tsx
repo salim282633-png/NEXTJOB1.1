@@ -5,23 +5,20 @@ import {
   addDoc,
   query,
   where,
-  orderBy,
   limit,
   doc,
-  updateDoc,
   writeBatch
 } from 'firebase/firestore';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import {
   auth,
   db,
-  loginWithGoogle,
   logoutUser,
   testFirestoreConnection,
   handleFirestoreError,
   OperationType
 } from './lib/firebase';
-import { INITIAL_JOBS, INITIAL_CANDIDATES, INITIAL_COMMUNITY_SUBMISSIONS, INITIAL_FRAUD_REPORTS } from './lib/data';
+import { INITIAL_COMMUNITY_SUBMISSIONS, INITIAL_FRAUD_REPORTS } from './lib/data';
 import { Job, Candidate, JobFilter, ToastMessage, CommunityJobSubmission, FraudReport } from './types';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
@@ -50,17 +47,17 @@ export function App() {
   const [user, setUser] = useState<User | null>(null);
   const { isAdmin, isCheckingAdmin } = useAdminAccess();
 
-  // Data states
-  const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
-  const [candidates, setCandidates] = useState<Candidate[]>(INITIAL_CANDIDATES);
+  // Production data states: Firestore live data only. No demo/seed records.
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(false);
   const [isLoadingCandidates, setIsLoadingCandidates] = useState<boolean>(false);
 
-  // Saved / Bookmarked Job IDs
+  // Saved / Bookmarked Job IDs. No seeded demo job IDs in production.
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem('nextjob_saved_jobs');
-      return stored ? new Set(JSON.parse(stored)) : new Set(['job-1', 'job-3']);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
     } catch {
       return new Set();
     }
@@ -135,7 +132,7 @@ export function App() {
     }
   }, [isAdmin]);
 
-  // Listen to Firestore 'jobs' collection with fallback
+  // Listen to live Firestore jobs only. Empty/error states stay empty.
   useEffect(() => {
     setIsLoadingJobs(true);
     const jobsPath = 'jobs';
@@ -144,40 +141,30 @@ export function App() {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          if (!snapshot.empty) {
-            const fetchedJobs: Job[] = snapshot.docs.map(docSnap => ({
-              id: docSnap.id,
-              ...docSnap.data()
-            } as Job));
-
-            // Merge custom posted jobs with initial seed jobs so user always sees rich variety
-            const existingIds = new Set(fetchedJobs.map(j => j.id));
-            const merged = [
-              ...fetchedJobs,
-              ...INITIAL_JOBS.filter(j => !existingIds.has(j.id))
-            ];
-            setJobs(merged);
-          } else {
-            setJobs(INITIAL_JOBS);
-          }
+          const fetchedJobs: Job[] = snapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+          } as Job));
+          setJobs(fetchedJobs);
           setIsLoadingJobs(false);
         },
         (error) => {
           handleFirestoreError(error, OperationType.LIST, jobsPath);
-          setJobs(INITIAL_JOBS);
+          setJobs([]);
           setIsLoadingJobs(false);
         }
       );
       return () => unsubscribe();
     } catch (err) {
       console.warn('Error setting up jobs listener:', err);
+      setJobs([]);
       setIsLoadingJobs(false);
     }
   }, []);
 
-  // Public candidate listener: Firestore Security Rules require both filters.
+  // Public candidate listener: live Firestore data only.
   // Hidden profiles and legacy documents containing contact data are never
-  // returned by this public query.
+  // returned by this public query. Empty/error states stay empty.
   useEffect(() => {
     setIsLoadingCandidates(true);
     const candPath = 'candidates';
@@ -191,32 +178,23 @@ export function App() {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          if (!snapshot.empty) {
-            const fetchedCandidates: Candidate[] = snapshot.docs.map(docSnap => ({
-              id: docSnap.id,
-              ...docSnap.data()
-            } as Candidate));
-
-            const existingIds = new Set(fetchedCandidates.map(c => c.id));
-            const merged = [
-              ...fetchedCandidates,
-              ...INITIAL_CANDIDATES.filter(c => !existingIds.has(c.id))
-            ];
-            setCandidates(merged);
-          } else {
-            setCandidates(INITIAL_CANDIDATES);
-          }
+          const fetchedCandidates: Candidate[] = snapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+          } as Candidate));
+          setCandidates(fetchedCandidates);
           setIsLoadingCandidates(false);
         },
         (error) => {
           handleFirestoreError(error, OperationType.LIST, candPath);
-          setCandidates(INITIAL_CANDIDATES);
+          setCandidates([]);
           setIsLoadingCandidates(false);
         }
       );
       return () => unsubscribe();
     } catch (err) {
       console.warn('Error setting up candidates listener:', err);
+      setCandidates([]);
       setIsLoadingCandidates(false);
     }
   }, []);
@@ -296,22 +274,13 @@ export function App() {
       addToast('success', 'تم نشر إعلان الوظيفة بنجاح في منصة NEXT JOB!');
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'jobs');
-      setJobs(prev => [newJobObj, ...prev]);
-      addToast('success', 'تم نشر إعلان الوظيفة محلياً بنجاح!');
+      addToast('error', 'تعذر نشر الوظيفة في قاعدة البيانات. لم تتم إضافة بيانات محلية بديلة.');
     }
   };
 
   // Candidate publication is atomic: public profile and sensitive contact data
   // are written to two separate collections in the same batch.
   const handlePostCandidate = async (candidateData: Omit<Candidate, 'id' | 'createdAt' | 'views'>) => {
-    const newCandidateObj: Candidate = {
-      ...candidateData,
-      id: `cand-${Date.now()}`,
-      createdAt: 'الآن',
-      views: 1,
-      schemaVersion: 2
-    };
-
     const {
       phone,
       phoneE164,
@@ -348,8 +317,7 @@ export function App() {
       addToast('success', 'تم نشر ملفك وسيرتك الذاتية بنجاح!');
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'candidates + candidateContacts');
-      setCandidates(prev => [newCandidateObj, ...prev]);
-      addToast('success', 'تم حفظ ونشر ملفك الشخصي محلياً بنجاح!');
+      addToast('error', 'تعذر نشر ملف الباحث في قاعدة البيانات. لم تتم إضافة بيانات محلية بديلة.');
     }
   };
 
