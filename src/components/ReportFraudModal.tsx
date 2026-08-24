@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ShieldAlert, X, AlertTriangle, CheckCircle2, Lock } from 'lucide-react';
+import { collection, doc, runTransaction, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { FraudReport } from '../types';
+import { auth, db } from '../lib/firebase';
 
 interface ReportFraudModalProps {
   isOpen: boolean;
@@ -8,7 +10,20 @@ interface ReportFraudModalProps {
   targetType: 'job' | 'candidate';
   targetId: string;
   targetTitle: string;
-  onSubmitReport: (report: Omit<FraudReport, 'id' | 'createdAt' | 'status'>) => Promise<void>;
+  // Kept for backwards-compatible App props. Persistence is enforced here so
+  // the report, dedupe lock and rate-limit slot are one atomic transaction.
+  onSubmitReport?: (report: Omit<FraudReport, 'id' | 'createdAt' | 'status'>) => Promise<void> | void;
+}
+
+const REPORT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const REPORT_QUOTA_SLOTS = ['1', '2', '3', '4', '5'] as const;
+
+function timestampToMillis(value: unknown): number {
+  if (value instanceof Timestamp) return value.toMillis();
+  if (value && typeof (value as { toMillis?: () => number }).toMillis === 'function') {
+    return (value as { toMillis: () => number }).toMillis();
+  }
+  return 0;
 }
 
 export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
@@ -16,8 +31,7 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
   onClose,
   targetType,
   targetId,
-  targetTitle,
-  onSubmitReport
+  targetTitle
 }) => {
   const [reason, setReason] = useState<FraudReport['reason']>('طلب مبالغ أو عمولات توظيف');
   const [details, setDetails] = useState('');
@@ -36,13 +50,88 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      await onSubmitReport({
-        targetType,
-        targetId,
-        targetTitle,
-        reason,
-        details: details.trim(),
-        reporterPhone: reporterPhone.trim()
+      const currentUser = auth.currentUser;
+      if (!currentUser || currentUser.isAnonymous) {
+        throw new Error('AUTH_REQUIRED');
+      }
+
+      // Footer-level reports have no specific target. They are kept in the
+      // same protected queue under a stable platform target.
+      const effectiveTargetType = targetId ? targetType : 'general';
+      const effectiveTargetId = targetId || 'platform';
+      const effectiveTargetTitle = targetTitle || 'بلاغ عام عن احتيال أو طلب رسوم';
+      const dedupeId = `${currentUser.uid}__${effectiveTargetType}__${effectiveTargetId}`;
+
+      const reportRef = doc(collection(db, 'fraudReports'));
+      const dedupeRef = doc(db, 'reportDedupe', dedupeId);
+      const slotRefs = REPORT_QUOTA_SLOTS.map(slot =>
+        doc(db, 'reportRateLimits', currentUser.uid, 'slots', slot)
+      );
+
+      await runTransaction(db, async transaction => {
+        // All reads happen before writes. Security Rules independently enforce
+        // the same 24-hour windows, so local clock manipulation cannot bypass it.
+        const dedupeSnap = await transaction.get(dedupeRef);
+        const slotSnaps = [];
+        for (const slotRef of slotRefs) {
+          slotSnaps.push(await transaction.get(slotRef));
+        }
+
+        const nowMs = Timestamp.now().toMillis();
+        if (dedupeSnap.exists()) {
+          const lastReportMs = timestampToMillis(dedupeSnap.data().usedAt);
+          if (lastReportMs && nowMs - lastReportMs < REPORT_WINDOW_MS) {
+            throw new Error('DUPLICATE_REPORT');
+          }
+        }
+
+        let selectedSlotIndex = -1;
+        for (let i = 0; i < slotSnaps.length; i += 1) {
+          if (!slotSnaps[i].exists()) {
+            selectedSlotIndex = i;
+            break;
+          }
+          const usedAtMs = timestampToMillis(slotSnaps[i].data().usedAt);
+          if (!usedAtMs || nowMs - usedAtMs >= REPORT_WINDOW_MS) {
+            selectedSlotIndex = i;
+            break;
+          }
+        }
+
+        if (selectedSlotIndex < 0) {
+          throw new Error('REPORT_RATE_LIMIT');
+        }
+
+        const quotaSlot = REPORT_QUOTA_SLOTS[selectedSlotIndex];
+        const createdAt = new Date().toISOString();
+
+        transaction.set(reportRef, {
+          targetType: effectiveTargetType,
+          targetId: effectiveTargetId,
+          targetTitle: effectiveTargetTitle,
+          reason,
+          details: details.trim(),
+          reporterPhone: reporterPhone.trim(),
+          reporterUid: currentUser.uid,
+          quotaSlot,
+          createdAt,
+          createdAtServer: serverTimestamp(),
+          status: 'pending'
+        });
+
+        transaction.set(dedupeRef, {
+          reporterUid: currentUser.uid,
+          targetType: effectiveTargetType,
+          targetId: effectiveTargetId,
+          reportId: reportRef.id,
+          usedAt: serverTimestamp()
+        });
+
+        transaction.set(slotRefs[selectedSlotIndex], {
+          uid: currentUser.uid,
+          reportId: reportRef.id,
+          usedAt: serverTimestamp()
+        });
       });
 
       setIsSuccess(true);
@@ -59,6 +148,7 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
       } else if (code === 'REPORT_RATE_LIMIT') {
         setErrorMsg('بلغت الحد الأقصى وهو 5 بلاغات خلال 24 ساعة. حاول لاحقاً.');
       } else {
+        console.error('Fraud report transaction failed:', error);
         setErrorMsg('تعذر حفظ البلاغ في قاعدة البيانات. لم يتم تسجيل البلاغ، يرجى المحاولة مرة أخرى.');
       }
     } finally {
@@ -91,7 +181,7 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
             </div>
             <h3 className="text-base font-bold text-slate-800">تم حفظ البلاغ بنجاح</h3>
             <p className="text-xs text-slate-600 max-w-xs mx-auto">
-              تم تسجيل البلاغ في نظام المراجعة وسيظهر للإدارة لاتخاذ الإجراء المناسب.
+              تم تسجيل البلاغ في Firestore وسيظهر للإدارة لاتخاذ الإجراء المناسب.
             </p>
           </div>
         ) : (
@@ -118,11 +208,11 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
                 onChange={(e) => setReason(e.target.value as FraudReport['reason'])}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 text-slate-900 font-medium"
               >
-                <option value="طلب مبالغ أو عمولات توظيف">طلب مبالغ مالية أو عمولات مقابل الوظيفة (احتيال مالي)</option>
-                <option value="إعلان وهمي / احتيال">إعلان وهمي أو شركة غير موجودة على أرض الواقع</option>
-                <option value="بيانات اتصال خاطئة أو مضللة">رقم التواصل لا يرد / الرقم مغلق أو غير معني</option>
-                <option value="الوظيفة اكتفت أو غير متاحة">الوظيفة تم شغلها بالفعل وانتهت الفرصة</option>
-                <option value="محتوى غير لائق أو مخالف">محتوى مسيء أو مخل بسياسات المنصة</option>
+                <option value="طلب مبالغ أو عمولات توظيف">طلب مبالغ مالية أو عمولات مقابل الوظيفة</option>
+                <option value="إعلان وهمي / احتيال">إعلان وهمي أو جهة غير موجودة</option>
+                <option value="بيانات اتصال خاطئة أو مضللة">بيانات اتصال خاطئة أو مضللة</option>
+                <option value="الوظيفة اكتفت أو غير متاحة">الوظيفة اكتفت أو لم تعد متاحة</option>
+                <option value="محتوى غير لائق أو مخالف">محتوى مسيء أو مخالف</option>
               </select>
             </div>
 
@@ -156,7 +246,7 @@ export const ReportFraudModal: React.FC<ReportFraudModalProps> = ({
             </div>
 
             <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[10px] text-slate-500 leading-relaxed">
-              للحماية من إساءة الاستخدام: يجب تسجيل الدخول، ويُمنع تكرار البلاغ عن نفس المحتوى خلال 24 ساعة، والحد الأقصى 5 بلاغات خلال 24 ساعة.
+              يجب تسجيل الدخول. يُمنع تكرار البلاغ عن نفس المحتوى خلال 24 ساعة، والحد الأقصى 5 بلاغات خلال 24 ساعة.
             </div>
 
             <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100">
