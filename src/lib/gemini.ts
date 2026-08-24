@@ -1,6 +1,51 @@
 import { GoogleGenAI } from '@google/genai';
 
-// Client-safe generator with offline fallback templates
+export interface JobPitchResult {
+  whatsappMessage: string;
+  formalCoverLetter: string;
+  interviewTips: string[];
+  source: 'gemini' | 'fallback';
+}
+
+function fallback(params: {
+  jobTitle: string;
+  companyName: string;
+  candidateName?: string;
+  candidateProfession?: string;
+  experienceYears?: string;
+  iqamaStatus?: string;
+  customNotes?: string;
+}): JobPitchResult {
+  const name = params.candidateName?.trim() || 'المتقدم';
+  const profession = params.candidateProfession?.trim() || params.jobTitle;
+  const exp = params.experienceYears?.trim() || 'خبرة عملية مناسبة';
+  const iqama = params.iqamaStatus?.trim() || 'حسب البيانات المقدمة';
+  return {
+    source: 'fallback',
+    whatsappMessage: `السلام عليكم ورحمة الله وبركاته،\nبخصوص إعلان وظيفة (${params.jobTitle}) لدى ${params.companyName || 'المنشأة'}، أود التقدم للشاغر.\n\nالاسم: ${name}\nالمهنة: ${profession}\nالخبرة: ${exp}\nالوضع النظامي: ${iqama}${params.customNotes ? `\nملاحظة: ${params.customNotes}` : ''}\n\nيسعدني تزويدكم بأي معلومات إضافية وتحديد موعد للمقابلة.`,
+    formalCoverLetter: `السادة في ${params.companyName || 'المنشأة'}،\nتحية طيبة،\n\nأتقدم لشغل وظيفة (${params.jobTitle}). أمتلك ${exp}، وأرغب في مناقشة مدى ملاءمة خبرتي لمتطلبات الشاغر. وضعي النظامي: ${iqama}.\n\nوتفضلوا بقبول الاحترام،\n${name}`,
+    interviewTips: [
+      'راجع وصف الوظيفة وحدد أمثلة حقيقية من خبرتك مرتبطة بالمهام المطلوبة.',
+      'لا تدّعِ شهادات أو خبرات غير موجودة، واذكر موعد المباشرة ووضع الإقامة بدقة.',
+      'لا تدفع أي رسوم مقابل التوظيف، وتحقق من هوية صاحب العمل قبل مشاركة مستندات حساسة.'
+    ]
+  };
+}
+
+function extractJson(text: string): unknown {
+  const cleaned = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+  return JSON.parse(cleaned);
+}
+
+function validResult(value: unknown): value is Omit<JobPitchResult, 'source'> {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.whatsappMessage === 'string' &&
+    typeof v.formalCoverLetter === 'string' &&
+    Array.isArray(v.interviewTips) &&
+    v.interviewTips.every(item => typeof item === 'string');
+}
+
 export async function generateJobPitch(params: {
   jobTitle: string;
   companyName: string;
@@ -9,47 +54,28 @@ export async function generateJobPitch(params: {
   experienceYears?: string;
   iqamaStatus?: string;
   customNotes?: string;
-}): Promise<{ whatsappMessage: string; formalCoverLetter: string; interviewTips: string[] }> {
-  const name = params.candidateName || 'أحد المتقدمين المهتمين';
-  const profession = params.candidateProfession || params.jobTitle;
-  const exp = params.experienceYears || 'خبرة عملية متميزة';
-  const iqama = params.iqamaStatus || 'إقامة سارية وقابلة للنقل';
+}): Promise<JobPitchResult> {
+  const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
+  if (!apiKey) return fallback(params);
 
-  // Fallback high-quality template
-  const defaultWhatsApp = `السلام عليكم ورحمة الله وبركاته،
-حياكم الله ${params.companyName || 'أصحاب العمل الكرام'}،
-بخصوص إعلانكم عن وظيفة (${params.jobTitle}) في منصة NEXT JOB:
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const prompt = `أنت مساعد توظيف عربي لمنصة NEXT JOB. اكتب محتوى مهنيًا دقيقًا دون اختلاق خبرات أو شهادات. لا تعد المستخدم بالحصول على الوظيفة ولا تطلب دفع رسوم.\n\nبيانات المتقدم والوظيفة:\n${JSON.stringify(params, null, 2)}\n\nأعد JSON صالحًا فقط بالشكل التالي:\n{"whatsappMessage":"...","formalCoverLetter":"...","interviewTips":["...","...","..."]}\nاجعل رسالة واتساب مختصرة، والخطاب رسميًا، والنصائح عملية ومناسبة للسعودية.`;
 
-أود التقدم لهذه الفرصة الكريمة.
-- الاسم: ${name}
-- التخصص / المهنة: ${profession}
-- سنوات الخبرة: ${exp}
-- الوضع النظامي: ${iqama}
-${params.customNotes ? `- ملاحظات إضافية: ${params.customNotes}` : ''}
+    const response = await ai.models.generateContent({
+      model: (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash').trim(),
+      contents: prompt,
+      config: {
+        temperature: 0.4,
+        responseMimeType: 'application/json'
+      }
+    });
 
-مستعد لمباشرة العمل والمقابلة الشخصية في أي وقت يناسبكم. يسعدني التواصل معكم.
-شكراً لكم،
-${name}`;
-
-  const defaultCoverLetter = `السادة / إداريي التوظيف في ${params.companyName || 'المؤسسة الموقرة'}،
-تحية طيبة وبعد،
-
-يسرني أن أتقدم بطلبي لشغل وظيفة (${params.jobTitle}) المعلنة لديكم. حيث أمتلك خبرة عملية تمتد لـ (${exp}) في هذا المجال داخل المملكة، مع إلمام تام بالمتطلبات المهنية والالتزام بأعلى معايير الجودة والأمانة في أداء المهام.
-
-إن وضعي النظامي (${iqama}) يتيح لي سرعة الانضمام لفريق عملكم والمساهمة الفاعلة في تحقيق أهداف المنشأة.
-
-وتفضلوا بقبول فائق الاحترام والتقدير،
-مقدم الطلب: ${name}`;
-
-  const defaultTips = [
-    'احرص على إرسال الرسالة في أوقات العمل الرسمية (من 9 صباحاً حتى 6 مساءً).',
-    'أرفق مع الرسالة أي شهادات أو صور لأعمالك ومشاريعك السابقة إن وجدت.',
-    'كن مستعداً للإجابة عن سؤال: متى يمكنك مباشرة العمل؟ ورخصتك ووضع إقامتك.'
-  ];
-
-  return {
-    whatsappMessage: defaultWhatsApp,
-    formalCoverLetter: defaultCoverLetter,
-    interviewTips: defaultTips
-  };
+    const parsed = extractJson(response.text || '');
+    if (!validResult(parsed)) throw new Error('INVALID_GEMINI_RESPONSE');
+    return { ...parsed, source: 'gemini' };
+  } catch (error) {
+    console.warn('Gemini unavailable; safe local fallback used.', error);
+    return fallback(params);
+  }
 }
