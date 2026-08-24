@@ -1,26 +1,25 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
   signInAnonymously,
-  signOut, 
-  onAuthStateChanged, 
-  User 
+  signOut,
+  User
 } from 'firebase/auth';
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  getDocs, 
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDocs,
   getDocFromServer,
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  orderBy, 
-  limit, 
-  onSnapshot 
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  orderBy,
+  limit,
+  onSnapshot
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -73,21 +72,35 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 export function getAuthErrorMessage(error: unknown): string {
   if (!error) return 'حدث خطأ غير متوقع أثناء تسجيل الدخول.';
-  
+
   const err = error as { code?: string; message?: string };
   const code = err.code || '';
 
   switch (code) {
     case 'auth/popup-blocked':
-      return 'قام المتصفح بحظر نافذة تسجيل الدخول المنبثقة (Popup). يرجى السماح بالنوافذ المنبثقة في شريط المتصفح أو فتح التطبيق في تبويب مستقل.';
+      return 'قام المتصفح بحظر نافذة تسجيل الدخول المنبثقة. يرجى السماح بالنوافذ المنبثقة أو فتح التطبيق في تبويب مستقل.';
     case 'auth/popup-closed-by-user':
-      return 'تم إغلاق نافذة تسجيل الدخول قبل إتمامها. يرجى الضغط والمحاولة مرة أخرى.';
+      return 'تم إغلاق نافذة تسجيل الدخول قبل إتمامها. يرجى المحاولة مرة أخرى.';
     case 'auth/cancelled-popup-request':
       return 'تم إلغاء العملية لوجود طلب تسجيل دخول آخر قيد المعالجة.';
     case 'auth/unauthorized-domain':
-      return 'هذا النطاق غير مصرح به حالياً في إعدادات Firebase Auth. يمكنك استخدام "الدخول السريع / وضع الزائر التجريبي" لمتابعة التصفح.';
+      return 'نطاق الموقع غير مضاف إلى Authorized domains في Firebase Authentication.';
     case 'auth/network-request-failed':
       return 'تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مجدداً.';
+    case 'auth/invalid-phone-number':
+      return 'رقم الجوال غير صالح. تأكد من كتابة رقم سعودي صحيح.';
+    case 'auth/missing-phone-number':
+      return 'يرجى إدخال رقم الجوال.';
+    case 'auth/invalid-verification-code':
+      return 'رمز التحقق غير صحيح. تأكد من الرمز المرسل عبر SMS.';
+    case 'auth/code-expired':
+      return 'انتهت صلاحية رمز التحقق. اطلب رمزاً جديداً.';
+    case 'auth/too-many-requests':
+      return 'تم إرسال محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.';
+    case 'auth/captcha-check-failed':
+      return 'تعذر اجتياز التحقق الأمني reCAPTCHA. أعد المحاولة.';
+    case 'auth/invalid-app-credential':
+      return 'تعذر التحقق من إعدادات تطبيق Firebase لهذا النطاق. راجع Authorized domains وإعدادات Phone Authentication.';
     case 'auth/invalid-email':
       return 'صيغة البريد الإلكتروني المدخلة غير صحيحة.';
     case 'auth/user-disabled':
@@ -95,24 +108,26 @@ export function getAuthErrorMessage(error: unknown): string {
     case 'auth/user-not-found':
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
-      return 'بيانات الدخول غير صحيحة (البريد الإلكتروني أو كلمة المرور).';
+      return 'بيانات الدخول غير صحيحة.';
     case 'auth/email-already-in-use':
       return 'هذا البريد الإلكتروني مسجل مسبقاً، يرجى تسجيل الدخول بدلاً من إنشاء حساب جديد.';
     case 'auth/weak-password':
       return 'كلمة المرور ضعيفة. يجب أن تتكون من 6 خانات على الأقل.';
     case 'auth/operation-not-allowed':
-      return 'تسجيل الدخول بهذه الطريقة غير مفعّل حالياً في إعدادات النظام.';
+      return 'طريقة تسجيل الدخول هذه غير مفعلة في Firebase Authentication.';
     default:
-      if (err.message && err.message.includes('popup')) {
+      if (err.message?.includes('popup')) {
         return 'تعذر فتح نافذة تسجيل الدخول. يرجى التحقق من إعدادات النوافذ المنبثقة في متصفحك.';
       }
       return err.message || 'تعذر إتمام تسجيل الدخول في الوقت الحالي، يرجى المحاولة لاحقاً.';
   }
 }
 
-// Initialize Firebase
+// Initialize the configured Firebase project.
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// The new project uses its default Firestore database.
+export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
@@ -134,7 +149,7 @@ export async function loginAnonymously(): Promise<User | null> {
     const result = await signInAnonymously(auth);
     return result.user;
   } catch (error) {
-    console.warn('Anonymous login not enabled in Firebase Console, continuing with demo mode.', error);
+    console.warn('Anonymous login is not enabled in Firebase Authentication.', error);
     throw error;
   }
 }
@@ -148,7 +163,6 @@ export async function logoutUser(): Promise<void> {
   }
 }
 
-// Test Firestore connection on startup as recommended in skill
 export async function testFirestoreConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
@@ -161,18 +175,18 @@ export async function testFirestoreConnection() {
 
 export async function resolvePhoneSquatting(phone: string, excludeUserId: string): Promise<void> {
   try {
-    const { getDocs, query, collection, where, updateDoc, doc } = await import('firebase/firestore');
+    const { where } = await import('firebase/firestore');
     const q = query(collection(db, 'candidates'), where('phone', '==', phone));
     const snapshot = await getDocs(q);
-    
+
     const updatePromises = snapshot.docs
-      .filter(d => d.data().userId !== excludeUserId)
-      .map(d => updateDoc(doc(db, 'candidates', d.id), { 
-        phone: 'رقم محذوف', 
+      .filter(candidateDoc => candidateDoc.data().userId !== excludeUserId)
+      .map(candidateDoc => updateDoc(doc(db, 'candidates', candidateDoc.id), {
+        phone: 'رقم محذوف',
         phoneVerified: false,
         allowContact: false
       }));
-      
+
     await Promise.all(updatePromises);
   } catch (error) {
     console.error('Failed to resolve phone squatting:', error);
