@@ -86,6 +86,18 @@ export interface CandidateContact {
 }
 
 export type ApplicationStatus = 'submitted' | 'viewed' | 'shortlisted' | 'rejected' | 'withdrawn';
+export interface ApplicationCandidateSnapshot {
+  fullName: string;
+  profession: string;
+  city: string;
+  skills: string[];
+  avatarUrl?: string;
+}
+export interface ApplicationJobSnapshot {
+  title: string;
+  company: string;
+  city: string;
+}
 export interface Application {
   id: string;
   jobId: string;
@@ -93,6 +105,8 @@ export interface Application {
   applicantUid: string;
   employerUid: string;
   status: ApplicationStatus;
+  candidateSnapshot?: ApplicationCandidateSnapshot;
+  jobSnapshot?: ApplicationJobSnapshot;
   createdAt: string;
   createdAtServer?: Timestamp;
   updatedAt?: string;
