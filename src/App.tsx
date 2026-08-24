@@ -19,7 +19,6 @@ import {
   handleFirestoreError,
   OperationType
 } from './lib/firebase';
-import { INITIAL_FRAUD_REPORTS } from './lib/data';
 import { Job, Candidate, JobFilter, ToastMessage, CommunityJobSubmission, FraudReport } from './types';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
@@ -48,13 +47,11 @@ export function App() {
   const [user, setUser] = useState<User | null>(null);
   const { isAdmin, isCheckingAdmin } = useAdminAccess();
 
-  // Production data states: Firestore live data only. No demo/seed records.
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(false);
-  const [isLoadingCandidates, setIsLoadingCandidates] = useState<boolean>(false);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+  const [isLoadingCandidates, setIsLoadingCandidates] = useState(false);
 
-  // Saved / Bookmarked Job IDs. No seeded demo job IDs in production.
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem('nextjob_saved_jobs');
@@ -64,7 +61,6 @@ export function App() {
     }
   });
 
-  // Filter states
   const [filter, setFilter] = useState<JobFilter>({
     keyword: '',
     category: 'all',
@@ -76,14 +72,11 @@ export function App() {
     salaryRange: ''
   });
 
-  // Modal states
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isPostJobOpen, setIsPostJobOpen] = useState(false);
   const [isPostCandidateOpen, setIsPostCandidateOpen] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [aiJobContext, setAIJobContext] = useState<Job | null>(null);
-
-  // Advanced Tools & Modals
   const [isWageCalcOpen, setIsWageCalcOpen] = useState(false);
   const [isCVGenOpen, setIsCVGenOpen] = useState(false);
   const [cvCandidatePrefill, setCvCandidatePrefill] = useState<Candidate | null>(null);
@@ -95,46 +88,31 @@ export function App() {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Moderation & Community State. Community queue is Firestore-only.
+  // Production moderation queues are Firestore-only. No seed reports/submissions.
   const [communitySubmissions, setCommunitySubmissions] = useState<CommunityJobSubmission[]>([]);
-  const [fraudReports, setFraudReports] = useState<FraudReport[]>(INITIAL_FRAUD_REPORTS);
+  const [fraudReports, setFraudReports] = useState<FraudReport[]>([]);
 
-  // Toast messages
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = (type: 'success' | 'error' | 'info', message: string) => {
     const id = Date.now().toString();
     setToasts(prev => [...prev, { id, type, message }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 4000);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   };
 
-  const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  };
+  const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  // Auth listener & Firestore connection test
   useEffect(() => {
     testFirestoreConnection();
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-
+    const unsubscribeAuth = onAuthStateChanged(auth, currentUser => setUser(currentUser));
     return () => unsubscribeAuth();
   }, []);
 
-  // Fail closed: if the live admins/{uid} marker disappears, close the admin
-  // panel immediately. Ordinary users never get an admin modal instance.
   useEffect(() => {
-    if (!isAdmin) {
-      setIsAdminSEOOpen(false);
-    }
+    if (!isAdmin) setIsAdminSEOOpen(false);
   }, [isAdmin]);
 
-  // Admin-only real-time moderation queue. Ordinary users cannot read
-  // community submissions because they include unpublished contact details.
+  // Admin-only real-time community moderation queue.
   useEffect(() => {
     if (!user || !isAdmin) {
       setCommunitySubmissions([]);
@@ -142,20 +120,12 @@ export function App() {
     }
 
     const submissionsPath = 'communitySubmissions';
-    const q = query(
-      collection(db, submissionsPath),
-      where('status', '==', 'pending'),
-      limit(100)
-    );
-
+    const q = query(collection(db, submissionsPath), where('status', '==', 'pending'), limit(100));
     const unsubscribe = onSnapshot(
       q,
       snapshot => {
         const pending = snapshot.docs
-          .map(docSnap => ({
-            id: docSnap.id,
-            ...docSnap.data()
-          } as CommunityJobSubmission))
+          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as CommunityJobSubmission))
           .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
         setCommunitySubmissions(pending);
       },
@@ -164,11 +134,35 @@ export function App() {
         setCommunitySubmissions([]);
       }
     );
-
     return () => unsubscribe();
   }, [user?.uid, isAdmin]);
 
-  // Listen to live Firestore jobs only. Empty/error states stay empty.
+  // Admin-only real-time fraud report queue. Reporter phone stays hidden from
+  // ordinary users because Security Rules only allow admins to read reports.
+  useEffect(() => {
+    if (!user || !isAdmin) {
+      setFraudReports([]);
+      return;
+    }
+
+    const reportsPath = 'fraudReports';
+    const q = query(collection(db, reportsPath), where('status', '==', 'pending'), limit(100));
+    const unsubscribe = onSnapshot(
+      q,
+      snapshot => {
+        const pending = snapshot.docs
+          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as FraudReport))
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        setFraudReports(pending);
+      },
+      error => {
+        handleFirestoreError(error, OperationType.LIST, reportsPath);
+        setFraudReports([]);
+      }
+    );
+    return () => unsubscribe();
+  }, [user?.uid, isAdmin]);
+
   useEffect(() => {
     setIsLoadingJobs(true);
     const jobsPath = 'jobs';
@@ -176,15 +170,11 @@ export function App() {
       const q = query(collection(db, jobsPath), limit(100));
       const unsubscribe = onSnapshot(
         q,
-        (snapshot) => {
-          const fetchedJobs: Job[] = snapshot.docs.map(docSnap => ({
-            id: docSnap.id,
-            ...docSnap.data()
-          } as Job));
-          setJobs(fetchedJobs);
+        snapshot => {
+          setJobs(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Job)));
           setIsLoadingJobs(false);
         },
-        (error) => {
+        error => {
           handleFirestoreError(error, OperationType.LIST, jobsPath);
           setJobs([]);
           setIsLoadingJobs(false);
@@ -198,9 +188,6 @@ export function App() {
     }
   }, []);
 
-  // Public candidate listener: live Firestore data only.
-  // Hidden profiles and legacy documents containing contact data are never
-  // returned by this public query. Empty/error states stay empty.
   useEffect(() => {
     setIsLoadingCandidates(true);
     const candPath = 'candidates';
@@ -213,15 +200,11 @@ export function App() {
       );
       const unsubscribe = onSnapshot(
         q,
-        (snapshot) => {
-          const fetchedCandidates: Candidate[] = snapshot.docs.map(docSnap => ({
-            id: docSnap.id,
-            ...docSnap.data()
-          } as Candidate));
-          setCandidates(fetchedCandidates);
+        snapshot => {
+          setCandidates(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Candidate)));
           setIsLoadingCandidates(false);
         },
-        (error) => {
+        error => {
           handleFirestoreError(error, OperationType.LIST, candPath);
           setCandidates([]);
           setIsLoadingCandidates(false);
@@ -235,7 +218,6 @@ export function App() {
     }
   }, []);
 
-  // Save / Bookmark Job handler
   const handleToggleSaveJob = (job: Job) => {
     setSavedJobIds(prev => {
       const next = new Set(prev);
@@ -255,12 +237,9 @@ export function App() {
     });
   };
 
-  // Quick WhatsApp Action
   const handleQuickWhatsAppJob = (job: Job) => {
     const cleanPhone = job.whatsapp ? job.whatsapp.replace(/[^0-9]/g, '') : job.phone.replace(/[^0-9]/g, '');
-    const text = encodeURIComponent(
-      `السلام عليكم ورحمة الله، بخصوص إعلانكم عن وظيفة (${job.title}) في منصة NEXT JOB، أود الاستفسار والتقديم للشاغر.`
-    );
+    const text = encodeURIComponent(`السلام عليكم ورحمة الله، بخصوص إعلانكم عن وظيفة (${job.title}) في منصة NEXT JOB، أود الاستفسار والتقديم للشاغر.`);
     window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
   };
 
@@ -268,30 +247,20 @@ export function App() {
     const contactNumber = candidate.whatsapp || candidate.phone || '';
     const cleanPhone = contactNumber.replace(/[^0-9]/g, '');
     if (!cleanPhone) return;
-
-    const text = encodeURIComponent(
-      `السلام عليكم أخي ${candidate.fullName}، شاهدت سيرتك الذاتية (${candidate.profession}) في منصة NEXT JOB ولدينا فرصة عمل مناسبة.`
-    );
+    const text = encodeURIComponent(`السلام عليكم أخي ${candidate.fullName}، شاهدت سيرتك الذاتية (${candidate.profession}) في منصة NEXT JOB ولدينا فرصة عمل مناسبة.`);
     window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
   };
 
-  // Bump / Refresh Job
   const handleBumpJob = (jobId: string) => {
-    setJobs(prev => prev.map(j => {
-      if (j.id === jobId) {
-        return {
-          ...j,
-          createdAt: 'الآن',
-          status: 'recently_confirmed',
-          lastConfirmedAt: 'اليوم'
-        };
-      }
-      return j;
-    }));
+    setJobs(prev => prev.map(j => j.id === jobId ? {
+      ...j,
+      createdAt: 'الآن',
+      status: 'recently_confirmed',
+      lastConfirmedAt: 'اليوم'
+    } : j));
     addToast('success', 'تم تجديد تاريخ وتأكيد الوظيفة بنجاح ورفعها للأعلى!');
   };
 
-  // Post Job submit handler
   const handlePostJob = async (jobData: Omit<Job, 'id' | 'createdAt' | 'views'>) => {
     const newJobObj: Job = {
       ...jobData,
@@ -301,12 +270,8 @@ export function App() {
       status: 'recently_confirmed',
       lastConfirmedAt: 'اليوم'
     };
-
     try {
-      await addDoc(collection(db, 'jobs'), {
-        ...newJobObj,
-        createdAt: new Date().toISOString()
-      });
+      await addDoc(collection(db, 'jobs'), { ...newJobObj, createdAt: new Date().toISOString() });
       addToast('success', 'تم نشر إعلان الوظيفة بنجاح في منصة NEXT JOB!');
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'jobs');
@@ -314,8 +279,6 @@ export function App() {
     }
   };
 
-  // Candidate publication is atomic: public profile and sensitive contact data
-  // are written to two separate collections in the same batch.
   const handlePostCandidate = async (candidateData: Omit<Candidate, 'id' | 'createdAt' | 'views'>) => {
     const {
       phone,
@@ -333,12 +296,7 @@ export function App() {
       const createdAt = new Date().toISOString();
       const batch = writeBatch(db);
 
-      batch.set(candidateRef, {
-        ...publicCandidateData,
-        schemaVersion: 2,
-        createdAt
-      });
-
+      batch.set(candidateRef, { ...publicCandidateData, schemaVersion: 2, createdAt });
       batch.set(contactRef, {
         candidateId: candidateRef.id,
         phone,
@@ -357,8 +315,6 @@ export function App() {
     }
   };
 
-  // Community flow: submission is saved as pending only. It is deliberately
-  // not inserted into the public jobs state/collection here.
   const handleCommunityJobSubmit = async (
     submission: Omit<CommunityJobSubmission, 'id' | 'status' | 'submittedAt' | 'reviewedAt' | 'reviewedBy' | 'publishedJobId'>
   ) => {
@@ -374,18 +330,6 @@ export function App() {
       addToast('error', 'تعذر إرسال الفرصة للمراجعة. حاول مرة أخرى.');
       throw err;
     }
-  };
-
-  // Report Fraud Submission
-  const handleReportFraudSubmit = async (report: Omit<FraudReport, 'id' | 'createdAt' | 'status'>) => {
-    const newReport: FraudReport = {
-      ...report,
-      id: `rep-${Date.now()}`,
-      createdAt: 'الآن',
-      status: 'pending'
-    };
-    setFraudReports(prev => [newReport, ...prev]);
-    addToast('success', 'تم استلام بلاغك وسيقوم فريق المراجعة بالتحقق فوراً لحماية المجتمع.');
   };
 
   const requireAdmin = () => {
@@ -414,11 +358,8 @@ export function App() {
     return digits;
   };
 
-  // Admin approval is transactional: the submission must still be pending,
-  // then one transaction publishes the job and records the approval result.
   const handleApproveCommunityJob = async (submission: CommunityJobSubmission) => {
     if (!requireAdmin()) return;
-
     const adminUser = auth.currentUser;
     if (!adminUser) return;
 
@@ -428,30 +369,24 @@ export function App() {
 
     try {
       await runTransaction(db, async transaction => {
-        const currentSubmissionSnap = await transaction.get(submissionRef);
-        if (!currentSubmissionSnap.exists()) {
-          throw new Error('Community submission no longer exists.');
-        }
-
-        const currentSubmission = currentSubmissionSnap.data() as CommunityJobSubmission;
-        if (currentSubmission.status !== 'pending') {
-          throw new Error('Community submission has already been reviewed.');
-        }
+        const snap = await transaction.get(submissionRef);
+        if (!snap.exists() || snap.data().status !== 'pending') throw new Error('ALREADY_REVIEWED');
+        const current = snap.data() as CommunityJobSubmission;
 
         transaction.set(jobRef, {
-          title: currentSubmission.title,
-          company: currentSubmission.companyOrShop || 'معلن مجتمعي',
-          city: currentSubmission.city,
-          category: currentSubmission.category,
-          salary: currentSubmission.salary || 'يحدد لاحقاً',
+          title: current.title,
+          company: current.companyOrShop || 'معلن مجتمعي',
+          city: current.city,
+          category: current.category,
+          salary: current.salary || 'يحدد لاحقاً',
           jobType: 'دوام كامل',
           experienceYears: 'حسب متطلبات صاحب العمل',
           sponsorshipTransfer: false,
           accommodationProvided: false,
           transportationProvided: false,
-          description: currentSubmission.details,
-          phone: currentSubmission.contactNumber,
-          whatsapp: normalizeCommunityWhatsApp(currentSubmission.contactNumber),
+          description: current.details,
+          phone: current.contactNumber,
+          whatsapp: normalizeCommunityWhatsApp(current.contactNumber),
           createdAt: reviewedAt,
           lastConfirmedAt: reviewedAt,
           views: 0,
@@ -468,7 +403,6 @@ export function App() {
           publishedJobId: jobRef.id
         });
       });
-
       addToast('success', `تم اعتماد ونشر: "${submission.title}"`);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `communitySubmissions/${submission.id} -> jobs/${jobRef.id}`);
@@ -478,28 +412,16 @@ export function App() {
 
   const handleRejectCommunityJob = async (id: string) => {
     if (!requireAdmin()) return;
-
     const adminUser = auth.currentUser;
     if (!adminUser) return;
-
     const submissionRef = doc(db, 'communitySubmissions', id);
     const reviewedAt = new Date().toISOString();
 
     try {
       await runTransaction(db, async transaction => {
-        const currentSubmissionSnap = await transaction.get(submissionRef);
-        if (!currentSubmissionSnap.exists()) {
-          throw new Error('Community submission no longer exists.');
-        }
-        if (currentSubmissionSnap.data().status !== 'pending') {
-          throw new Error('Community submission has already been reviewed.');
-        }
-
-        transaction.update(submissionRef, {
-          status: 'rejected',
-          reviewedAt,
-          reviewedBy: adminUser.uid
-        });
+        const snap = await transaction.get(submissionRef);
+        if (!snap.exists() || snap.data().status !== 'pending') throw new Error('ALREADY_REVIEWED');
+        transaction.update(submissionRef, { status: 'rejected', reviewedAt, reviewedBy: adminUser.uid });
       });
       addToast('info', 'تم استبعاد الفرصة من قائمة الانتظار دون نشرها.');
     } catch (err) {
@@ -508,22 +430,36 @@ export function App() {
     }
   };
 
-  const handleResolveFraudReport = (id: string) => {
+  const handleResolveFraudReport = async (id: string) => {
     if (!requireAdmin()) return;
-    setFraudReports(prev => prev.map(r => r.id === id ? { ...r, status: 'reviewed' } : r));
-    addToast('success', 'تم اتخاذ الإجراء ومعالجة البلاغ بنجاح');
+    const adminUser = auth.currentUser;
+    if (!adminUser) return;
+    const reportRef = doc(db, 'fraudReports', id);
+    const reviewedAt = new Date().toISOString();
+
+    try {
+      await runTransaction(db, async transaction => {
+        const snap = await transaction.get(reportRef);
+        if (!snap.exists() || snap.data().status !== 'pending') throw new Error('ALREADY_REVIEWED');
+        transaction.update(reportRef, {
+          status: 'reviewed',
+          reviewedAt,
+          reviewedBy: adminUser.uid
+        });
+      });
+      addToast('success', 'تم اتخاذ الإجراء وإغلاق البلاغ في Firestore.');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `fraudReports/${id}`);
+      addToast('error', 'تعذر إغلاق البلاغ أو أنه تمت معالجته مسبقاً.');
+    }
   };
 
-  // Open A4 CV Generator with prefilled candidate
   const handleViewCandidateCV = (candidate: Candidate) => {
     setCvCandidatePrefill(candidate);
     setIsCVGenOpen(true);
   };
 
-  // User Auth Handlers
-  const handleOpenAuth = () => {
-    setIsAuthModalOpen(true);
-  };
+  const handleOpenAuth = () => setIsAuthModalOpen(true);
 
   const handleLoginSuccess = (loggedUser: User) => {
     setUser(loggedUser);
@@ -536,11 +472,13 @@ export function App() {
       setUser(null);
       setIsAdminSEOOpen(false);
       setCommunitySubmissions([]);
+      setFraudReports([]);
       addToast('info', 'تم تسجيل الخروج بنجاح');
     } catch (err) {
       console.error(err);
       setIsAdminSEOOpen(false);
       setCommunitySubmissions([]);
+      setFraudReports([]);
       addToast('info', 'تم تسجيل الخروج');
     }
   };
@@ -549,11 +487,8 @@ export function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white font-sans antialiased" dir="rtl">
-
-      {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
 
-      {/* Top Navigation */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -565,10 +500,7 @@ export function App() {
         onLogout={handleLogout}
       />
 
-      {/* Main Content Area based on Active Tab */}
       <main className="flex-1">
-
-        {/* Tab 1: Jobs */}
         {activeTab === 'jobs' && (
           <div>
             <HeroSection
@@ -584,7 +516,7 @@ export function App() {
               jobs={jobs}
               filter={filter}
               setFilter={setFilter}
-              onSelectJob={(job) => setSelectedJob(job)}
+              onSelectJob={setSelectedJob}
               savedJobIds={savedJobIds}
               onToggleSave={handleToggleSaveJob}
               onQuickWhatsApp={handleQuickWhatsAppJob}
@@ -594,14 +526,13 @@ export function App() {
           </div>
         )}
 
-        {/* Tab 2: Candidates */}
         {activeTab === 'candidates' && (
           <CandidatesDirectory
             candidates={candidates}
             onOpenPostCandidate={() => setIsPostCandidateOpen(true)}
             onQuickWhatsApp={handleQuickWhatsAppCandidate}
             onViewCV={handleViewCandidateCV}
-            onReportCandidate={(cand) => {
+            onReportCandidate={cand => {
               setFraudTargetCand(cand);
               setFraudTargetJob(null);
               setIsReportFraudOpen(true);
@@ -610,16 +541,12 @@ export function App() {
           />
         )}
 
-        {/* Tab 3: Saudi Resident Guide */}
-        {activeTab === 'guide' && (
-          <SaudiResidentGuide />
-        )}
+        {activeTab === 'guide' && <SaudiResidentGuide />}
 
-        {/* Tab 4: Saved Jobs */}
         {activeTab === 'saved' && (
           <SavedJobsView
             savedJobs={savedJobsList}
-            onSelectJob={(job) => setSelectedJob(job)}
+            onSelectJob={setSelectedJob}
             savedJobIds={savedJobIds}
             onToggleSave={handleToggleSaveJob}
             onQuickWhatsApp={handleQuickWhatsAppJob}
@@ -631,21 +558,19 @@ export function App() {
             }}
           />
         )}
-
       </main>
 
-      {/* Modals */}
       {selectedJob && (
         <JobDetailModal
           job={selectedJob}
           onClose={() => setSelectedJob(null)}
           isSaved={savedJobIds.has(selectedJob.id)}
           onToggleSave={handleToggleSaveJob}
-          onOpenAICoverLetterForJob={(job) => {
+          onOpenAICoverLetterForJob={job => {
             setAIJobContext(job);
             setIsAIOpen(true);
           }}
-          onReportFraud={(job) => {
+          onReportFraud={job => {
             setFraudTargetJob(job);
             setFraudTargetCand(null);
             setIsReportFraudOpen(true);
@@ -654,23 +579,8 @@ export function App() {
         />
       )}
 
-      {isPostJobOpen && (
-        <PostJobModal
-          isOpen={isPostJobOpen}
-          onClose={() => setIsPostJobOpen(false)}
-          onSubmit={handlePostJob}
-          user={user}
-        />
-      )}
-
-      {isPostCandidateOpen && (
-        <PostCandidateModal
-          isOpen={isPostCandidateOpen}
-          onClose={() => setIsPostCandidateOpen(false)}
-          onSubmit={handlePostCandidate}
-          user={user}
-        />
-      )}
+      {isPostJobOpen && <PostJobModal isOpen={isPostJobOpen} onClose={() => setIsPostJobOpen(false)} onSubmit={handlePostJob} user={user} />}
+      {isPostCandidateOpen && <PostCandidateModal isOpen={isPostCandidateOpen} onClose={() => setIsPostCandidateOpen(false)} onSubmit={handlePostCandidate} user={user} />}
 
       {isAIOpen && (
         <AICoverLetterModal
@@ -683,15 +593,8 @@ export function App() {
         />
       )}
 
-      {/* Wage & Living Cost Calculator Modal */}
-      {isWageCalcOpen && (
-        <WageCalculatorModal
-          isOpen={isWageCalcOpen}
-          onClose={() => setIsWageCalcOpen(false)}
-        />
-      )}
+      {isWageCalcOpen && <WageCalculatorModal isOpen={isWageCalcOpen} onClose={() => setIsWageCalcOpen(false)} />}
 
-      {/* Free A4 CV Generator Modal */}
       {isCVGenOpen && (
         <FreeCVGeneratorModal
           isOpen={isCVGenOpen}
@@ -703,16 +606,10 @@ export function App() {
         />
       )}
 
-      {/* Community Job Submission Modal */}
       {isCommunityJobOpen && (
-        <CommunityJobModal
-          isOpen={isCommunityJobOpen}
-          onClose={() => setIsCommunityJobOpen(false)}
-          onSubmit={handleCommunityJobSubmit}
-        />
+        <CommunityJobModal isOpen={isCommunityJobOpen} onClose={() => setIsCommunityJobOpen(false)} onSubmit={handleCommunityJobSubmit} />
       )}
 
-      {/* Report Fraud & Safety Modal */}
       {isReportFraudOpen && (
         <ReportFraudModal
           isOpen={isReportFraudOpen}
@@ -724,11 +621,9 @@ export function App() {
           targetType={fraudTargetJob ? 'job' : 'candidate'}
           targetId={fraudTargetJob?.id || fraudTargetCand?.id || ''}
           targetTitle={fraudTargetJob?.title || fraudTargetCand?.fullName || ''}
-          onSubmitReport={handleReportFraudSubmit}
         />
       )}
 
-      {/* Admin, Moderation & SEO Engine Modal: never instantiated for non-admin users. */}
       {user && isAdmin && isAdminSEOOpen && (
         <AdminAndSEOEngineModal
           isOpen={isAdminSEOOpen}
@@ -745,7 +640,6 @@ export function App() {
         />
       )}
 
-      {/* Auth & Profile Modal */}
       {isAuthModalOpen && (
         <AuthModal
           isOpen={isAuthModalOpen}
@@ -757,20 +651,10 @@ export function App() {
         />
       )}
 
-      {/* Privacy Policy & Terms Modal */}
-      {isPrivacyOpen && (
-        <PrivacyAndTermsModal
-          isOpen={isPrivacyOpen}
-          onClose={() => setIsPrivacyOpen(false)}
-        />
-      )}
+      {isPrivacyOpen && <PrivacyAndTermsModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />}
 
-      {/* Google CMP Cookie Consent Banner */}
-      <CookieConsentBanner
-        onOpenPrivacyModal={() => setIsPrivacyOpen(true)}
-      />
+      <CookieConsentBanner onOpenPrivacyModal={() => setIsPrivacyOpen(true)} />
 
-      {/* Footer */}
       <Footer
         onNavigate={setActiveTab}
         onOpenWageCalc={() => setIsWageCalcOpen(true)}
@@ -787,7 +671,6 @@ export function App() {
         onOpenPrivacy={() => setIsPrivacyOpen(true)}
         onOpenAdminSEO={user && isAdmin && !isCheckingAdmin ? handleOpenAdminPanel : undefined}
       />
-
     </div>
   );
 }
