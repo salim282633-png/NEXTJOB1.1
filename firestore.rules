@@ -30,6 +30,12 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    function isTrustedReporter() {
+      return isSignedIn() &&
+        request.auth.token.firebase.sign_in_provider is string &&
+        request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     function hasVerifiedSaudiPhone() {
       return isSignedIn() &&
         request.auth.token.phone_number is string &&
@@ -136,23 +142,168 @@ service cloud.firestore {
         getAfter(/databases/$(database)/documents/communitySubmissions/$(incoming().sourceSubmissionId)).data.publishedJobId == jobId;
     }
 
+    function validFraudTarget(data) {
+      return (
+        data.targetType == 'general' &&
+        data.targetId == 'platform'
+      ) || (
+        data.targetType == 'job' &&
+        exists(/databases/$(database)/documents/jobs/$(data.targetId))
+      ) || (
+        data.targetType == 'candidate' &&
+        exists(/databases/$(database)/documents/candidates/$(data.targetId))
+      );
+    }
+
+    function validFraudGuards(reportId, data) {
+      return
+        existsAfter(/databases/$(database)/documents/reportDedupe/$(request.auth.uid)/targets/$(data.targetType + '__' + data.targetId)) &&
+        getAfter(/databases/$(database)/documents/reportDedupe/$(request.auth.uid)/targets/$(data.targetType + '__' + data.targetId)).data.reportId == reportId &&
+        getAfter(/databases/$(database)/documents/reportDedupe/$(request.auth.uid)/targets/$(data.targetType + '__' + data.targetId)).data.usedAt == request.time &&
+        existsAfter(/databases/$(database)/documents/reportRateLimits/$(request.auth.uid)/slots/$(data.quotaSlot)) &&
+        getAfter(/databases/$(database)/documents/reportRateLimits/$(request.auth.uid)/slots/$(data.quotaSlot)).data.reportId == reportId &&
+        getAfter(/databases/$(database)/documents/reportRateLimits/$(request.auth.uid)/slots/$(data.quotaSlot)).data.usedAt == request.time;
+    }
+
     // =========================================================
     // Admin authorization markers
     // =========================================================
     match /admins/{adminId} {
-      // The signed-in user may only check whether THEIR OWN admin marker exists.
-      // They cannot enumerate admins or grant/revoke privileges from the app.
       allow get: if isSignedIn() && request.auth.uid == adminId;
       allow list, create, update, delete: if false;
     }
 
     // =========================================================
+    // Fraud reports: persistent queue + real abuse controls.
+    // =========================================================
+    match /fraudReports/{reportId} {
+      allow create: if isValidId(reportId) &&
+        isTrustedReporter() &&
+        incoming().keys().hasAll([
+          'targetType', 'targetId', 'targetTitle', 'reason', 'details',
+          'reporterUid', 'quotaSlot', 'createdAt', 'createdAtServer', 'status'
+        ]) &&
+        incoming().keys().hasOnly([
+          'targetType', 'targetId', 'targetTitle', 'reason', 'details',
+          'reporterPhone', 'reporterUid', 'quotaSlot', 'createdAt',
+          'createdAtServer', 'status'
+        ]) &&
+        incoming().reporterUid == request.auth.uid &&
+        incoming().targetType is string &&
+        (incoming().targetType == 'job' || incoming().targetType == 'candidate' || incoming().targetType == 'general') &&
+        incoming().targetId is string &&
+        incoming().targetId.size() > 0 &&
+        incoming().targetId.size() <= 80 &&
+        incoming().targetTitle is string &&
+        incoming().targetTitle.size() > 0 &&
+        incoming().targetTitle.size() <= 200 &&
+        incoming().reason is string &&
+        incoming().reason.size() > 0 &&
+        incoming().reason.size() <= 100 &&
+        incoming().details is string &&
+        incoming().details.size() > 0 &&
+        incoming().details.size() <= 2000 &&
+        (!incoming().keys().hasAny(['reporterPhone']) || (incoming().reporterPhone is string && incoming().reporterPhone.size() <= 30)) &&
+        incoming().quotaSlot is string &&
+        incoming().quotaSlot.matches('^[1-5]$') &&
+        incoming().createdAt is string &&
+        incoming().createdAt.size() <= 50 &&
+        incoming().createdAtServer == request.time &&
+        incoming().status == 'pending' &&
+        validFraudTarget(incoming()) &&
+        validFraudGuards(reportId, incoming());
+
+      // Reports may contain confidential reporter contact details.
+      allow get, list: if isAdmin();
+
+      allow update: if isAdmin() &&
+        existing().status == 'pending' &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'status', 'reviewedAt', 'reviewedBy'
+        ]) &&
+        (incoming().status == 'reviewed' || incoming().status == 'dismissed') &&
+        incoming().reviewedAt is string &&
+        incoming().reviewedBy == request.auth.uid;
+
+      allow delete: if false;
+    }
+
+    // One dedupe lock per authenticated user + target. It can only be reused
+    // after 24 hours and must be linked atomically to the new fraud report.
+    match /reportDedupe/{uid}/targets/{targetKey} {
+      allow get: if isTrustedReporter() && request.auth.uid == uid;
+      allow list: if false;
+
+      allow create: if isTrustedReporter() &&
+        request.auth.uid == uid &&
+        targetKey == incoming().targetType + '__' + incoming().targetId &&
+        incoming().keys().hasOnly([
+          'reporterUid', 'targetType', 'targetId', 'reportId', 'usedAt'
+        ]) &&
+        incoming().reporterUid == uid &&
+        incoming().usedAt == request.time &&
+        incoming().reportId is string &&
+        existsAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)) &&
+        getAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)).data.reporterUid == uid &&
+        getAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)).data.targetType == incoming().targetType &&
+        getAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)).data.targetId == incoming().targetId;
+
+      allow update: if isTrustedReporter() &&
+        request.auth.uid == uid &&
+        existing().usedAt is timestamp &&
+        request.time >= existing().usedAt + duration.value(24, 'h') &&
+        targetKey == incoming().targetType + '__' + incoming().targetId &&
+        incoming().keys().hasOnly([
+          'reporterUid', 'targetType', 'targetId', 'reportId', 'usedAt'
+        ]) &&
+        incoming().reporterUid == uid &&
+        incoming().usedAt == request.time &&
+        incoming().reportId is string &&
+        existsAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)) &&
+        getAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)).data.reporterUid == uid &&
+        getAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)).data.targetType == incoming().targetType &&
+        getAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)).data.targetId == incoming().targetId;
+
+      allow delete: if false;
+    }
+
+    // Five independent 24-hour slots = at most five reports per authenticated
+    // UID in any 24-hour period. A slot cannot be reused early.
+    match /reportRateLimits/{uid}/slots/{slotId} {
+      allow get: if isTrustedReporter() && request.auth.uid == uid && slotId.matches('^[1-5]$');
+      allow list: if false;
+
+      allow create: if isTrustedReporter() &&
+        request.auth.uid == uid &&
+        slotId.matches('^[1-5]$') &&
+        incoming().keys().hasOnly(['uid', 'reportId', 'usedAt']) &&
+        incoming().uid == uid &&
+        incoming().reportId is string &&
+        incoming().usedAt == request.time &&
+        existsAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)) &&
+        getAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)).data.reporterUid == uid &&
+        getAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)).data.quotaSlot == slotId;
+
+      allow update: if isTrustedReporter() &&
+        request.auth.uid == uid &&
+        slotId.matches('^[1-5]$') &&
+        existing().usedAt is timestamp &&
+        request.time >= existing().usedAt + duration.value(24, 'h') &&
+        incoming().keys().hasOnly(['uid', 'reportId', 'usedAt']) &&
+        incoming().uid == uid &&
+        incoming().reportId is string &&
+        incoming().usedAt == request.time &&
+        existsAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)) &&
+        getAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)).data.reporterUid == uid &&
+        getAfter(/databases/$(database)/documents/fraudReports/$(incoming().reportId)).data.quotaSlot == slotId;
+
+      allow delete: if false;
+    }
+
+    // =========================================================
     // Community opportunity moderation queue
-    // Submit -> pending -> admin review -> approved/rejected -> publish on approval.
     // =========================================================
     match /communitySubmissions/{submissionId} {
-      // Submission is intentionally write-only for the public because it can
-      // contain unpublished employer and submitter contact information.
       allow create: if isValidId(submissionId) &&
         incoming().keys().hasAll([
           'title', 'companyOrShop', 'city', 'category',
@@ -187,8 +338,6 @@ service cloud.firestore {
 
       allow get, list: if isAdmin();
 
-      // Admin may only transition an untouched pending submission to approved
-      // or rejected. The original submitted content cannot be rewritten here.
       allow update: if isAdmin() &&
         existing().status == 'pending' &&
         incoming().diff(existing()).affectedKeys().hasOnly([
@@ -211,7 +360,6 @@ service cloud.firestore {
           )
         );
 
-      // Keep moderation history for auditability.
       allow delete: if false;
     }
 
@@ -219,8 +367,6 @@ service cloud.firestore {
     // Jobs
     // =========================================================
     match /jobs/{jobId} {
-      // Job contact information is intentionally public because the product is
-      // designed for direct contact with employers.
       allow read: if true;
 
       allow create: if isValidId(jobId) &&
@@ -267,12 +413,8 @@ service cloud.firestore {
 
     // =========================================================
     // Candidate public profiles
-    // No phone, WhatsApp, E.164 number or email is stored here in schema v2.
     // =========================================================
     match /candidates/{candidateId} {
-      // Direct get: visible public profile, its authenticated owner, admin, or
-      // the verified owner of the exact phone contact during safe reclaim.
-      // Legacy documents are not public because they have no schemaVersion=2.
       allow get: if
         publicCandidateReadable(existing()) ||
         ownsCandidate(candidateId) ||
@@ -284,9 +426,6 @@ service cloud.firestore {
           authOwnsPhone(existing().phoneE164)
         );
 
-      // Public queries must constrain schemaVersion == 2 and isHidden == false.
-      // A verified phone owner may also query legacy claims by exact phoneE164
-      // during secure ownership recovery.
       allow list: if
         publicCandidateReadable(existing()) ||
         isAdmin() ||
@@ -296,9 +435,6 @@ service cloud.firestore {
           authOwnsPhone(existing().phoneE164)
         );
 
-      // New profiles are created only in schema v2 and must not contain
-      // sensitive contact fields. The matching contact document must be part
-      // of the same atomic batch.
       allow create: if isValidId(candidateId) &&
         incoming().schemaVersion == 2 &&
         incoming().keys().hasAll([
@@ -326,8 +462,6 @@ service cloud.firestore {
         getAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)).data.phoneVerified == incoming().phoneVerified &&
         verifiedPublicStateMatchesContact(candidateId, incoming());
 
-      // Normal profile edits are restricted to the owner identified by the
-      // private contact document. Sensitive fields can never be added here.
       allow update: if isValidId(candidateId) && (
         isAdmin() ||
         (
@@ -346,8 +480,6 @@ service cloud.firestore {
           verifiedPublicStateMatchesContact(candidateId, incoming())
         ) ||
         (
-          // Secure reclaim of a schema-v2 stale claim. The verified phone
-          // owner may only disable contact and verification on that profile.
           verifiedPhoneOwnsCandidateContact(candidateId) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
             'phoneVerified', 'allowContact', 'phoneClaimRevokedAt'
@@ -357,9 +489,6 @@ service cloud.firestore {
           incoming().phoneClaimRevokedAt is string
         ) ||
         (
-          // Legacy reclaim: old public documents may still contain contact
-          // fields. A verified owner of their phoneE164 may strip those fields
-          // and upgrade the remaining public profile to schema v2.
           hasVerifiedSaudiPhone() &&
           existing().keys().hasAll(['phoneE164']) &&
           authOwnsPhone(existing().phoneE164) &&
@@ -384,9 +513,6 @@ service cloud.firestore {
 
     // =========================================================
     // Candidate contact data
-    // This collection is never publicly listable. A public caller may only
-    // get the exact contact document for a visible profile that explicitly
-    // has allowContact=true.
     // =========================================================
     match /candidateContacts/{candidateId} {
       allow get: if
@@ -394,9 +520,6 @@ service cloud.firestore {
         (isSignedIn() && existing().userId == request.auth.uid) ||
         publicContactReadable(candidateId);
 
-      // Only admins or a Firebase-authenticated owner of the exact verified
-      // phone may list contact documents. This supports secure phone reclaim
-      // without enabling bulk public scraping of contact information.
       allow list: if
         isAdmin() ||
         (
@@ -404,7 +527,6 @@ service cloud.firestore {
           existing().phoneE164 == request.auth.token.phone_number
         );
 
-      // Contact creation must be paired atomically with the public candidate.
       allow create: if isValidId(candidateId) &&
         validContactState(incoming(), candidateId) &&
         existsAfter(/databases/$(database)/documents/candidates/$(candidateId)) &&
@@ -426,8 +548,6 @@ service cloud.firestore {
           validContactState(incoming(), candidateId)
         ) ||
         (
-          // Secure reclaim: only the Firebase user whose verified token owns
-          // the existing E.164 number can clear a stale contact claim.
           hasVerifiedSaudiPhone() &&
           authOwnsPhone(existing().phoneE164) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
