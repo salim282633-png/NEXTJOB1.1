@@ -39,11 +39,13 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
   const [city, setCity] = useState(SAUDI_CITIES[0]);
   const [yemeniGovernorate, setYemeniGovernorate] = useState(YEMENI_GOVERNORATES[0]);
   const [iqamaStatus, setIqamaStatus] = useState<Candidate['iqamaStatus']>('إقامة سارية وقابلة للنقل');
-  const [experienceYears, setExperienceYears] = useState('3 سنوات');
+  const [experienceYears, setExperienceYears] = useState('');
+  const [noExperience, setNoExperience] = useState(false);
   const [educationLevel, setEducationLevel] = useState('ثانوية عامة / دبلوم');
   const [phone, setPhone] = useState(user?.phoneNumber || '');
   const [whatsapp, setWhatsapp] = useState(user?.phoneNumber || '');
   const [skillsInput, setSkillsInput] = useState('');
+  const [hobbiesInput, setHobbiesInput] = useState('');
   const [bio, setBio] = useState('');
   const [hasDriverLicense, setHasDriverLicense] = useState(false);
   const [availableImmediately, setAvailableImmediately] = useState(true);
@@ -207,7 +209,7 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
     }
 
     if (!fullName.trim() || !profession.trim() || !phone.trim() || !bio.trim()) {
-      setErrorMsg('يرجى ملء الاسم، المهنة، رقم الجوال، ونبذة مختصرة عن خبرتك.');
+      setErrorMsg('يرجى ملء الاسم، المهنة، رقم الجوال، ونبذة مختصرة عن نفسك وما تستطيع القيام به.');
       return;
     }
 
@@ -248,19 +250,27 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
         .map(s => s.trim())
         .filter(s => s.length > 0);
 
+      const hobbies = hobbiesInput
+        .split(/[,،]/)
+        .map(item => item.trim())
+        .filter(item => item.length > 0)
+        .slice(0, 12);
+
       await onSubmit({
         fullName: fullName.trim(),
         profession: profession.trim(),
         city,
         yemeniGovernorate,
         iqamaStatus,
-        experienceYears: experienceYears.trim() || 'خبرة عملية',
+        experienceYears: noExperience ? 'لا توجد خبرة سابقة' : (experienceYears.trim() || 'لم يحدد'),
+        noExperience,
         educationLevel,
         phone: norm.displayLocal,
         phoneE164: norm.canonical,
         phoneVerified: verifiedForSubmittedPhone,
         whatsapp: whatsappNorm,
         skills: skills.length > 0 ? skills : [profession.trim()],
+        hobbies,
         bio: bio.trim(),
         hasDriverLicense,
         availableImmediately,
@@ -423,22 +433,35 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">سنوات الخبرة بالسعودية</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">الخبرة العملية</label>
               <input
                 id="input-cand-exp"
                 type="text"
                 value={experienceYears}
+                disabled={noExperience}
                 onChange={e => setExperienceYears(e.target.value)}
-                placeholder="مثال: 4 سنوات بالسعودية"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                placeholder={noExperience ? 'تم اختيار: لا توجد خبرة سابقة' : 'مثال: سنتان في المبيعات أو المطاعم'}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
               />
+              <label className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={noExperience}
+                  onChange={e => {
+                    setNoExperience(e.target.checked);
+                    if (e.target.checked) setExperienceYears('');
+                  }}
+                  className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                />
+                <span>لا توجد لدي خبرة سابقة</span>
+              </label>
             </div>
           </div>
 
           {/* Bio / Summary */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              نبذة عن خبراتك والمهام التي تجيدها <span className="text-rose-500">*</span>
+              عرّف عن نفسك وما الأعمال أو المهارات التي تستطيع القيام بها <span className="text-rose-500">*</span>
             </label>
             <textarea
               id="textarea-cand-bio"
@@ -446,7 +469,7 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
               rows={3}
               value={bio}
               onChange={e => setBio(e.target.value)}
-              placeholder="اكتب نبذة مقنعة: الشركات أو المتاجر التي عملت بها، البرامج التي تتقنها، والأعمال التي أنجزتها..."
+              placeholder="مثال: أتعلم بسرعة، أجيد التعامل مع العملاء واستخدام الحاسب، ومستعد للتدريب والعمل في المبيعات أو المطاعم..."
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
@@ -462,6 +485,21 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
               placeholder="مثال: برنامج سماك، ضريبة القيمة المضافة، إعداد القوائم، إكسل"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
+          </div>
+
+          {/* Hobbies / Interests */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">الهوايات والاهتمامات التي قد تعكس مهاراتك (اختياري)</label>
+            <input
+              id="input-cand-hobbies"
+              type="text"
+              maxLength={300}
+              value={hobbiesInput}
+              onChange={e => setHobbiesInput(e.target.value)}
+              placeholder="مثال: الطبخ، التصوير، صيانة الأجهزة، البيع والتفاوض، التصميم، الأعمال اليدوية"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            />
+            <p className="text-[10px] text-slate-500 mt-1.5">الهوايات تساعد صاحب العمل على فهم اهتماماتك، لكنها لا تدخل في ترتيب «فرص قد تناسبك».</p>
           </div>
 
           {/* Contact Details & Verification */}

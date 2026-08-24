@@ -57,6 +57,8 @@ export interface Candidate {
   phoneClaimRevokedAt?: string;
   whatsapp: string;
   skills: string[];
+  hobbies?: string[];
+  noExperience?: boolean;
   bio: string;
   hasDriverLicense: boolean;
   availableImmediately: boolean;

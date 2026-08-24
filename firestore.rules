@@ -547,6 +547,8 @@ service cloud.firestore {
         incoming().city is string && incoming().city.size() <= 50 &&
         incoming().iqamaStatus is string && incoming().iqamaStatus.size() <= 80 &&
         incoming().bio is string && incoming().bio.size() <= 2000 &&
+        (!incoming().keys().hasAny(['hobbies']) || (incoming().hobbies is list && incoming().hobbies.size() <= 12)) &&
+        (!incoming().keys().hasAny(['noExperience']) || incoming().noExperience is bool) &&
         incoming().phoneVerified is bool &&
         incoming().isHidden is bool &&
         incoming().allowContact is bool &&
@@ -564,9 +566,11 @@ service cloud.firestore {
             'fullName', 'profession', 'city', 'yemeniGovernorate',
             'iqamaStatus', 'experienceYears', 'educationLevel', 'skills',
             'bio', 'hasDriverLicense', 'availableImmediately',
-            'availabilityNote', 'avatarUrl', 'isHidden', 'allowContact',
+            'availabilityNote', 'avatarUrl', 'hobbies', 'noExperience', 'isHidden', 'allowContact',
             'nationality', 'phoneVerified', 'updatedAt', 'views'
           ]) &&
+          (!incoming().keys().hasAny(['hobbies']) || (incoming().hobbies is list && incoming().hobbies.size() <= 12)) &&
+          (!incoming().keys().hasAny(['noExperience']) || incoming().noExperience is bool) &&
           verifiedPublicStateMatchesContact(candidateId, incoming())
         ) ||
         (
