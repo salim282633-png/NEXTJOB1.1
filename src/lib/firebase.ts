@@ -13,16 +13,21 @@ import {
   collection,
   doc,
   getDocs,
+  getDoc,
   getDocFromServer,
   addDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   query,
+  where,
   orderBy,
   limit,
-  onSnapshot
+  onSnapshot,
+  writeBatch
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { CandidateContact } from '../types';
 
 export enum OperationType {
   CREATE = 'create',
@@ -179,6 +184,28 @@ export async function testFirestoreConnection() {
   }
 }
 
+/**
+ * Read one candidate's contact document only. Security Rules decide whether
+ * the caller may see it based on the matching public candidate document.
+ * The public app never lists the whole candidateContacts collection.
+ */
+export async function getCandidateContact(candidateId: string): Promise<CandidateContact | null> {
+  if (!candidateId) return null;
+
+  try {
+    const contactSnap = await getDoc(doc(db, 'candidateContacts', candidateId));
+    if (!contactSnap.exists()) return null;
+
+    return {
+      candidateId,
+      ...contactSnap.data()
+    } as CandidateContact;
+  } catch (error) {
+    console.warn('Candidate contact is not readable for this profile:', error);
+    return null;
+  }
+}
+
 function normalizeSaudiPhoneForOwnership(value: string): string {
   let digits = value.trim().replace(/\D/g, '');
 
@@ -193,10 +220,10 @@ function normalizeSaudiPhoneForOwnership(value: string): string {
 }
 
 /**
- * Revoke stale candidate claims for a phone only after Firebase Authentication
- * proves that the currently signed-in user owns that exact E.164 number.
- * Firestore rules independently re-check the same ownership token, so this
- * cannot be bypassed by calling the function manually from the browser.
+ * Reclaim a verified phone safely. New records keep contact data in
+ * candidateContacts/{candidateId}; legacy records that still contain phone
+ * fields in candidates are also revoked and stripped of those fields.
+ * Security Rules independently verify request.auth.token.phone_number.
  */
 export async function resolvePhoneSquatting(phoneInput: string, excludeUserId: string): Promise<void> {
   const currentUser = auth.currentUser;
@@ -212,46 +239,70 @@ export async function resolvePhoneSquatting(phoneInput: string, excludeUserId: s
   }
 
   try {
-    // Refresh the ID token so Firestore immediately sees the new phone_number claim.
     await currentUser.getIdToken(true);
 
-    const { where } = await import('firebase/firestore');
     const displayLocal = `0${phoneE164.slice(4)}`;
-
-    // New records are indexed by phoneE164. A second query safely catches
-    // legacy records that only stored 05XXXXXXXX before phoneE164 existed.
-    const [canonicalSnapshot, legacySnapshot] = await Promise.all([
-      getDocs(query(collection(db, 'candidates'), where('phoneE164', '==', phoneE164))),
+    const [contactSnapshot, legacySnapshot] = await Promise.all([
+      getDocs(query(collection(db, 'candidateContacts'), where('phoneE164', '==', phoneE164))),
       getDocs(query(collection(db, 'candidates'), where('phone', '==', displayLocal)))
     ]);
 
-    const candidateDocs = [...canonicalSnapshot.docs, ...legacySnapshot.docs]
-      .filter((candidateDoc, index, allDocs) =>
-        allDocs.findIndex(otherDoc => otherDoc.id === candidateDoc.id) === index
-      );
+    const staleContacts = contactSnapshot.docs.filter(contactDoc => {
+      const data = contactDoc.data();
+      return !(data.userId === excludeUserId && data.phoneVerified === true);
+    });
+
+    const publicSnapshots = await Promise.all(
+      staleContacts.map(contactDoc => getDoc(doc(db, 'candidates', contactDoc.id)))
+    );
 
     const revokedAt = new Date().toISOString();
-    const updatePromises = candidateDocs
-      // Preserve only a modern, already-verified profile owned by this exact
-      // Firebase UID. Legacy claims are reclaimed and can be republished safely.
-      .filter(candidateDoc => {
-        const data = candidateDoc.data();
-        return !(
-          data.userId === excludeUserId &&
-          data.phoneVerified === true &&
-          data.phoneE164 === phoneE164
-        );
-      })
-      .map(candidateDoc => updateDoc(doc(db, 'candidates', candidateDoc.id), {
-        phone: 'رقم محذوف',
+    const batch = writeBatch(db);
+
+    staleContacts.forEach((contactDoc, index) => {
+      batch.update(contactDoc.ref, {
+        phone: '',
         phoneE164: '',
-        phoneVerified: false,
         whatsapp: '',
+        phoneVerified: false,
+        phoneClaimRevokedAt: revokedAt
+      });
+
+      const publicSnap = publicSnapshots[index];
+      if (publicSnap.exists()) {
+        batch.update(publicSnap.ref, {
+          phoneVerified: false,
+          allowContact: false,
+          phoneClaimRevokedAt: revokedAt
+        });
+      }
+    });
+
+    // Legacy documents are removed from public contact exposure and upgraded
+    // to schemaVersion 2 without carrying phone/WhatsApp fields forward.
+    legacySnapshot.docs.forEach(legacyDoc => {
+      const data = legacyDoc.data();
+      if (
+        data.userId === excludeUserId &&
+        data.phoneVerified === true &&
+        data.phoneE164 === phoneE164
+      ) {
+        return;
+      }
+
+      batch.update(legacyDoc.ref, {
+        phone: deleteField(),
+        phoneE164: deleteField(),
+        whatsapp: deleteField(),
+        userEmail: deleteField(),
+        schemaVersion: 2,
+        phoneVerified: false,
         allowContact: false,
         phoneClaimRevokedAt: revokedAt
-      }));
+      });
+    });
 
-    await Promise.all(updatePromises);
+    await batch.commit();
   } catch (error) {
     console.error('Failed to resolve phone squatting:', error);
     throw error;
