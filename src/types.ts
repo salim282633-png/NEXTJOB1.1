@@ -63,6 +63,7 @@ export interface Candidate {
   availabilityNote?: string;
   educationLevel?: string;
   avatarUrl?: string;
+  avatarStoragePath?: string;
   isHidden: boolean;
   allowContact: boolean;
   nationality?: string;
@@ -82,6 +83,20 @@ export interface CandidateContact {
   userId: string | null;
   schemaVersion: 2;
   phoneClaimRevokedAt?: string;
+}
+
+export type ApplicationStatus = 'submitted' | 'viewed' | 'shortlisted' | 'rejected' | 'withdrawn';
+export interface Application {
+  id: string;
+  jobId: string;
+  candidateId: string;
+  applicantUid: string;
+  employerUid: string;
+  status: ApplicationStatus;
+  createdAt: string;
+  createdAtServer?: Timestamp;
+  updatedAt?: string;
+  updatedAtServer?: Timestamp;
 }
 
 export interface JobFilter {
