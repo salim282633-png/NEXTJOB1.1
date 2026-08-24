@@ -127,8 +127,9 @@ export function getAuthErrorMessage(error: unknown): string {
 // Initialize the configured Firebase project.
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// The new project uses its default Firestore database.
-export const db = getFirestore(app);
+// NEXT JOB is explicitly bound to this named Firestore database.
+export const FIRESTORE_DATABASE_ID = 'ai-studio-22228db6-8ffe-450f-801f-19bd5ea8c9f0';
+export const db = getFirestore(app, FIRESTORE_DATABASE_ID);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
