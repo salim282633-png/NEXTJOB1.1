@@ -2,6 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Default deny: every collection below must opt in explicitly.
     match /{document=**} {
       allow read, write: if false;
     }
@@ -11,7 +12,9 @@ service cloud.firestore {
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string &&
+        id.size() <= 128 &&
+        id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     function incoming() {
@@ -23,7 +26,8 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     function hasVerifiedSaudiPhone() {
@@ -38,19 +42,60 @@ service cloud.firestore {
         phoneE164 == request.auth.token.phone_number;
     }
 
-    // Legacy candidate records stored phone as 05XXXXXXXX before phoneE164
-    // existed. This derives the local Saudi format directly from the trusted
-    // Firebase ID-token phone_number claim; the client cannot choose it.
-    function authOwnsLegacyLocalPhone(localPhone) {
-      return hasVerifiedSaudiPhone() &&
-        localPhone is string &&
-        localPhone == '0' + request.auth.token.phone_number[4:13];
+    function candidateExists(candidateId) {
+      return exists(/databases/$(database)/documents/candidates/$(candidateId));
     }
 
-    function validCandidatePhoneState(data) {
-      return data.phoneE164 is string &&
+    function candidateData(candidateId) {
+      return get(/databases/$(database)/documents/candidates/$(candidateId)).data;
+    }
+
+    function contactExists(candidateId) {
+      return exists(/databases/$(database)/documents/candidateContacts/$(candidateId));
+    }
+
+    function contactData(candidateId) {
+      return get(/databases/$(database)/documents/candidateContacts/$(candidateId)).data;
+    }
+
+    function ownsCandidate(candidateId) {
+      return isSignedIn() &&
+        contactExists(candidateId) &&
+        contactData(candidateId).userId == request.auth.uid;
+    }
+
+    function publicCandidateReadable(data) {
+      return data.schemaVersion == 2 &&
+        data.isHidden == false;
+    }
+
+    function publicContactReadable(candidateId) {
+      return candidateExists(candidateId) &&
+        candidateData(candidateId).schemaVersion == 2 &&
+        candidateData(candidateId).isHidden == false &&
+        candidateData(candidateId).allowContact == true;
+    }
+
+    function validContactOwner(data) {
+      return (
+        isSignedIn() && data.userId == request.auth.uid
+      ) || (
+        !isSignedIn() && data.userId == null
+      );
+    }
+
+    function validContactState(data, candidateId) {
+      return data.schemaVersion == 2 &&
+        data.candidateId == candidateId &&
+        data.phone is string &&
+        data.phone.size() > 0 &&
+        data.phone.size() <= 30 &&
+        data.phoneE164 is string &&
         data.phoneE164.matches('^\\+9665[0-9]{8}$') &&
+        data.whatsapp is string &&
+        data.whatsapp.size() <= 20 &&
         data.phoneVerified is bool &&
+        validContactOwner(data) &&
         (
           data.phoneVerified == false ||
           (
@@ -60,18 +105,42 @@ service cloud.firestore {
         );
     }
 
-    // Jobs collection
+    function verifiedPublicStateMatchesContact(candidateId, data) {
+      return data.phoneVerified == false ||
+        (
+          hasVerifiedSaudiPhone() &&
+          existsAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)) &&
+          getAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)).data.phoneVerified == true &&
+          getAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)).data.phoneE164 == request.auth.token.phone_number &&
+          getAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)).data.userId == request.auth.uid
+        );
+    }
+
+    // =========================================================
+    // Jobs
+    // =========================================================
     match /jobs/{jobId} {
+      // Job contact information is intentionally public because the product is
+      // designed for direct contact with employers.
       allow read: if true;
 
       allow create: if isValidId(jobId) &&
-        incoming().keys().hasAll(['title', 'company', 'city', 'category', 'description', 'phone']) &&
-        incoming().title is string && incoming().title.size() <= 150 && incoming().title.size() > 0 &&
-        incoming().company is string && incoming().company.size() <= 100 &&
-        incoming().city is string && incoming().city.size() <= 50 &&
-        incoming().category is string && incoming().category.size() <= 50 &&
-        incoming().description is string && incoming().description.size() <= 3000 &&
-        incoming().phone is string && incoming().phone.size() <= 30;
+        incoming().keys().hasAll([
+          'title', 'company', 'city', 'category', 'description', 'phone'
+        ]) &&
+        incoming().title is string &&
+        incoming().title.size() <= 150 &&
+        incoming().title.size() > 0 &&
+        incoming().company is string &&
+        incoming().company.size() <= 100 &&
+        incoming().city is string &&
+        incoming().city.size() <= 50 &&
+        incoming().category is string &&
+        incoming().category.size() <= 50 &&
+        incoming().description is string &&
+        incoming().description.size() <= 3000 &&
+        incoming().phone is string &&
+        incoming().phone.size() <= 30;
 
       allow update: if isValidId(jobId) && (
         isAdmin() ||
@@ -92,75 +161,187 @@ service cloud.firestore {
         (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
     }
 
-    // Candidates collection
+    // =========================================================
+    // Candidate public profiles
+    // No phone, WhatsApp, E.164 number or email is stored here in schema v2.
+    // =========================================================
     match /candidates/{candidateId} {
-      allow read: if true;
+      // Direct get: visible public profile, its authenticated owner, or admin.
+      // Legacy documents are not public because they have no schemaVersion=2.
+      allow get: if
+        publicCandidateReadable(existing()) ||
+        ownsCandidate(candidateId) ||
+        isAdmin() ||
+        (
+          hasVerifiedSaudiPhone() &&
+          existing().keys().hasAll(['phoneE164']) &&
+          authOwnsPhone(existing().phoneE164)
+        );
 
-      // Unverified numbers remain publishable and contactable, but only a
-      // Firebase-authenticated owner of the exact phone_number claim may save
-      // phoneVerified=true.
+      // Public queries must constrain schemaVersion == 2 and isHidden == false.
+      // A verified phone owner may also query legacy claims by exact phoneE164
+      // during secure ownership recovery.
+      allow list: if
+        publicCandidateReadable(existing()) ||
+        isAdmin() ||
+        (
+          hasVerifiedSaudiPhone() &&
+          existing().keys().hasAll(['phoneE164']) &&
+          authOwnsPhone(existing().phoneE164)
+        );
+
+      // New profiles are created only in schema v2 and must not contain
+      // sensitive contact fields. The matching contact document must be part
+      // of the same atomic batch.
       allow create: if isValidId(candidateId) &&
+        incoming().schemaVersion == 2 &&
         incoming().keys().hasAll([
-          'fullName', 'profession', 'city', 'iqamaStatus', 'phone',
-          'phoneE164', 'phoneVerified', 'bio', 'allowContact'
+          'fullName', 'profession', 'city', 'iqamaStatus', 'bio',
+          'phoneVerified', 'isHidden', 'allowContact', 'schemaVersion'
         ]) &&
-        incoming().fullName is string && incoming().fullName.size() <= 100 && incoming().fullName.size() > 0 &&
-        incoming().profession is string && incoming().profession.size() <= 100 &&
-        incoming().city is string && incoming().city.size() <= 50 &&
-        incoming().iqamaStatus is string && incoming().iqamaStatus.size() <= 80 &&
-        incoming().phone is string && incoming().phone.size() <= 30 &&
-        incoming().bio is string && incoming().bio.size() <= 2000 &&
+        !incoming().keys().hasAny([
+          'phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId'
+        ]) &&
+        incoming().fullName is string &&
+        incoming().fullName.size() > 0 &&
+        incoming().fullName.size() <= 100 &&
+        incoming().profession is string &&
+        incoming().profession.size() <= 100 &&
+        incoming().city is string &&
+        incoming().city.size() <= 50 &&
+        incoming().iqamaStatus is string &&
+        incoming().iqamaStatus.size() <= 80 &&
+        incoming().bio is string &&
+        incoming().bio.size() <= 2000 &&
+        incoming().phoneVerified is bool &&
+        incoming().isHidden is bool &&
         incoming().allowContact is bool &&
-        validCandidatePhoneState(incoming());
+        existsAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)) &&
+        getAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)).data.phoneVerified == incoming().phoneVerified &&
+        verifiedPublicStateMatchesContact(candidateId, incoming());
 
-      // Owners may edit their profile. Any change to phone ownership fields is
-      // revalidated against the Firebase Auth token.
+      // Normal profile edits are restricted to the owner identified by the
+      // private contact document. Sensitive fields can never be added here.
       allow update: if isValidId(candidateId) && (
         isAdmin() ||
         (
-          isSignedIn() &&
-          existing().userId == request.auth.uid &&
-          incoming().diff(existing()).affectedKeys().hasOnly([
-            'fullName', 'profession', 'city', 'iqamaStatus', 'phone',
-            'phoneE164', 'phoneVerified', 'bio', 'whatsapp', 'skills',
-            'hasDriverLicense', 'availableImmediately', 'isHidden',
-            'allowContact', 'updatedAt'
+          ownsCandidate(candidateId) &&
+          incoming().schemaVersion == 2 &&
+          !incoming().keys().hasAny([
+            'phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId'
           ]) &&
-          (
-            !incoming().diff(existing()).affectedKeys().hasAny([
-              'phone', 'phoneE164', 'phoneVerified'
-            ]) ||
-            validCandidatePhoneState(incoming())
-          )
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'fullName', 'profession', 'city', 'yemeniGovernorate',
+            'iqamaStatus', 'experienceYears', 'educationLevel', 'skills',
+            'bio', 'hasDriverLicense', 'availableImmediately',
+            'availabilityNote', 'avatarUrl', 'isHidden', 'allowContact',
+            'nationality', 'phoneVerified', 'updatedAt', 'views'
+          ]) &&
+          verifiedPublicStateMatchesContact(candidateId, incoming())
         ) ||
         (
-          isSignedIn() &&
-          existing().userId == request.auth.uid &&
-          incoming().diff(existing()).affectedKeys().hasOnly(['views'])
-        ) ||
-        (
-          // Secure reclaim: the verified owner of either the canonical E.164
-          // value or a legacy 05XXXXXXXX value may revoke stale claims, but
-          // may only clear contact/verification fields—nothing else.
-          (
-            authOwnsPhone(existing().get('phoneE164', '')) ||
-            authOwnsLegacyLocalPhone(existing().get('phone', ''))
-          ) &&
+          // Secure reclaim of a schema-v2 stale claim. The verified phone
+          // owner may only disable contact and verification on that profile.
+          hasVerifiedSaudiPhone() &&
+          contactExists(candidateId) &&
+          authOwnsPhone(contactData(candidateId).phoneE164) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
-            'phone', 'phoneE164', 'phoneVerified', 'whatsapp',
-            'allowContact', 'phoneClaimRevokedAt'
+            'phoneVerified', 'allowContact', 'phoneClaimRevokedAt'
           ]) &&
-          incoming().phone == 'رقم محذوف' &&
-          incoming().phoneE164 == '' &&
           incoming().phoneVerified == false &&
-          incoming().whatsapp == '' &&
+          incoming().allowContact == false &&
+          incoming().phoneClaimRevokedAt is string
+        ) ||
+        (
+          // Legacy reclaim: old public documents may still contain contact
+          // fields. A verified owner of their phoneE164 may strip those fields
+          // and upgrade the remaining public profile to schema v2.
+          hasVerifiedSaudiPhone() &&
+          existing().keys().hasAll(['phoneE164']) &&
+          authOwnsPhone(existing().phoneE164) &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId',
+            'schemaVersion', 'phoneVerified', 'allowContact',
+            'phoneClaimRevokedAt'
+          ]) &&
+          !incoming().keys().hasAny([
+            'phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId'
+          ]) &&
+          incoming().schemaVersion == 2 &&
+          incoming().phoneVerified == false &&
           incoming().allowContact == false &&
           incoming().phoneClaimRevokedAt is string
         )
       );
 
       allow delete: if isValidId(candidateId) &&
-        (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+        (isAdmin() || ownsCandidate(candidateId));
+    }
+
+    // =========================================================
+    // Candidate contact data
+    // This collection is never publicly listable. A public caller may only
+    // get the exact contact document for a visible profile that explicitly
+    // has allowContact=true.
+    // =========================================================
+    match /candidateContacts/{candidateId} {
+      allow get: if
+        isAdmin() ||
+        ownsCandidate(candidateId) ||
+        publicContactReadable(candidateId);
+
+      // Only admins or a Firebase-authenticated owner of the exact verified
+      // phone may list contact documents. This supports secure phone reclaim
+      // without enabling bulk public scraping of contact information.
+      allow list: if
+        isAdmin() ||
+        (
+          hasVerifiedSaudiPhone() &&
+          existing().phoneE164 == request.auth.token.phone_number
+        );
+
+      // Contact creation must be paired atomically with the public candidate.
+      allow create: if isValidId(candidateId) &&
+        validContactState(incoming(), candidateId) &&
+        existsAfter(/databases/$(database)/documents/candidates/$(candidateId)) &&
+        getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data.schemaVersion == 2 &&
+        getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data.phoneVerified == incoming().phoneVerified;
+
+      allow update: if isValidId(candidateId) && (
+        isAdmin() ||
+        (
+          ownsCandidate(candidateId) &&
+          incoming().candidateId == existing().candidateId &&
+          incoming().schemaVersion == existing().schemaVersion &&
+          incoming().userId == existing().userId &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'phone', 'phoneE164', 'whatsapp', 'phoneVerified',
+            'phoneClaimRevokedAt'
+          ]) &&
+          validContactState(incoming(), candidateId)
+        ) ||
+        (
+          // Secure reclaim: only the Firebase user whose verified token owns
+          // the existing E.164 number can clear a stale contact claim.
+          hasVerifiedSaudiPhone() &&
+          authOwnsPhone(existing().phoneE164) &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'phone', 'phoneE164', 'whatsapp', 'phoneVerified',
+            'phoneClaimRevokedAt'
+          ]) &&
+          incoming().phone == '' &&
+          incoming().phoneE164 == '' &&
+          incoming().whatsapp == '' &&
+          incoming().phoneVerified == false &&
+          incoming().phoneClaimRevokedAt is string &&
+          existsAfter(/databases/$(database)/documents/candidates/$(candidateId)) &&
+          getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data.phoneVerified == false &&
+          getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data.allowContact == false
+        )
+      );
+
+      allow delete: if isValidId(candidateId) &&
+        (isAdmin() || ownsCandidate(candidateId));
     }
   }
 }
