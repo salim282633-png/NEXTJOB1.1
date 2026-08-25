@@ -5,6 +5,7 @@ import { JobCard } from './JobCard';
 import { JobApplicationAction } from './JobApplicationAction';
 import { RecommendedJobs } from './RecommendedJobs';
 import { AdSenseSlot } from './AdSenseSlot';
+import { SimulatedJobsFallback } from './SimulatedJobsFallback';
 import { useOwnedCandidate } from '../hooks/useOwnedCandidate';
 import { freshnessMatches, jobActivityMs, salaryMatches, salarySortValue } from '../lib/jobDiscovery';
 import { JOB_PROFESSION_FILTERS } from '../lib/jobProfessions';
@@ -51,6 +52,7 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
   const [sortBy, setSortBy] = useState<'latest' | 'salary'>('latest');
   const [now, setNow] = useState(Date.now());
   const { user, candidate } = useOwnedCandidate();
+  const showSimulatedJobs = !isLoading && jobs.length === 0;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -103,9 +105,13 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl sm:text-2xl font-black text-slate-900">الوظائف الشاغرة المتاحة</h2>
-              <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">{filteredJobs.length} فرصة</span>
+              <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">{filteredJobs.length} فرصة حقيقية</span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">النتائج مرتبة من البيانات الفعلية للإعلانات، وليست بيانات Seed.</p>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              {showSimulatedJobs
+                ? 'لا توجد وظائف حقيقية منشورة الآن؛ النماذج أدناه توضيحية فقط ولا تُحفظ في قاعدة البيانات.'
+                : 'النتائج مرتبة من البيانات الفعلية للإعلانات، وليست بيانات Seed.'}
+            </p>
           </div>
 
           <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 text-xs">
@@ -149,7 +155,9 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
 
       {isLoading && <div className="py-20 text-center flex flex-col items-center gap-3"><RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" /><p className="text-sm font-semibold text-slate-600">جارٍ جلب أحدث الوظائف...</p></div>}
 
-      {!isLoading && filteredJobs.length > 0 && (
+      {showSimulatedJobs && <SimulatedJobsFallback onOpenPostJob={onOpenPostJob} />}
+
+      {!isLoading && !showSimulatedJobs && filteredJobs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredJobs.map(job => (
             <div key={job.id} className="flex flex-col">
@@ -160,7 +168,7 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
         </div>
       )}
 
-      {!isLoading && filteredJobs.length === 0 && (
+      {!isLoading && !showSimulatedJobs && filteredJobs.length === 0 && (
         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 my-6">
           <Search className="w-8 h-8 text-slate-400 mx-auto" />
           <h3 className="text-lg font-bold text-slate-900">لم نعثر على وظائف تطابق الفلاتر</h3>
