@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, MapPin, Briefcase, Sparkles, CheckCircle2, ShieldCheck, Zap, X } from 'lucide-react';
+import { Search, MapPin, Sparkles, CheckCircle2, Zap, X } from 'lucide-react';
 import { SAUDI_CITIES, JOB_CATEGORIES } from '../lib/data';
 import { JobFilter } from '../types';
 
@@ -52,35 +52,29 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const hasActiveFilters = filter.keyword || filter.city || filter.category !== 'all' || filter.sponsorshipOnly || filter.withAccommodation;
 
   return (
-    <div className="relative bg-gradient-to-b from-emerald-900 via-emerald-800 to-slate-900 text-white pt-10 pb-14 px-4 sm:px-6 lg:px-8 overflow-hidden rounded-b-3xl shadow-xl">
-      {/* Subtle Background Pattern */}
-      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
+    <section className="relative overflow-hidden border-b border-emerald-100/80 bg-gradient-to-b from-emerald-50 via-white to-slate-50 px-4 pb-10 pt-8 sm:px-6 sm:pb-12 sm:pt-12 lg:px-8">
+      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_30rem)] pointer-events-none" />
+      <div className="absolute -top-28 -left-24 w-72 h-72 rounded-full bg-teal-100/60 blur-3xl pointer-events-none" />
 
-      <div className="relative max-w-5xl mx-auto text-center space-y-6">
-        
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-400/30 px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-emerald-200 backdrop-blur-md">
-          <Zap className="w-4 h-4 text-emerald-300 animate-pulse" />
-          <span>تواصل مباشر مع أصحاب العمل عبر الواتساب والمكالمات فوراً</span>
+      <div className="relative max-w-6xl mx-auto">
+        <div className="text-center max-w-4xl mx-auto">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/90 px-3.5 py-1.5 text-[11px] sm:text-xs font-bold text-emerald-800 shadow-sm">
+            <Zap className="w-3.5 h-3.5 text-emerald-600" />
+            <span>تواصل مباشر مع أصحاب العمل داخل السعودية</span>
+          </div>
+
+          <h1 className="mt-4 text-[30px] sm:text-4xl md:text-[46px] font-black text-slate-950 leading-[1.3] font-display">
+            ابحث عن فرص عمل تناسب مهنتك ومدينتك
+            <span className="block mt-1 text-emerald-700">بخطوات واضحة وتواصل مباشر</span>
+          </h1>
+
+          <p className="mt-4 text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-7 sm:leading-8">
+            استعرض الوظائف المنشورة، صفِّ النتائج حسب المدينة والمهنة والمزايا، ثم تواصل مع صاحب الإعلان مباشرة دون عمولات توظيف من المنصة.
+          </p>
         </div>
 
-        {/* Title */}
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
-          فرص عمل مباشرة لليمنيين في السعودية <br className="hidden sm:inline" />
-          <span className="text-emerald-400">تواصل مباشر دون عمولات توظيف</span>
-        </h1>
-
-        <p className="text-sm sm:text-base text-emerald-100/90 max-w-2xl mx-auto leading-relaxed">
-          منصة NEXT JOB تربط الكفاءات وأصحاب المهن بأصحاب المنشآت والشركات في كافة مدن السعودية، مع خيارات نقل الخدمات والسكن وتفاصيل العمل بوضوح.
-        </p>
-
-        {/* Smart Search Box Container */}
-        <div className="bg-white/10 backdrop-blur-xl p-3 sm:p-4 rounded-3xl border border-white/20 shadow-2xl max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3">
-            
-            {/* Search Input */}
+        <div className="mt-7 sm:mt-8 max-w-5xl mx-auto rounded-[26px] border border-slate-200/80 bg-white p-3 sm:p-4 shadow-[0_20px_55px_rgba(15,23,42,0.08)]">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 sm:gap-3">
             <div className="sm:col-span-6 relative">
               <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
                 <Search className="w-5 h-5" />
@@ -90,12 +84,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 type="text"
                 value={filter.keyword}
                 onChange={handleKeywordChange}
-                placeholder="ابحث بالمهنة (محاسب، معلم شاورما، سائق، كاشير...)"
-                className="w-full pl-4 pr-11 py-3.5 bg-white text-slate-900 rounded-2xl text-sm font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                placeholder="ابحث بالمهنة أو الكلمة المفتاحية"
+                className="ui-control w-full pl-4 pr-11 py-3.5 bg-slate-50/70 text-sm font-semibold placeholder:font-normal"
               />
             </div>
 
-            {/* City Select */}
             <div className="sm:col-span-4 relative">
               <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
                 <MapPin className="w-5 h-5" />
@@ -104,7 +97,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 id="select-city-filter"
                 value={filter.city}
                 onChange={handleCityChange}
-                className="w-full pl-4 pr-11 py-3.5 bg-white text-slate-900 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs appearance-none"
+                className="ui-control w-full pl-4 pr-11 py-3.5 bg-slate-50/70 text-sm font-semibold appearance-none"
               >
                 <option value="">جميع مدن المملكة</option>
                 {SAUDI_CITIES.map(city => (
@@ -113,30 +106,28 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               </select>
             </div>
 
-            {/* AI Letter Generator Helper Trigger */}
             <div className="sm:col-span-2">
               <button
                 id="btn-open-ai-generator"
                 onClick={onOpenAICoverLetter}
-                className="w-full h-full py-3.5 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95"
+                className="w-full min-h-12 sm:h-full px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-[13px] rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/20 active:scale-[0.98]"
                 title="إنشاء رسالة تقديم احترافية للواتساب بالذكاء الاصطناعي"
               >
-                <Sparkles className="w-4 h-4 text-slate-950 fill-slate-950" />
-                <span>إنشاء رسالة تقديم</span>
+                <Sparkles className="w-4 h-4" />
+                <span>رسالة تقديم</span>
               </button>
             </div>
           </div>
 
-          {/* Quick Filters Toggles */}
-          <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 id="filter-toggle-sponsorship"
                 onClick={toggleSponsorship}
-                className={`px-3 py-1.5 rounded-xl font-semibold transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 border ${
                   filter.sponsorshipOnly
-                    ? 'bg-emerald-400 text-slate-950'
-                    : 'bg-white/10 text-emerald-100 hover:bg-white/20'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-300 hover:text-emerald-700'
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -146,10 +137,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <button
                 id="filter-toggle-accommodation"
                 onClick={toggleAccommodation}
-                className={`px-3 py-1.5 rounded-xl font-semibold transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 border ${
                   filter.withAccommodation
-                    ? 'bg-emerald-400 text-slate-950'
-                    : 'bg-white/10 text-emerald-100 hover:bg-white/20'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-300 hover:text-emerald-700'
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -161,17 +152,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <button
                 id="btn-clear-hero-filters"
                 onClick={clearFilters}
-                className="flex items-center gap-1 text-emerald-300 hover:text-white transition-colors underline underline-offset-4"
+                className="flex items-center gap-1.5 text-slate-500 hover:text-emerald-700 transition-colors font-bold self-start sm:self-auto"
               >
                 <X className="w-3.5 h-3.5" />
-                <span>مسح كل الفلاتر</span>
+                <span>مسح الفلاتر</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Category Pills Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none pt-2 max-w-4xl mx-auto">
+        <div className="mt-5 flex items-center gap-2 overflow-x-auto pb-2 max-w-5xl mx-auto scrollbar-none">
           {JOB_CATEGORIES.map(cat => {
             const isSelected = filter.category === cat.id;
             return (
@@ -179,35 +169,33 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 key={cat.id}
                 id={`cat-pill-${cat.id}`}
                 onClick={() => handleCategoryClick(cat.id)}
-                className={`shrink-0 px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
+                className={`shrink-0 px-4 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all border ${
                   isSelected
-                    ? 'bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-400/20 scale-105'
-                    : 'bg-white/10 text-emerald-100 hover:bg-white/20'
+                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700'
                 }`}
               >
-                <span>{cat.name}</span>
+                {cat.name}
               </button>
             );
           })}
         </div>
 
-        {/* Quick Highlights / Stats */}
-        <div className="grid grid-cols-3 gap-3 max-w-2xl mx-auto pt-4 text-center border-t border-white/10">
-          <div>
-            <p className="text-xl sm:text-2xl font-black text-emerald-400 font-display">{totalJobs}+</p>
-            <p className="text-xs text-emerald-200/80">وظيفة متاحة الآن</p>
+        <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3 max-w-2xl mx-auto text-center">
+          <div className="rounded-2xl border border-emerald-100 bg-white/90 px-2 py-3 sm:px-4 sm:py-4 shadow-sm">
+            <p className="text-lg sm:text-2xl font-black text-emerald-700 font-display leading-none">{totalJobs}</p>
+            <p className="mt-1.5 text-[10px] sm:text-xs font-semibold text-slate-500">وظيفة منشورة</p>
           </div>
-          <div>
-            <p className="text-xl sm:text-2xl font-black text-emerald-400 font-display">100%</p>
-            <p className="text-xs text-emerald-200/80">مجاني وبدون عمولة</p>
+          <div className="rounded-2xl border border-emerald-100 bg-white/90 px-2 py-3 sm:px-4 sm:py-4 shadow-sm">
+            <p className="text-lg sm:text-2xl font-black text-emerald-700 font-display leading-none">100%</p>
+            <p className="mt-1.5 text-[10px] sm:text-xs font-semibold text-slate-500">التقديم مجاني</p>
           </div>
-          <div>
-            <p className="text-xl sm:text-2xl font-black text-emerald-400 font-display">تواصل مباشر</p>
-            <p className="text-xs text-emerald-200/80">عبر واتساب</p>
+          <div className="rounded-2xl border border-emerald-100 bg-white/90 px-2 py-3 sm:px-4 sm:py-4 shadow-sm">
+            <p className="text-sm sm:text-lg font-black text-emerald-700 font-display leading-tight">مباشر</p>
+            <p className="mt-1.5 text-[10px] sm:text-xs font-semibold text-slate-500">واتساب واتصال</p>
           </div>
         </div>
-
       </div>
-    </div>
+    </section>
   );
 };
