@@ -24,7 +24,7 @@ function readManifest() {
   }
 }
 
-function articleCard(item, index) {
+function articleCard(item) {
   const details = [item.city, item.profession].filter(Boolean).map(escapeHtml).join(' · ');
   const searchable = [item.title, item.description, item.keyword, item.city, item.profession]
     .filter(Boolean)
@@ -50,7 +50,6 @@ function articleCard(item, index) {
 function render(manifest) {
   const sorted = [...manifest].sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')));
   const latest = sorted[0];
-  const rest = sorted.slice(1);
   const updatedDate = latest?.publishedDate || new Date().toISOString().slice(0, 10);
 
   const latestMarkup = latest ? `
@@ -66,7 +65,7 @@ function render(manifest) {
       </article>` : `
       <div class="empty-state">سيظهر أول مقال هنا بعد نجاح أول تشغيل لمحرك النشر.</div>`;
 
-  const cards = rest.length ? rest.map(articleCard).join('\n') : '';
+  const cards = sorted.length ? sorted.map(articleCard).join('\n') : '';
 
   return `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -130,7 +129,7 @@ function render(manifest) {
       <div class="shell">
         <div class="section-head">
           <div><h2>جميع المقالات</h2><p>ابحث بالمدينة أو المهنة أو الكلمة المفتاحية.</p></div>
-          <span id="visible-count">${rest.length} مقال</span>
+          <span id="visible-count">${sorted.length} مقال</span>
         </div>
         <label class="tools" for="article-search"><span class="search-icon" aria-hidden="true">⌕</span><input id="article-search" type="search" autocomplete="off" placeholder="مثال: الرياض، محاسب، نقل الخدمات..." aria-label="البحث في المقالات"></label>
         <div class="article-grid" id="article-grid">${cards}</div>
