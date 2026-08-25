@@ -1,10 +1,13 @@
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import process from 'node:process';
 
 const API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
 const PREFERRED_MODEL = String(process.env.GEMINI_MODEL || 'gemini-3.6-flash').trim().replace(/^models\//, '');
 const MAX_ATTEMPTS = Math.max(1, Math.min(8, Number(process.env.GEMINI_MAX_MODEL_ATTEMPTS || 4)));
+const MIN_PUBLISH_INTERVAL_HOURS = Math.max(1, Number(process.env.SEO_MIN_PUBLISH_INTERVAL_HOURS || 6));
 const PUBLISHER_SCRIPT = 'scripts/publish-yemeni-seo.mjs';
+const ARTICLES_INDEX = 'public/guide/articles.json';
 
 function modelScore(name) {
   let score = 0;
@@ -18,6 +21,45 @@ function modelScore(name) {
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function getLatestPublishedAt() {
+  try {
+    const raw = readFileSync(ARTICLES_INDEX, 'utf8');
+    const articles = JSON.parse(raw);
+    if (!Array.isArray(articles) || articles.length === 0) return null;
+
+    let latest = null;
+    for (const article of articles) {
+      const value = article?.publishedAt || article?.publishedDate;
+      if (!value) continue;
+      const timestamp = Date.parse(value);
+      if (!Number.isFinite(timestamp)) continue;
+      if (latest === null || timestamp > latest) latest = timestamp;
+    }
+    return latest;
+  } catch (error) {
+    console.warn(`SEO publisher could not read ${ARTICLES_INDEX}; continuing without cooldown history:`, error?.message || error);
+    return null;
+  }
+}
+
+function shouldSkipForCooldown() {
+  const latestPublishedAt = getLatestPublishedAt();
+  if (latestPublishedAt === null) return false;
+
+  const intervalMs = MIN_PUBLISH_INTERVAL_HOURS * 60 * 60 * 1000;
+  const nextEligibleAt = latestPublishedAt + intervalMs;
+  const now = Date.now();
+
+  if (now >= nextEligibleAt) return false;
+
+  const remainingMinutes = Math.ceil((nextEligibleAt - now) / 60000);
+  console.log(
+    `SEO publisher cooldown active: last successful article ${new Date(latestPublishedAt).toISOString()}; ` +
+    `next eligible ${new Date(nextEligibleAt).toISOString()} (${remainingMinutes} minute(s) remaining).`
+  );
+  return true;
 }
 
 async function fetchAvailableGenerateContentModels() {
@@ -100,6 +142,11 @@ function runPublisher(model) {
 }
 
 async function main() {
+  if (shouldSkipForCooldown()) {
+    console.log(`SEO publisher skipped safely; minimum interval is ${MIN_PUBLISH_INTERVAL_HOURS} hour(s).`);
+    return;
+  }
+
   let discovered;
 
   try {
