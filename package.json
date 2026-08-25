@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "node scripts/style-guide-articles.mjs && vite build",
+    "build": "node scripts/style-guide-index.mjs && node scripts/style-guide-articles.mjs && node scripts/apply-static-typography.mjs && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "seo:check": "node --check scripts/publish-yemeni-seo.mjs && node --check scripts/style-guide-articles.mjs",
+    "seo:check": "node --check scripts/publish-yemeni-seo.mjs && node --check scripts/style-guide-index.mjs && node --check scripts/style-guide-articles.mjs && node --check scripts/apply-static-typography.mjs",
     "seo:publish": "node scripts/publish-yemeni-seo.mjs",
-    "seo:style-articles": "node scripts/style-guide-articles.mjs"
+    "seo:style-articles": "node scripts/style-guide-articles.mjs",
+    "seo:typography": "node scripts/apply-static-typography.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -27,7 +28,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
+    "@types/express": "^4.21.2",
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
