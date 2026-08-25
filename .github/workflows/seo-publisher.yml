@@ -48,6 +48,7 @@ jobs:
         run: |
           node scripts/run-seo-publisher-with-fallback.mjs
           node scripts/style-guide-index.mjs
+          node scripts/style-guide-articles.mjs
 
       - name: Commit published article
         shell: bash
