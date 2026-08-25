@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Users className="w-4 h-4" /><span>الباحثون</span>
               </button>
               <button id="nav-tab-guide" onClick={() => setActiveTab('guide')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'guide' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}>
-                <BookOpen className="w-4 h-4" /><span>دليل العمل</span>
+                <BookOpen className="w-4 h-4" /><span>المقالات والدليل</span>
               </button>
               <button id="nav-tab-saved" onClick={() => setActiveTab('saved')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all relative ${activeTab === 'saved' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}>
                 <Bookmark className="w-4 h-4" /><span>المحفوظات</span>
@@ -109,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex md:hidden items-center justify-around py-2.5 border-t border-slate-100">
             <button id="mobile-nav-jobs" onClick={() => setActiveTab('jobs')} className={`flex flex-col items-center gap-1 text-xs font-semibold ${activeTab === 'jobs' ? 'text-emerald-600 font-bold' : 'text-slate-500'}`}><Briefcase className="w-5 h-5" /><span>الوظائف</span></button>
             <button id="mobile-nav-candidates" onClick={() => setActiveTab('candidates')} className={`flex flex-col items-center gap-1 text-xs font-semibold ${activeTab === 'candidates' ? 'text-emerald-600 font-bold' : 'text-slate-500'}`}><Users className="w-5 h-5" /><span>الكفاءات</span></button>
-            <button id="mobile-nav-guide" onClick={() => setActiveTab('guide')} className={`flex flex-col items-center gap-1 text-xs font-semibold ${activeTab === 'guide' ? 'text-emerald-600 font-bold' : 'text-slate-500'}`}><BookOpen className="w-5 h-5" /><span>الدليل</span></button>
+            <button id="mobile-nav-guide" onClick={() => setActiveTab('guide')} className={`flex flex-col items-center gap-1 text-xs font-semibold ${activeTab === 'guide' ? 'text-emerald-600 font-bold' : 'text-slate-500'}`}><BookOpen className="w-5 h-5" /><span>المقالات</span></button>
             {user ? (
               <button id="mobile-nav-my-jobs" onClick={() => setIsMyJobsOpen(true)} className="flex flex-col items-center gap-1 text-xs font-semibold text-amber-700"><ListChecks className="w-5 h-5" /><span>إعلاناتي</span></button>
             ) : (
