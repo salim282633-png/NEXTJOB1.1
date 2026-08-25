@@ -2,8 +2,8 @@ name: Yemen-focused SEO Publisher
 
 on:
   schedule:
-    # 06:15 Saudi time (UTC+3), one article per day at most.
-    - cron: '15 3 * * *'
+    # Every 6 hours, aligned to 06:15 / 12:15 / 18:15 / 00:15 Saudi time (UTC+3).
+    - cron: '15 3,9,15,21 * * *'
   workflow_dispatch:
     inputs:
       keyword:
