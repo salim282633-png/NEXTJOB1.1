@@ -32,15 +32,20 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Generate one production article
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: gemini-2.5-flash
+          # Preferred model only. The fallback runner discovers models available
+          # to this API key and switches automatically when this model is
+          # unavailable, rate-limited, temporarily unavailable, or fails the
+          # production quality gate.
+          GEMINI_MODEL: gemini-3.6-flash
+          GEMINI_MAX_MODEL_ATTEMPTS: 4
           PUBLIC_SITE_URL: https://nextjob1-1.onrender.com
           SEO_KEYWORD: ${{ github.event.inputs.keyword || '' }}
-        run: node scripts/publish-yemeni-seo.mjs
+        run: node scripts/run-seo-publisher-with-fallback.mjs
 
       - name: Commit published article
         shell: bash
