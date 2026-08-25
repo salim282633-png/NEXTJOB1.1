@@ -6,6 +6,11 @@ on:
     # 6-hour interval between successful articles, so missed cron windows
     # are retried on the next hourly check instead of waiting another 6 hours.
     - cron: '15 * * * *'
+  # Recovery trigger: changing only this marker starts the same protected
+  # publisher immediately. The internal 6-hour gate still prevents duplicates.
+  push:
+    paths:
+      - 'seo/publisher-trigger.txt'
   workflow_dispatch:
     inputs:
       keyword:
