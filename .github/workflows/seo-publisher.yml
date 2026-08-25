@@ -45,7 +45,9 @@ jobs:
           GEMINI_MAX_MODEL_ATTEMPTS: 4
           PUBLIC_SITE_URL: https://nextjob1-1.onrender.com
           SEO_KEYWORD: ${{ github.event.inputs.keyword || '' }}
-        run: node scripts/run-seo-publisher-with-fallback.mjs
+        run: |
+          node scripts/run-seo-publisher-with-fallback.mjs
+          node scripts/style-guide-index.mjs
 
       - name: Commit published article
         shell: bash
