@@ -16,17 +16,26 @@ export const SaudiResidentGuide: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [expandedArticleId, setExpandedArticleId] = useState<string>(SAUDI_GUIDE_ARTICLES[0]?.id || '');
   const [generatedArticles, setGeneratedArticles] = useState<GeneratedArticleMeta[]>([]);
+  const [generatedArticlesLoading, setGeneratedArticlesLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setGeneratedArticlesLoading(true);
+
     fetch('/guide/articles.json', { cache: 'no-store' })
       .then(response => response.ok ? response.json() : [])
       .then(data => {
-        if (!cancelled && Array.isArray(data)) setGeneratedArticles(data.slice(0, 12));
+        if (!cancelled && Array.isArray(data)) {
+          setGeneratedArticles(data.slice(0, 12));
+        }
       })
       .catch(() => {
         if (!cancelled) setGeneratedArticles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setGeneratedArticlesLoading(false);
       });
+
     return () => { cancelled = true; };
   }, []);
 
@@ -41,22 +50,42 @@ export const SaudiResidentGuide: React.FC = () => {
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold">
           <BookOpen className="w-4 h-4 text-emerald-600" />
-          <span>دليل العمل لليمنيين في السعودية</span>
+          <span>المقالات ودليل العمل لليمنيين في السعودية</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-          دليل البحث عن عمل ونقل الخدمات لليمنيين
+          أحدث المقالات ودليل البحث عن عمل
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-          محتوى إرشادي عملي يساعد الباحث اليمني داخل السعودية على تجهيز ملفه، البحث الآمن عن الوظائف، وفهم الأسئلة التي ينبغي مراجعتها مع صاحب العمل والجهات الرسمية.
+          مقالات محدثة تلقائيًا ومحتوى إرشادي عملي يساعد الباحث اليمني داخل السعودية على تجهيز ملفه، البحث الآمن عن الوظائف، وفهم الأسئلة التي ينبغي مراجعتها مع صاحب العمل والجهات الرسمية.
         </p>
       </div>
 
-      {generatedArticles.length > 0 && (
-        <div className="bg-emerald-950 text-white rounded-3xl p-5 sm:p-7 space-y-4">
+      <div className="bg-emerald-950 text-white rounded-3xl p-5 sm:p-7 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h3 className="text-lg sm:text-xl font-black">أحدث مقالات وظائف اليمنيين في السعودية</h3>
-            <p className="text-xs text-emerald-100/80 mt-1">مقالات SEO منشورة بصفحات مستقلة قابلة للفهرسة، ومخصصة لليمنيين فقط حسب المدن والمهن.</p>
+            <p className="text-xs text-emerald-100/80 mt-1">كل مقال جديد ينشره نظام NEXT JOB سيظهر هنا تلقائيًا.</p>
           </div>
+          <a
+            href="/guide/"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white text-emerald-950 text-xs font-black hover:bg-emerald-50 transition-colors shrink-0"
+          >
+            عرض جميع المقالات
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        </div>
+
+        {generatedArticlesLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[0, 1].map(item => (
+              <div key={item} className="rounded-2xl p-4 bg-white/10 border border-white/10 animate-pulse space-y-3">
+                <div className="h-3 w-32 bg-white/15 rounded" />
+                <div className="h-5 w-full bg-white/15 rounded" />
+                <div className="h-3 w-4/5 bg-white/10 rounded" />
+              </div>
+            ))}
+          </div>
+        ) : generatedArticles.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {generatedArticles.map(article => (
               <a
@@ -70,11 +99,16 @@ export const SaudiResidentGuide: React.FC = () => {
                   <ExternalLink className="w-4 h-4 shrink-0 mt-1" />
                 </div>
                 <p className="text-xs text-emerald-50/75 mt-2 line-clamp-2">{article.description}</p>
+                <span className="inline-block mt-3 text-xs font-black text-emerald-300">قراءة المقال</span>
               </a>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm text-emerald-50">
+            لا توجد مقالات منشورة حاليًا في الفهرس. يمكنك فتح أرشيف المقالات للتحقق من آخر نشر.
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center justify-center gap-2">
         {categories.map(cat => (
@@ -88,7 +122,7 @@ export const SaudiResidentGuide: React.FC = () => {
                 : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            {cat === 'all' ? 'جميع المواضيع' : cat}
+            {cat === 'all' ? 'جميع مواضيع الدليل' : cat}
           </button>
         ))}
       </div>
