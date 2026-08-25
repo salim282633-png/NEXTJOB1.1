@@ -17,11 +17,14 @@ const TYPOGRAPHY_STYLE = `
     body{font-feature-settings:"kern" 1;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
   </style>`;
 
-function collectHtmlFiles(directory) {
-  if (!fs.existsSync(directory)) return [];
+function collectHtmlFiles(target) {
+  if (!fs.existsSync(target)) return [];
+  const stat = fs.statSync(target);
+  if (stat.isFile()) return target.endsWith('.html') ? [target] : [];
+
   const files = [];
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const fullPath = path.join(directory, entry.name);
+  for (const entry of fs.readdirSync(target, { withFileTypes: true })) {
+    const fullPath = path.join(target, entry.name);
     if (entry.isDirectory()) files.push(...collectHtmlFiles(fullPath));
     else if (entry.isFile() && entry.name.endsWith('.html')) files.push(fullPath);
   }
@@ -47,13 +50,15 @@ function applyTypography(file) {
   return changed;
 }
 
-const entryFiles = [
+const requestedTargets = process.argv.slice(2).map(item => path.resolve(ROOT, item));
+const defaultTargets = [
   path.join(ROOT, 'index.html'),
   path.join(ROOT, 'admin/index.html'),
-  path.join(ROOT, 'jobs/index.html')
-].filter(fs.existsSync);
+  path.join(ROOT, 'jobs/index.html'),
+  PUBLIC_DIR
+];
 
-const files = [...new Set([...entryFiles, ...collectHtmlFiles(PUBLIC_DIR)])];
+const files = [...new Set((requestedTargets.length ? requestedTargets : defaultTargets).flatMap(collectHtmlFiles))];
 let updated = 0;
 for (const file of files) {
   if (applyTypography(file)) updated += 1;
