@@ -57,6 +57,7 @@ jobs:
           node scripts/run-seo-publisher-with-fallback.mjs
           node scripts/style-guide-index.mjs
           node scripts/style-guide-articles.mjs
+          node scripts/apply-static-typography.mjs public/guide
 
       - name: Commit published article
         shell: bash
