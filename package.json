@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
+    "build": "node scripts/style-guide-articles.mjs && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "seo:check": "node --check scripts/publish-yemeni-seo.mjs",
-    "seo:publish": "node scripts/publish-yemeni-seo.mjs"
+    "seo:check": "node --check scripts/publish-yemeni-seo.mjs && node --check scripts/style-guide-articles.mjs",
+    "seo:publish": "node scripts/publish-yemeni-seo.mjs",
+    "seo:style-articles": "node scripts/style-guide-articles.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
