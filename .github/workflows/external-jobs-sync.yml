@@ -14,6 +14,8 @@ on:
       - 'scripts/append-community-job-intake.mjs'
       - 'scripts/filter-yemeni-target-jobs.mjs'
       - 'scripts/validate-external-jobs.mjs'
+      - 'scripts/sync-firestore-content.ts'
+      - 'firestore-content-hub.rules'
       - 'data/manual-external-jobs.json'
       - 'data/community-job-intake.json'
       - '.github/workflows/external-jobs-sync.yml'
@@ -43,6 +45,24 @@ jobs:
 
       - name: Install locked dependencies
         run: npm ci
+
+      - name: Deploy Firestore public-content rules
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FIREBASE_SERVICE_ACCOUNT_JSON:-}" ]; then
+            echo "Firestore rules deploy skipped: FIREBASE_SERVICE_ACCOUNT_JSON is not configured."
+            exit 0
+          fi
+          CREDENTIALS_FILE="$RUNNER_TEMP/nextjob-firebase-service-account.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$CREDENTIALS_FILE"
+          GOOGLE_APPLICATION_CREDENTIALS="$CREDENTIALS_FILE" npx --yes firebase-tools@14.12.1 deploy \
+            --only firestore:rules \
+            --project gen-lang-client-0383747817 \
+            --non-interactive
+          rm -f "$CREDENTIALS_FILE"
 
       - name: Verify trusted source registry
         run: npm run jobs:sources-check
@@ -107,3 +127,8 @@ jobs:
           git config user.email "nextjob-source-bot@users.noreply.github.com"
           git commit -m "Sync targeted Arabic jobs for Yemeni audience"
           git push origin HEAD:"$BRANCH"
+
+      - name: Persist jobs and articles in Firestore
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: npx tsx scripts/sync-firestore-content.ts --all
