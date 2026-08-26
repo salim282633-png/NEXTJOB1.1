@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db, migrateOwnedCandidatePrivacy } from '../lib/firebase';
+import { migrateOwnedLegacyAvatar } from '../lib/avatarMigration';
 import { Candidate } from '../types';
 
 export function useOwnedCandidate() {
@@ -28,6 +29,7 @@ export function useOwnedCandidate() {
       }
 
       try {
+        await migrateOwnedLegacyAvatar(candidateId);
         const publicSnap = await getDoc(doc(db, 'candidates', candidateId));
         if (!cancelled) {
           setCandidate(publicSnap.exists() ? ({ id: publicSnap.id, ...publicSnap.data() } as Candidate) : null);
