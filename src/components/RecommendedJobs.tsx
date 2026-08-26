@@ -17,8 +17,8 @@ export const RecommendedJobs: React.FC<Props> = ({ jobs, candidate, onSelectJob 
     <div className="mb-7 rounded-3xl border border-teal-200 bg-teal-50/70 p-4 sm:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h3 className="font-black text-slate-900 flex items-center gap-2"><Sparkles className="w-4 h-4 text-teal-700" /> فرص قد تناسبك</h3>
-          <p className="text-[11px] text-slate-500 mt-1">الترتيب يعتمد فقط على مدينتك الحالية في السعودية ومهنتك ومهاراتك.</p>
+          <h3 className="font-black text-slate-900 flex items-center gap-2"><Sparkles className="w-4 h-4 text-teal-700" /> إعلانات مقترحة لك</h3>
+          <p className="text-[11px] text-slate-500 mt-1">اقتراحات آلية بناءً على مدينتك الحالية في السعودية ومهنتك ومهاراتك، وليست ترشيحًا وظيفيًا من NEXT JOB.</p>
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">

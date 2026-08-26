@@ -8,11 +8,11 @@ import { Application, Candidate, Job } from '../types';
 interface Props { job: Job; user: User | null; candidate: Candidate | null; }
 
 function statusLabel(status: Application['status']) {
-  if (status === 'viewed') return 'اطّلع صاحب العمل على طلبك';
-  if (status === 'shortlisted') return 'تم ترشيحك مبدئيًا';
-  if (status === 'rejected') return 'تم إغلاق الطلب';
-  if (status === 'withdrawn') return 'تم سحب الطلب';
-  return 'تم إرسال طلبك';
+  if (status === 'viewed') return 'اطّلع المعلن على اهتمامك';
+  if (status === 'shortlisted') return 'أضاف المعلن طلبك إلى قائمته المختصرة';
+  if (status === 'rejected') return 'أغلق المعلن الطلب';
+  if (status === 'withdrawn') return 'تم سحب إبداء الاهتمام';
+  return 'تم إرسال اهتمامك إلى المعلن';
 }
 
 export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) => {
@@ -31,9 +31,9 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
   }, [applicationId]);
 
   if (!job.userId) return null;
-  if (!user) return <div className="mt-2 text-[11px] text-slate-500">سجّل الدخول للتقديم عبر NEXT JOB.</div>;
+  if (!user) return <div className="mt-2 text-[11px] text-slate-500">سجّل الدخول لإرسال اهتمامك إلى المعلن عبر NEXT JOB.</div>;
   if (job.userId === user.uid) return null;
-  if (!candidate) return <div className="mt-2 text-[11px] text-amber-700">أنشئ ملفك المهني أولًا لربط طلب التقديم بملفك.</div>;
+  if (!candidate) return <div className="mt-2 text-[11px] text-amber-700">أنشئ ملفك المهني أولًا ليرتبط إبداء الاهتمام بملفك.</div>;
 
   const employerUid = job.userId;
   const applicantUid = user.uid;
@@ -46,8 +46,6 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
     const createdAt = new Date().toISOString();
     try {
       await runTransaction(db, async tx => {
-        // No pre-create read of the application document. If it already exists,
-        // this set becomes an update and Security Rules reject the duplicate.
         const jobSnap = await tx.get(doc(db, 'jobs', job.id));
         if (!jobSnap.exists() || jobSnap.data().status === 'closed') throw new Error('JOB_CLOSED');
         if (jobSnap.data().userId !== employerUid) throw new Error('OWNER_CHANGED');
@@ -63,7 +61,7 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
       });
       setApplication({ id, jobId:job.id, candidateId, applicantUid, employerUid, status:'submitted', createdAt });
     } catch {
-      setError('تعذر إرسال الطلب. قد يكون سبق التقديم لهذه الوظيفة أو أن الوظيفة لم تعد متاحة.');
+      setError('تعذر إرسال الاهتمام. قد يكون سبق الإرسال لهذا الإعلان أو أن الإعلان لم يعد متاحًا.');
     } finally { setBusy(false); }
   };
 
@@ -79,7 +77,7 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
         tx.update(ref, { status: 'withdrawn', updatedAt: new Date().toISOString(), updatedAtServer: serverTimestamp() });
       });
       setApplication(prev => prev ? { ...prev, status:'withdrawn', updatedAt:new Date().toISOString() } : prev);
-    } catch { setError('تعذر سحب الطلب.'); } finally { setBusy(false); }
+    } catch { setError('تعذر سحب إبداء الاهتمام.'); } finally { setBusy(false); }
   };
 
   if (application) return (
@@ -92,5 +90,5 @@ export const JobApplicationAction: React.FC<Props> = ({ job, user, candidate }) 
     </div>
   );
 
-  return <div className="mt-2"><button disabled={busy || job.status === 'closed'} onClick={submit} className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-teal-700 px-3 py-2 text-xs font-bold text-white hover:bg-teal-800 disabled:opacity-50">{busy ? <CheckCircle2 className="w-3.5 h-3.5 animate-pulse" /> : <Send className="w-3.5 h-3.5" />}التقديم عبر NEXT JOB</button>{error && <div className="text-[11px] text-rose-700 mt-1">{error}</div>}</div>;
+  return <div className="mt-2"><button disabled={busy || job.status === 'closed'} onClick={submit} className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-teal-700 px-3 py-2 text-xs font-bold text-white hover:bg-teal-800 disabled:opacity-50">{busy ? <CheckCircle2 className="w-3.5 h-3.5 animate-pulse" /> : <Send className="w-3.5 h-3.5" />}إرسال اهتمامي للمعلن</button><div className="mt-1 text-[10px] text-slate-500">NEXT JOB يسهّل إرسال الاهتمام فقط، ولا يختار المرشحين أو يضمن القبول.</div>{error && <div className="text-[11px] text-rose-700 mt-1">{error}</div>}</div>;
 };
