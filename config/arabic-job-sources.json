@@ -14,6 +14,16 @@
       "permissionBasis": "User-provided Google Alerts Atom feed. NEXT JOB reads the feed only, rejects entries without a clear job signal, stores a short normalized summary, and sends users to the original result. No destination-page scraping is performed."
     },
     {
+      "id": "google-alert-jobs-5763419083002618370",
+      "enabled": true,
+      "name": "تنبيهات Google للوظائف 2",
+      "feedUrl": "https://www.google.com/alerts/feeds/14753902051644544981/5763419083002618370",
+      "publicPageUrl": "https://www.google.com/alerts",
+      "maxItems": 100,
+      "requireJobSignal": true,
+      "permissionBasis": "User-provided Google Alerts Atom feed. NEXT JOB reads the feed only, rejects entries without a clear job signal, stores a short normalized summary, and sends users to the original result. No destination-page scraping is performed."
+    },
+    {
       "id": "wdifhlk-company-jobs",
       "enabled": true,
       "name": "لك وظيفة",
