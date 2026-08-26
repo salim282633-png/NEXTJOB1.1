@@ -115,7 +115,11 @@ for (const [index, job] of jobs.entries()) {
       }
     }
     if (job.sourceProvider === 'greenhouse') {
-      const allowedHosts = new Set(['job-boards.greenhouse.io', 'boards.greenhouse.io']);
+      const allowedHosts = new Set([
+        'job-boards.greenhouse.io',
+        'boards.greenhouse.io',
+        'job-boards.eu.greenhouse.io'
+      ]);
       if (!allowedHosts.has(sourceUrl.hostname) || !allowedHosts.has(applyUrl.hostname)) {
         throw new Error(`${job.id}: Greenhouse automated URLs must stay on a hosted Greenhouse board.`);
       }
