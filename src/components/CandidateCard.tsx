@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Briefcase, Camera, Car, CheckCircle2, Clock, FileText, MapPin, MessageCircle, PhoneCall, PhoneOff, Share2, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Candidate, CandidateContact } from '../types';
-import { auth, getCandidateContact } from '../lib/firebase';
+import { getCandidateContact } from '../lib/firebase';
 import { CandidateAvatarUploader } from './CandidateAvatarUploader';
 import { createCandidateShareCard, shareImage } from '../lib/shareCards';
 
@@ -10,14 +10,21 @@ interface CandidateCardProps {
   onQuickWhatsApp: (cand: Candidate) => void;
   onViewCV?: (cand: Candidate) => void;
   onReportCandidate?: (cand: Candidate) => void;
+  isOwner?: boolean;
 }
 
 function localContact(candidate: Candidate): CandidateContact | null {
   if (!candidate.phone || candidate.phone === 'رقم محذوف') return null;
-  return { candidateId: candidate.id, phone: candidate.phone, phoneE164: candidate.phoneE164 || '', whatsapp: candidate.whatsapp || '', phoneVerified: candidate.phoneVerified, userId: candidate.userId || null, schemaVersion: 2 };
+  return {
+    candidateId: candidate.id,
+    phone: candidate.phone,
+    whatsapp: candidate.whatsapp || '',
+    phoneVerified: candidate.phoneVerified,
+    schemaVersion: 3
+  };
 }
 
-export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, onQuickWhatsApp, onViewCV, onReportCandidate }) => {
+export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, onQuickWhatsApp, onViewCV, onReportCandidate, isOwner = false }) => {
   const [contact, setContact] = useState<CandidateContact | null>(() => localContact(candidate));
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(candidate.avatarUrl || '');
@@ -35,8 +42,9 @@ export const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, onQuick
 
   useEffect(() => setAvatarUrl(candidate.avatarUrl || ''), [candidate.avatarUrl]);
 
-  const withContact: Candidate = contact ? { ...candidate, phone: contact.phone, phoneE164: contact.phoneE164, whatsapp: contact.whatsapp, phoneVerified: contact.phoneVerified, userId: contact.userId || undefined, avatarUrl } : { ...candidate, avatarUrl };
-  const isOwner = Boolean(auth.currentUser && contact?.userId === auth.currentUser.uid);
+  const withContact: Candidate = contact
+    ? { ...candidate, phone: contact.phone, whatsapp: contact.whatsapp, phoneVerified: contact.phoneVerified, avatarUrl }
+    : { ...candidate, avatarUrl };
 
   const share = async () => {
     if (candidate.isHidden) return;

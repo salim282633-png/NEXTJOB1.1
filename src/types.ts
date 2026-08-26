@@ -50,11 +50,11 @@ export interface Candidate {
   yemeniGovernorate: string;
   iqamaStatus: 'إقامة سارية وقابلة للنقل' | 'تأشيرة زيارة / هوية زائر' | 'إقامة سارية دون نقل' | 'مهن فردية / سائق خاص' | 'أخرى';
   experienceYears: string;
-  phone: string;
+  phone?: string;
   phoneE164?: string;
   phoneVerified: boolean;
   phoneClaimRevokedAt?: string;
-  whatsapp: string;
+  whatsapp?: string;
   skills: string[];
   hobbies?: string[];
   noExperience?: boolean;
@@ -79,11 +79,18 @@ export interface Candidate {
 export interface CandidateContact {
   candidateId: string;
   phone: string;
-  phoneE164: string;
   whatsapp: string;
   phoneVerified: boolean;
-  userId: string | null;
-  schemaVersion: 2;
+  schemaVersion: 3;
+  phoneClaimRevokedAt?: string;
+}
+
+export interface CandidateOwner {
+  candidateId: string;
+  userId: string;
+  phoneE164: string;
+  phoneVerified: boolean;
+  schemaVersion: 1;
   phoneClaimRevokedAt?: string;
 }
 

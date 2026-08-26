@@ -19,7 +19,9 @@ import {
   logoutUser,
   testFirestoreConnection,
   handleFirestoreError,
-  OperationType
+  OperationType,
+  sanitizeOwnedLegacyJobs,
+  sanitizeLegacyJobsAsAdmin
 } from './lib/firebase';
 import { Job, Candidate, JobFilter, ToastMessage, CommunityJobSubmission, FraudReport } from './types';
 import { Navbar } from './components/Navbar';
@@ -124,13 +126,21 @@ export function App() {
 
   useEffect(() => {
     testFirestoreConnection();
-    const unsubscribeAuth = onAuthStateChanged(auth, currentUser => setUser(currentUser));
+    const unsubscribeAuth = onAuthStateChanged(auth, currentUser => {
+      setUser(currentUser);
+      if (currentUser) void sanitizeOwnedLegacyJobs(currentUser.uid);
+    });
     return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
     if (!isAdmin) setIsAdminSEOOpen(false);
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    void sanitizeLegacyJobsAsAdmin();
+  }, [user?.uid, isAdmin]);
 
   useEffect(() => {
     if (!user || !isAdmin) {
@@ -326,26 +336,36 @@ export function App() {
     try {
       const candidateRef = doc(collection(db, 'candidates'));
       const contactRef = doc(db, 'candidateContacts', candidateRef.id);
-      const ownerUid = auth.currentUser?.uid || null;
+      const owner = auth.currentUser;
+      const ownerRef = owner ? doc(db, 'candidateOwners', candidateRef.id) : null;
       const createdAt = new Date().toISOString();
       const batch = writeBatch(db);
 
       batch.set(candidateRef, { ...publicCandidateData, schemaVersion: 2, createdAt });
       batch.set(contactRef, {
         candidateId: candidateRef.id,
-        phone,
-        phoneE164: phoneE164 || '',
-        whatsapp,
+        phone: phone || '',
+        whatsapp: whatsapp || '',
         phoneVerified: candidateData.phoneVerified,
-        userId: ownerUid,
-        schemaVersion: 2
+        schemaVersion: 3
       });
+
+      if (ownerRef && owner) {
+        batch.set(ownerRef, {
+          candidateId: candidateRef.id,
+          userId: owner.uid,
+          phoneE164: phoneE164 || '',
+          phoneVerified: candidateData.phoneVerified,
+          schemaVersion: 1
+        });
+      }
 
       await batch.commit();
       addToast('success', 'تم نشر ملفك وسيرتك الذاتية بنجاح!');
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, 'candidates + candidateContacts');
+      handleFirestoreError(err, OperationType.CREATE, 'candidates + candidateContacts + candidateOwners');
       addToast('error', 'تعذر نشر ملف الباحث في قاعدة البيانات. لم تتم إضافة بيانات محلية بديلة.');
+      throw err;
     }
   };
 

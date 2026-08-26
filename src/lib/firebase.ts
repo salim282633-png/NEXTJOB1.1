@@ -27,7 +27,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { CandidateContact } from '../types';
+import { CandidateContact, CandidateOwner } from '../types';
 
 export enum OperationType {
   CREATE = 'create',
@@ -177,9 +177,9 @@ export async function testFirestoreConnection() {
 }
 
 /**
- * Read one candidate's contact document only. Security Rules decide whether
- * the caller may see it based on the matching public candidate document.
- * The public app never lists the whole candidateContacts collection.
+ * Read one candidate's public contact document only. Security Rules expose
+ * schema-v3 contacts only when the matching public profile allows contact.
+ * Ownership identifiers and canonical phone claims live in candidateOwners.
  */
 export async function getCandidateContact(candidateId: string): Promise<CandidateContact | null> {
   if (!candidateId) return null;
@@ -187,14 +187,107 @@ export async function getCandidateContact(candidateId: string): Promise<Candidat
   try {
     const contactSnap = await getDoc(doc(db, 'candidateContacts', candidateId));
     if (!contactSnap.exists()) return null;
-
-    return {
-      candidateId,
-      ...contactSnap.data()
-    } as CandidateContact;
+    const data = contactSnap.data();
+    if (data.schemaVersion !== 3) return null;
+    return { candidateId, ...data } as CandidateContact;
   } catch (error) {
     console.warn('Candidate contact is not readable for this profile:', error);
     return null;
+  }
+}
+
+/**
+ * Migrate only the signed-in user's legacy contact record. This never lists
+ * another user's private owner data. The migration removes userId/phoneE164
+ * from candidateContacts and creates candidateOwners atomically.
+ */
+export async function migrateOwnedCandidatePrivacy(user: User): Promise<string | null> {
+  try {
+    const ownerSnapshot = await getDocs(query(
+      collection(db, 'candidateOwners'),
+      where('userId', '==', user.uid),
+      limit(1)
+    ));
+    if (!ownerSnapshot.empty) return ownerSnapshot.docs[0].id;
+
+    const legacySnapshot = await getDocs(query(
+      collection(db, 'candidateContacts'),
+      where('userId', '==', user.uid),
+      limit(1)
+    ));
+    const legacy = legacySnapshot.docs[0];
+    if (!legacy) return null;
+
+    const data = legacy.data();
+    const candidateId = legacy.id;
+    const canonical = typeof data.phoneE164 === 'string' ? data.phoneE164 : '';
+    const verified = Boolean(data.phoneVerified && canonical && user.phoneNumber === canonical);
+    const publicRef = doc(db, 'candidates', candidateId);
+    const publicSnap = await getDoc(publicRef);
+    const batch = writeBatch(db);
+
+    batch.set(doc(db, 'candidateOwners', candidateId), {
+      candidateId,
+      userId: user.uid,
+      phoneE164: canonical,
+      phoneVerified: verified,
+      schemaVersion: 1
+    } satisfies CandidateOwner);
+
+    batch.set(legacy.ref, {
+      candidateId,
+      phone: typeof data.phone === 'string' ? data.phone : '',
+      whatsapp: typeof data.whatsapp === 'string' ? data.whatsapp : '',
+      phoneVerified: verified,
+      schemaVersion: 3
+    } satisfies CandidateContact);
+
+    if (publicSnap.exists()) {
+      batch.update(publicRef, {
+        phone: deleteField(),
+        phoneE164: deleteField(),
+        whatsapp: deleteField(),
+        userEmail: deleteField(),
+        userId: deleteField(),
+        schemaVersion: 2,
+        phoneVerified: verified
+      });
+    }
+
+    await batch.commit();
+    return candidateId;
+  } catch (error) {
+    console.warn('Unable to migrate owned candidate privacy schema:', error);
+    return null;
+  }
+}
+
+export async function sanitizeOwnedLegacyJobs(uid: string): Promise<void> {
+  if (!uid || auth.currentUser?.uid !== uid) return;
+  try {
+    const snapshot = await getDocs(query(collection(db, 'jobs'), where('userId', '==', uid), limit(100)));
+    const legacy = snapshot.docs.filter(item => Object.prototype.hasOwnProperty.call(item.data(), 'userEmail'));
+    if (!legacy.length) return;
+    const batch = writeBatch(db);
+    legacy.forEach(item => batch.update(item.ref, { userEmail: deleteField() }));
+    await batch.commit();
+  } catch (error) {
+    console.warn('Unable to sanitize owned legacy job metadata:', error);
+  }
+}
+
+export async function sanitizeLegacyJobsAsAdmin(): Promise<number> {
+  try {
+    const snapshot = await getDocs(query(collection(db, 'jobs'), limit(100)));
+    const legacy = snapshot.docs.filter(item => Object.prototype.hasOwnProperty.call(item.data(), 'userEmail'));
+    if (!legacy.length) return 0;
+    const batch = writeBatch(db);
+    legacy.forEach(item => batch.update(item.ref, { userEmail: deleteField() }));
+    await batch.commit();
+    return legacy.length;
+  } catch (error) {
+    console.warn('Unable to sanitize legacy job metadata as admin:', error);
+    return 0;
   }
 }
 
@@ -212,58 +305,51 @@ function normalizeSaudiPhoneForOwnership(value: string): string {
 }
 
 /**
- * Reclaim a verified phone safely. New records keep contact data in
- * candidateContacts/{candidateId}. Transitional legacy records that already
- * have phoneE164 in candidates are also revoked and stripped. Very old records
- * without a canonical E.164 value stay non-public under schema-v2 rules and
- * require an admin migration instead of weakening the public read policy.
- * Security Rules independently verify request.auth.token.phone_number.
+ * Reclaim a verified phone safely from private owner claims. Public contact
+ * documents never need to expose UID or canonical E.164 ownership data.
  */
 export async function resolvePhoneSquatting(phoneInput: string, excludeUserId: string): Promise<void> {
   const currentUser = auth.currentUser;
   const phoneE164 = normalizeSaudiPhoneForOwnership(phoneInput);
 
-  if (
-    !currentUser ||
-    !phoneE164 ||
-    currentUser.phoneNumber !== phoneE164 ||
-    currentUser.uid !== excludeUserId
-  ) {
+  if (!currentUser || !phoneE164 || currentUser.phoneNumber !== phoneE164 || currentUser.uid !== excludeUserId) {
     throw new Error('Verified Firebase phone ownership is required before reclaiming this number.');
   }
 
   try {
     await currentUser.getIdToken(true);
 
-    // Both queries are constrained by the exact Firebase-verified E.164 phone.
-    // This matches the Firestore list rules and prevents arbitrary legacy lookups.
-    const [contactSnapshot, legacySnapshot] = await Promise.all([
-      getDocs(query(collection(db, 'candidateContacts'), where('phoneE164', '==', phoneE164))),
+    const [ownerSnapshot, legacySnapshot] = await Promise.all([
+      getDocs(query(collection(db, 'candidateOwners'), where('phoneE164', '==', phoneE164))),
       getDocs(query(collection(db, 'candidates'), where('phoneE164', '==', phoneE164)))
     ]);
 
-    const staleContacts = contactSnapshot.docs.filter(contactDoc => {
-      const data = contactDoc.data();
+    const staleOwners = ownerSnapshot.docs.filter(ownerDoc => {
+      const data = ownerDoc.data();
       return !(data.userId === excludeUserId && data.phoneVerified === true);
     });
 
-    const publicSnapshots = await Promise.all(
-      staleContacts.map(contactDoc => getDoc(doc(db, 'candidates', contactDoc.id)))
-    );
+    const related = await Promise.all(staleOwners.map(async ownerDoc => ({
+      ownerDoc,
+      contactSnap: await getDoc(doc(db, 'candidateContacts', ownerDoc.id)),
+      publicSnap: await getDoc(doc(db, 'candidates', ownerDoc.id))
+    })));
 
     const revokedAt = new Date().toISOString();
     const batch = writeBatch(db);
 
-    staleContacts.forEach((contactDoc, index) => {
-      batch.update(contactDoc.ref, {
-        phone: '',
-        phoneE164: '',
-        whatsapp: '',
-        phoneVerified: false,
-        phoneClaimRevokedAt: revokedAt
-      });
-
-      const publicSnap = publicSnapshots[index];
+    related.forEach(({ ownerDoc, contactSnap, publicSnap }) => {
+      batch.update(ownerDoc.ref, { phoneE164: '', phoneVerified: false, phoneClaimRevokedAt: revokedAt });
+      if (contactSnap.exists()) {
+        batch.set(contactSnap.ref, {
+          candidateId: ownerDoc.id,
+          phone: '',
+          whatsapp: '',
+          phoneVerified: false,
+          schemaVersion: 3,
+          phoneClaimRevokedAt: revokedAt
+        });
+      }
       if (publicSnap.exists()) {
         batch.update(publicSnap.ref, {
           phoneVerified: false,
@@ -273,17 +359,11 @@ export async function resolvePhoneSquatting(phoneInput: string, excludeUserId: s
       }
     });
 
-    // Transitional legacy documents are stripped and upgraded to schema v2.
+    // Transitional public documents that still contain canonical contact fields
+    // are stripped. Rules restrict this query to the Firebase-verified phone.
     legacySnapshot.docs.forEach(legacyDoc => {
       const data = legacyDoc.data();
-      if (
-        data.userId === excludeUserId &&
-        data.phoneVerified === true &&
-        data.phoneE164 === phoneE164
-      ) {
-        return;
-      }
-
+      if (data.userId === excludeUserId && data.phoneVerified === true && data.phoneE164 === phoneE164) return;
       batch.update(legacyDoc.ref, {
         phone: deleteField(),
         phoneE164: deleteField(),
