@@ -1,6 +1,14 @@
 {
   "version": 1,
   "countryScope": "Saudi Arabia",
+  "audienceScope": "Yemeni residents in Saudi Arabia",
+  "reviewedAt": "2026-08-26",
+  "syncPolicy": {
+    "intervalHours": 6,
+    "preserveFailedSourceHours": 72,
+    "applicationHandling": "redirect-to-original-source",
+    "republicationMode": "index-and-short-summary-only"
+  },
   "providers": {
     "lever": {
       "documentationUrl": "https://github.com/lever/postings-api",
