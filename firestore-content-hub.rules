@@ -23,6 +23,19 @@ service cloud.firestore {
         get(/databases/$(database)/documents/candidateOwners/$(candidateId)).data.userId == request.auth.uid;
     }
 
+    // Public content collections are populated only by the trusted server-side
+    // content sync. Browsers may read published records but can never write.
+    match /publicJobs/{jobId} {
+      allow get, list: if resource.data.status == 'active' &&
+        resource.data.sourceType == 'external';
+      allow create, update, delete: if false;
+    }
+
+    match /articles/{articleId} {
+      allow get, list: if resource.data.status == 'published';
+      allow create, update, delete: if false;
+    }
+
     // Admin membership is provisioned out of band. A user may only read their
     // own admin marker; this ruleset never permits client-side admin creation.
     match /admins/{adminId} {
@@ -30,8 +43,8 @@ service cloud.firestore {
       allow list, create, update, delete: if false;
     }
 
-    // Current production mode uses public/jobs/external-jobs.json. Firestore is
-    // retained only for historical records and administrative cleanup.
+    // Legacy direct-posted jobs are retained only for historic owner/admin
+    // access and cleanup. New public jobs live in /publicJobs.
     match /jobs/{jobId} {
       allow get: if isAdmin() || ownsLegacyJob(jobId);
       allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
@@ -81,8 +94,8 @@ service cloud.firestore {
     }
 
     // Legacy safety/moderation records remain administrative-only. Public job
-    // cards now link to the original source and do not write fraud/application
-    // workflow records to Firestore.
+    // cards link to the original source and do not write application workflow
+    // records to Firestore.
     match /fraudReports/{reportId} {
       allow read, write: if isAdmin();
     }
