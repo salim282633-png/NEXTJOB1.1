@@ -7,10 +7,14 @@ on:
   push:
     paths:
       - 'config/job-sources.json'
+      - 'config/arabic-job-sources.json'
       - 'scripts/sync-external-jobs.mjs'
+      - 'scripts/append-arabic-rss-jobs.mjs'
+      - 'scripts/append-community-job-intake.mjs'
       - 'scripts/filter-yemeni-target-jobs.mjs'
       - 'scripts/validate-external-jobs.mjs'
       - 'data/manual-external-jobs.json'
+      - 'data/community-job-intake.json'
       - '.github/workflows/external-jobs-sync.yml'
 
 permissions:
@@ -42,14 +46,23 @@ jobs:
       - name: Verify trusted source registry
         run: npm run jobs:sources-check
 
-      - name: Fetch and normalize public source jobs
+      - name: Fetch official API job sources
         run: npm run jobs:sync
+
+      - name: Append permitted Arabic RSS feeds
+        run: node scripts/append-arabic-rss-jobs.mjs
+
+      - name: Append approved community intake
+        run: node scripts/append-community-job-intake.mjs
 
       - name: Apply Yemeni audience targeting and Arabic display
         run: node scripts/filter-yemeni-target-jobs.mjs
 
       - name: Verify generated feed and application destinations
         run: |
+          node --check scripts/append-arabic-rss-jobs.mjs
+          node --check scripts/append-community-job-intake.mjs
+          node --check scripts/filter-yemeni-target-jobs.mjs
           node scripts/filter-yemeni-target-jobs.mjs --check
           npm run jobs:check
           npm audit --omit=dev --audit-level=high
