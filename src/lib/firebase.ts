@@ -276,6 +276,21 @@ export async function sanitizeOwnedLegacyJobs(uid: string): Promise<void> {
   }
 }
 
+export async function sanitizeLegacyJobsAsAdmin(): Promise<number> {
+  try {
+    const snapshot = await getDocs(query(collection(db, 'jobs'), limit(100)));
+    const legacy = snapshot.docs.filter(item => Object.prototype.hasOwnProperty.call(item.data(), 'userEmail'));
+    if (!legacy.length) return 0;
+    const batch = writeBatch(db);
+    legacy.forEach(item => batch.update(item.ref, { userEmail: deleteField() }));
+    await batch.commit();
+    return legacy.length;
+  } catch (error) {
+    console.warn('Unable to sanitize legacy job metadata as admin:', error);
+    return 0;
+  }
+}
+
 function normalizeSaudiPhoneForOwnership(value: string): string {
   let digits = value.trim().replace(/\D/g, '');
 

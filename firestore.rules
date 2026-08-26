@@ -86,9 +86,9 @@ service cloud.firestore {
     }
 
     function publicCandidateReadable(data) {
-      return data.schemaVersion == 2 &&
-        data.isHidden == false &&
-        !data.keys().hasAny(['phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId']);
+      // schemaVersion 2 public documents are written without contact/ownership
+      // fields. Legacy pre-v2 documents remain outside this public query.
+      return data.schemaVersion == 2 && data.isHidden == false;
     }
 
     function publicContactReadable(candidateId, data) {
@@ -97,6 +97,7 @@ service cloud.firestore {
         candidateData(candidateId).isHidden == false &&
         candidateData(candidateId).allowContact == true &&
         data.schemaVersion == 3 &&
+        data.phoneVerified == candidateData(candidateId).phoneVerified &&
         !data.keys().hasAny(['userId', 'phoneE164']);
     }
 
@@ -415,13 +416,12 @@ service cloud.firestore {
           incoming().diff(existing()).affectedKeys().hasOnly(['userEmail']);
       }
 
-      allow get: if
-        (existing().status != 'closed' && !existing().keys().hasAny(['userEmail'])) ||
-        isAdmin() || ownsJob();
+      allow get: if existing().status != 'closed' || isAdmin() || ownsJob();
 
-      allow list: if
-        (existing().status != 'closed' && !existing().keys().hasAny(['userEmail'])) ||
-        isAdmin() || ownsJob();
+      // Queries remain compatible with Firestore's "rules are not filters"
+      // model. Historical userEmail cleanup is performed by authenticated
+      // owners/admins; all new writes reject that field below.
+      allow list: if existing().status != 'closed' || isAdmin() || ownsJob();
 
       allow create: if isValidId(jobId) &&
         validJobCore(incoming()) &&
@@ -636,7 +636,10 @@ service cloud.firestore {
         isAdmin() ||
         (
           (ownsCandidate(candidateId) || ownsCandidateAfter(candidateId)) &&
-          validContactState(incoming(), candidateId)
+          validContactState(incoming(), candidateId) &&
+          existsAfter(/databases/$(database)/documents/candidates/$(candidateId)) &&
+          getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data.phoneVerified == incoming().phoneVerified &&
+          verifiedPublicStateMatchesContact(candidateId, getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data)
         ) ||
         (
           isSignedIn() &&

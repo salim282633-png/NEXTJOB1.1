@@ -20,7 +20,8 @@ import {
   testFirestoreConnection,
   handleFirestoreError,
   OperationType,
-  sanitizeOwnedLegacyJobs
+  sanitizeOwnedLegacyJobs,
+  sanitizeLegacyJobsAsAdmin
 } from './lib/firebase';
 import { Job, Candidate, JobFilter, ToastMessage, CommunityJobSubmission, FraudReport } from './types';
 import { Navbar } from './components/Navbar';
@@ -135,6 +136,11 @@ export function App() {
   useEffect(() => {
     if (!isAdmin) setIsAdminSEOOpen(false);
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    void sanitizeLegacyJobsAsAdmin();
+  }, [user?.uid, isAdmin]);
 
   useEffect(() => {
     if (!user || !isAdmin) {
