@@ -209,7 +209,7 @@ export function App() {
 
       <CookieConsentBanner onOpenPrivacyModal={() => setIsPrivacyOpen(true)} />
       <Footer onNavigate={navigate} onOpenWageCalc={() => setIsWageCalcOpen(true)} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
-      <ToastContainer toasts={toasts} onRemove={id => setToasts(prev => prev.filter(item => item.id !== id))} />
+      <ToastContainer toasts={toasts} onDismiss={(id: string) => setToasts(prev => prev.filter(item => item.id !== id))} />
     </div>
   );
 }
