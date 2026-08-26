@@ -178,8 +178,6 @@ export function App() {
     return () => unsubscribe();
   }, [user?.uid, isAdmin]);
 
-  // Public jobs never include closed records. Firestore Rules enforce the same
-  // status constraint, so a closed job cannot be recovered by changing the UI.
   useEffect(() => {
     setIsLoadingJobs(true);
     const jobsPath = 'jobs';
@@ -264,7 +262,7 @@ export function App() {
   const handleQuickWhatsAppJob = (job: Job) => {
     const cleanPhone = job.whatsapp ? job.whatsapp.replace(/[^0-9]/g, '') : job.phone.replace(/[^0-9]/g, '');
     const text = encodeURIComponent(`السلام عليكم ورحمة الله، بخصوص إعلانكم عن وظيفة (${job.title}) في منصة NEXT JOB، أود الاستفسار والتقديم للشاغر.`);
-    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
+    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank', 'noopener,noreferrer');
   };
 
   const handleQuickWhatsAppCandidate = (candidate: Candidate) => {
@@ -272,11 +270,11 @@ export function App() {
     const cleanPhone = contactNumber.replace(/[^0-9]/g, '');
     if (!cleanPhone) return;
     const text = encodeURIComponent(`السلام عليكم أخي ${candidate.fullName}، شاهدت سيرتك الذاتية (${candidate.profession}) في منصة NEXT JOB ولدينا فرصة عمل مناسبة.`);
-    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
+    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank', 'noopener,noreferrer');
   };
 
   const handleOpenPostJob = () => {
-    if (!user) {
+    if (!auth.currentUser) {
       addToast('info', 'سجّل الدخول أولاً حتى تُربط الوظيفة بحساب صاحب الإعلان.');
       setIsAuthModalOpen(true);
       return;
@@ -295,7 +293,6 @@ export function App() {
     const payload = stripUndefined({
       ...jobData,
       userId: owner.uid,
-      userEmail: owner.email || null,
       createdAt: nowIso,
       createdAtServer: serverTimestamp(),
       activityAt: serverTimestamp(),
@@ -503,6 +500,10 @@ export function App() {
   const handleOpenAuth = () => setIsAuthModalOpen(true);
 
   const handleLoginSuccess = (loggedUser: User) => {
+    if (!auth.currentUser || auth.currentUser.uid !== loggedUser.uid) {
+      addToast('error', 'تعذر تأكيد جلسة Firebase. أعد محاولة تسجيل الدخول.');
+      return;
+    }
     setUser(loggedUser);
     addToast('success', `أهلاً بك يا ${loggedUser.displayName || 'مستخدمنا العزيز'}`);
   };
