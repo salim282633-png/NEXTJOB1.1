@@ -9,6 +9,7 @@ import {
   doc,
   writeBatch,
   runTransaction,
+  updateDoc,
   serverTimestamp,
   Timestamp
 } from 'firebase/firestore';
@@ -112,6 +113,7 @@ export function App() {
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
+  const [pendingJobs, setPendingJobs] = useState<Job[]>([]);
   const [communitySubmissions, setCommunitySubmissions] = useState<CommunityJobSubmission[]>([]);
   const [fraudReports, setFraudReports] = useState<FraudReport[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -140,6 +142,29 @@ export function App() {
   useEffect(() => {
     if (!user || !isAdmin) return;
     void sanitizeLegacyJobsAsAdmin();
+  }, [user?.uid, isAdmin]);
+
+  useEffect(() => {
+    if (!user || !isAdmin) {
+      setPendingJobs([]);
+      return;
+    }
+    const jobsPath = 'jobs';
+    const q = query(collection(db, jobsPath), where('status', '==', 'pending_review'), limit(100));
+    const unsubscribe = onSnapshot(
+      q,
+      snapshot => {
+        const pending = snapshot.docs
+          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Job))
+          .sort((a, b) => jobActivityMillis(b) - jobActivityMillis(a));
+        setPendingJobs(pending);
+      },
+      error => {
+        handleFirestoreError(error, OperationType.LIST, `${jobsPath}:pending_review`);
+        setPendingJobs([]);
+      }
+    );
+    return () => unsubscribe();
   }, [user?.uid, isAdmin]);
 
   useEffect(() => {
@@ -233,7 +258,10 @@ export function App() {
       const unsubscribe = onSnapshot(
         q,
         snapshot => {
-          setCandidates(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Candidate)));
+          const visibleCandidates = snapshot.docs
+            .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Candidate))
+            .filter(candidate => (candidate.iqamaStatus as string) !== 'تأشيرة زيارة / هوية زائر');
+          setCandidates(visibleCandidates);
           setIsLoadingCandidates(false);
         },
         error => {
@@ -295,7 +323,7 @@ export function App() {
   const handlePostJob = async (jobData: Omit<Job, 'id' | 'createdAt' | 'views'>) => {
     const owner = auth.currentUser;
     if (!owner) {
-      addToast('error', 'يجب تسجيل الدخول قبل نشر الوظيفة.');
+      addToast('error', 'يجب تسجيل الدخول قبل إرسال الوظيفة للمراجعة.');
       throw new Error('AUTH_REQUIRED');
     }
 
@@ -303,22 +331,23 @@ export function App() {
     const payload = stripUndefined({
       ...jobData,
       userId: owner.uid,
+      sourceType: 'employer' as const,
       createdAt: nowIso,
       createdAtServer: serverTimestamp(),
       activityAt: serverTimestamp(),
-      lastBumpedAt: serverTimestamp(),
-      lastConfirmedAt: nowIso,
-      lastConfirmedAtServer: serverTimestamp(),
-      status: 'recently_confirmed',
+      moderationStatus: 'pending' as const,
+      complianceAccepted: true,
+      complianceAcceptedAt: serverTimestamp(),
+      status: 'pending_review' as const,
       views: 0
     });
 
     try {
       await addDoc(collection(db, 'jobs'), payload);
-      addToast('success', 'تم نشر إعلان الوظيفة وربطه بحسابك بنجاح.');
+      addToast('success', 'تم إرسال إعلان الوظيفة لمراجعة الإدارة. لن يظهر للعامة إلا بعد الاعتماد.');
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'jobs');
-      addToast('error', 'تعذر نشر الوظيفة في قاعدة البيانات.');
+      addToast('error', 'تعذر إرسال الوظيفة للمراجعة في قاعدة البيانات.');
       throw err;
     }
   };
@@ -402,6 +431,57 @@ export function App() {
     }
     if (!requireAdmin()) return;
     setIsAdminSEOOpen(true);
+  };
+
+  const handleApprovePendingJob = async (job: Job) => {
+    if (!requireAdmin()) return;
+    const adminUser = auth.currentUser;
+    if (!adminUser) return;
+    const reviewedAt = new Date().toISOString();
+
+    try {
+      await updateDoc(doc(db, 'jobs', job.id), {
+        status: 'recently_confirmed',
+        moderationStatus: 'approved',
+        reviewedAt,
+        reviewedAtServer: serverTimestamp(),
+        reviewedBy: adminUser.uid,
+        lastConfirmedAt: reviewedAt,
+        lastConfirmedAtServer: serverTimestamp(),
+        lastBumpedAt: serverTimestamp(),
+        activityAt: serverTimestamp(),
+        updatedAt: reviewedAt,
+        updatedAtServer: serverTimestamp()
+      });
+      addToast('success', `تم اعتماد ونشر: "${job.title}"`);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `jobs/${job.id}`);
+      addToast('error', 'تعذر اعتماد الوظيفة أو أنها لم تعد بانتظار المراجعة.');
+    }
+  };
+
+  const handleRejectPendingJob = async (job: Job) => {
+    if (!requireAdmin()) return;
+    const adminUser = auth.currentUser;
+    if (!adminUser) return;
+    const reviewedAt = new Date().toISOString();
+
+    try {
+      await updateDoc(doc(db, 'jobs', job.id), {
+        status: 'closed',
+        moderationStatus: 'rejected',
+        reviewedAt,
+        reviewedAtServer: serverTimestamp(),
+        reviewedBy: adminUser.uid,
+        closedAt: serverTimestamp(),
+        updatedAt: reviewedAt,
+        updatedAtServer: serverTimestamp()
+      });
+      addToast('info', `تم رفض الإعلان: "${job.title}" ولن يظهر للعامة.`);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `jobs/${job.id}`);
+      addToast('error', 'تعذر رفض الوظيفة أو أنها لم تعد بانتظار المراجعة.');
+    }
   };
 
   const normalizeCommunityWhatsApp = (value: string) => {
@@ -533,12 +613,14 @@ export function App() {
       await logoutUser();
       setUser(null);
       setIsAdminSEOOpen(false);
+      setPendingJobs([]);
       setCommunitySubmissions([]);
       setFraudReports([]);
       addToast('info', 'تم تسجيل الخروج بنجاح');
     } catch (err) {
       console.error(err);
       setIsAdminSEOOpen(false);
+      setPendingJobs([]);
       setCommunitySubmissions([]);
       setFraudReports([]);
       addToast('info', 'تم تسجيل الخروج');
@@ -689,8 +771,11 @@ export function App() {
         <AdminAndSEOEngineModal
           isOpen={isAdminSEOOpen}
           onClose={() => setIsAdminSEOOpen(false)}
+          pendingJobs={pendingJobs}
           communitySubmissions={communitySubmissions}
           fraudReports={fraudReports}
+          onApprovePendingJob={handleApprovePendingJob}
+          onRejectPendingJob={handleRejectPendingJob}
           onApproveCommunityJob={handleApproveCommunityJob}
           onRejectCommunityJob={handleRejectCommunityJob}
           onResolveReport={handleResolveFraudReport}
