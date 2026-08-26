@@ -1,18 +1,21 @@
 import fs from 'node:fs';
 
-const firestore = fs.readFileSync('firestore.rules', 'utf8');
-const storage = fs.readFileSync('storage.rules', 'utf8');
-const app = fs.readFileSync('src/App.tsx', 'utf8');
-const types = fs.readFileSync('src/types.ts', 'utf8');
-const avatarUploader = fs.readFileSync('src/components/CandidateAvatarUploader.tsx', 'utf8');
-const postCandidate = fs.readFileSync('src/components/PostCandidateModal.tsx', 'utf8');
-const footer = fs.readFileSync('src/components/Footer.tsx', 'utf8');
-const postJob = fs.readFileSync('src/components/PostJobModal.tsx', 'utf8');
-const communityJob = fs.readFileSync('src/components/CommunityJobModal.tsx', 'utf8');
-const compliancePolicy = fs.readFileSync('public/compliance/index.html', 'utf8');
-const firebaseJson = JSON.parse(fs.readFileSync('firebase.json', 'utf8'));
-const firebaseRc = JSON.parse(fs.readFileSync('.firebaserc', 'utf8'));
-const firebaseConfig = JSON.parse(fs.readFileSync('firebase-applet-config.json', 'utf8'));
+const read = path => fs.readFileSync(path, 'utf8');
+const app = read('src/App.tsx');
+const navbar = read('src/components/Navbar.tsx');
+const jobList = read('src/components/JobList.tsx');
+const jobCard = read('src/components/JobCard.tsx');
+const jobDetail = read('src/components/JobDetailModal.tsx');
+const footer = read('src/components/Footer.tsx');
+const complianceMode = read('src/lib/complianceMode.ts');
+const googleProduction = read('src/lib/googleProduction.ts');
+const firestore = read('firestore-content-hub.rules');
+const storage = read('storage.rules');
+const externalValidator = read('scripts/validate-external-jobs.mjs');
+const externalJobs = JSON.parse(read('public/jobs/external-jobs.json'));
+const firebaseJson = JSON.parse(read('firebase.json'));
+const firebaseRc = JSON.parse(read('.firebaserc'));
+const firebaseConfig = JSON.parse(read('firebase-applet-config.json'));
 
 const failures = [];
 const requireText = (text, needle, label) => {
@@ -22,58 +25,106 @@ const forbidText = (text, needle, label) => {
   if (text.includes(needle)) failures.push(`forbidden: ${label}`);
 };
 
-requireText(firestore, 'match /candidateOwners/{candidateId}', 'private candidateOwners collection rules');
-requireText(firestore, 'data.schemaVersion == 3', 'candidate contact schema v3');
-requireText(firestore, "!data.keys().hasAny(['userId', 'phoneE164'])", 'public contact sensitive-field deny guard');
-requireText(firestore, "!incoming().keys().hasAny(['userEmail'])", 'new job userEmail deny guard');
-requireText(firestore, "existing().phoneE164 == request.auth.token.phone_number", 'verified-phone reclaim guard');
-requireText(firestore, "data.phoneVerified == candidateData(candidateId).phoneVerified", 'public/contact verification consistency');
-forbidText(firestore, '[0-9]{8}  }', 'corrupted Saudi phone regex');
+// Public product mode must remain content-first and external-source only.
+requireText(complianceMode, 'contentHubHomepage: true', 'content-hub homepage mode');
+requireText(complianceMode, 'externalJobsOnly: true', 'external-jobs-only mode');
+for (const flag of [
+  'employerJobPosting: false',
+  'internalApplications: false',
+  'candidateDirectory: false',
+  'candidatePublishing: false',
+  'cvServices: false',
+  'communityJobSubmissions: false',
+  'commercialAds: false'
+]) requireText(complianceMode, flag, `disabled feature flag ${flag}`);
 
+// The public app must not depend on Firestore/auth recruitment flows.
+requireText(app, "fetch('/jobs/external-jobs.json'", 'external jobs feed fetch');
+requireText(app, "sourceType: 'external'", 'external source normalization');
+requireText(app, 'sourceUrl', 'source URL normalization');
+requireText(app, 'applyUrl', 'external application URL normalization');
+for (const forbidden of [
+  "from 'firebase/",
+  'PostJobModal',
+  'PostCandidateModal',
+  'CandidatesDirectory',
+  'FreeCVGeneratorModal',
+  'JobApplicationAction',
+  'CommunityJobModal',
+  'AuthModal'
+]) forbidText(app, forbidden, `public App recruitment feature ${forbidden}`);
+
+forbidText(navbar, 'أعلن عن وظيفة', 'public employer-posting CTA');
+forbidText(navbar, 'أنشئ ملفك', 'public candidate-publishing CTA');
+requireText(navbar, 'التقديم يتم لدى المصدر الأصلي', 'source-application navbar disclosure');
+
+requireText(jobList, "job.sourceType !== 'external'", 'job list external-only filter');
+requireText(jobList, 'job.sourceName', 'job list source requirement');
+requireText(jobList, 'job.sourceUrl', 'job list source URL requirement');
+requireText(jobList, 'job.applyUrl', 'job list application URL requirement');
+forbidText(jobList, 'JobApplicationAction', 'internal application component in jobs list');
+forbidText(jobList, 'AdSenseSlot', 'commercial advertising in jobs list');
+forbidText(jobList, 'onOpenPostJob', 'employer-posting callback in jobs list');
+
+requireText(jobCard, 'job.applyUrl', 'job card external application link');
+requireText(jobCard, 'job.sourceName', 'job card source label');
+forbidText(jobCard, 'wa.me', 'direct WhatsApp application in job card');
+forbidText(jobCard, 'onQuickWhatsApp', 'direct WhatsApp callback in job card');
+requireText(jobDetail, 'التقديم عبر المصدر الأصلي', 'job detail source application CTA');
+forbidText(jobDetail, 'wa.me', 'direct WhatsApp application in job detail');
+forbidText(jobDetail, 'tel:', 'direct phone application in job detail');
+forbidText(jobDetail, 'onOpenAICoverLetterForJob', 'internal application-message generator in job detail');
+
+requireText(footer, 'خدمات إعداد أو بيع السير الذاتية والإعلانات التجارية المدفوعة متوقفة حاليًا', 'CV/paid-ads suspension disclosure');
+requireText(footer, 'لا نستقبل طلبات التوظيف نيابة عن أصحاب العمل', 'non-intermediation disclosure');
+forbidText(footer, 'صانع السيرة الذاتية', 'public CV service link');
+forbidText(footer, 'شارك فرصة رأيتها للمراجعة', 'public community-submission link');
+
+// Paid advertising must not be loadable by environment configuration.
+requireText(googleProduction, 'adsEnabled: false', 'hard-disabled commercial ads');
+requireText(googleProduction, "adsenseClient: ''", 'empty AdSense client');
+forbidText(googleProduction, 'googlesyndication.com', 'AdSense script loader');
+forbidText(googleProduction, 'VITE_ADSENSE', 'environment re-enable path for AdSense');
+
+// External jobs must carry auditable source/application metadata.
+for (const required of ['sourceName', 'sourceUrl', 'applyUrl', 'sourcePublishedAt']) {
+  requireText(externalValidator, `'${required}'`, `external validator field ${required}`);
+}
+requireText(externalValidator, "parsed.protocol !== 'https:'", 'HTTPS-only external source links');
+requireText(externalValidator, "job.sourceType !== 'external'", 'external sourceType validation');
+if (!Array.isArray(externalJobs)) failures.push('external jobs feed is not an array');
+
+// Firestore is decommissioned from public recruitment operations. Historic
+// records are retained for owner/admin reads and administrative cleanup only.
+requireText(firestore, 'match /jobs/{jobId}', 'strict legacy jobs rules');
+requireText(firestore, 'allow create: if false; // Direct employer/community publishing is paused.', 'direct job creation deny');
+requireText(firestore, 'match /applications/{applicationId}', 'strict applications rules');
+requireText(firestore, 'allow create, update, delete: if false;', 'application/client write deny');
+requireText(firestore, 'match /candidates/{candidateId}', 'strict candidate rules');
+requireText(firestore, 'Candidate publishing and the public candidate directory are paused.', 'candidate directory suspension guard');
+requireText(firestore, 'match /candidateContacts/{candidateId}', 'private legacy candidate contacts');
+requireText(firestore, 'match /communitySubmissions/{submissionId}', 'community submission rules');
+requireText(firestore, 'Community-supplied job leads are paused', 'community publishing suspension guard');
+requireText(firestore, 'match /{document=**}', 'default Firestore deny');
+requireText(firestore, 'allow read, write: if false;', 'default Firestore deny policy');
+
+// Keep the existing UID-free avatar rule even though candidate publishing is paused.
 requireText(storage, 'match /candidate-avatars-v2/{candidateId}/{fileName}', 'UID-free avatar storage path');
-requireText(storage, 'request.resource.metadata.ownerUid == request.auth.uid', 'avatar owner metadata check');
-requireText(storage, 'resource.metadata.ownerUid == request.auth.uid', 'avatar owner read/delete check');
+requireText(storage, 'request.resource.metadata.ownerUid == request.auth.uid', 'avatar ownership metadata guard');
 
-requireText(app, "doc(db, 'candidateOwners', candidateRef.id)", 'candidate ownership stored privately');
-requireText(app, 'schemaVersion: 3', 'sanitized candidate contact payload');
-requireText(avatarUploader, '`candidate-avatars-v2/${candidateId}/${Date.now()}.webp`', 'new avatar upload path hides UID');
-forbidText(avatarUploader, '`candidate-avatars/${user.uid}/', 'new avatar upload path exposing UID');
-
-forbidText(footer, 'منصة توظيف تقنية مرخصة ومطابقة للأنظمة', 'unsupported licensing/compliance claim');
-requireText(footer, 'ليست مكتب استقدام أو شركة توظيف أو إسناد عمالي', 'footer platform-scope disclaimer');
-requireText(postJob, 'EMPLOYER_COMPLIANCE_ATTESTATION', 'employer compliance attestation');
-requireText(postJob, 'findJobComplianceIssue', 'direct job compliance screening');
-requireText(communityJob, 'findJobComplianceIssue', 'community job compliance screening');
-requireText(compliancePolicy, 'ليست جهة حكومية', 'public compliance policy government disclaimer');
-requireText(compliancePolicy, 'بيع أو شراء التأشيرات', 'public policy prohibited visa trading');
-
-requireText(firestore, "incoming().status == 'pending_review'", 'server-side pending review requirement');
-requireText(firestore, "incoming().moderationStatus == 'pending'", 'server-side moderation state');
-requireText(firestore, 'incoming().complianceAcceptedAt == request.time', 'server-timestamped compliance attestation');
-requireText(firestore, 'function blockedJobText(text)', 'server-side prohibited job phrase screening');
-requireText(firestore, 'function publicJobReadable(data)', 'pending jobs excluded from public reads');
-requireText(app, "status: 'pending_review' as const", 'client submits direct jobs for review');
-requireText(app, "where('status', '==', 'pending_review')", 'admin pending jobs queue');
-requireText(app, 'onApprovePendingJob={handleApprovePendingJob}', 'admin approval action');
-requireText(app, 'onRejectPendingJob={handleRejectPendingJob}', 'admin rejection action');
-
-requireText(firestore, 'function allowedCandidateIqamaStatus(status)', 'server-side candidate residency allowlist');
-forbidText(postCandidate, '<option value="تأشيرة زيارة / هوية زائر">', 'visitor residency option in candidate form');
-forbidText(types, "| 'تأشيرة زيارة / هوية زائر'", 'visitor residency value in candidate type');
-requireText(app, "!== 'تأشيرة زيارة / هوية زائر'", 'legacy visitor profiles hidden from public directory');
-
+// Verify Firebase deploy targets the strict ruleset for the actual named DB.
 const expectedProject = firebaseConfig.projectId;
 const expectedDatabase = 'ai-studio-22228db6-8ffe-450f-801f-19bd5ea8c9f0';
 const firestoreTargets = Array.isArray(firebaseJson.firestore) ? firebaseJson.firestore : [firebaseJson.firestore];
-const namedTarget = firestoreTargets.find(item => item?.database === expectedDatabase && item?.rules === 'firestore.rules');
-if (!namedTarget) failures.push('missing: firebase.json named Firestore database -> firestore.rules binding');
+const namedTarget = firestoreTargets.find(item => item?.database === expectedDatabase && item?.rules === 'firestore-content-hub.rules');
+if (!namedTarget) failures.push('missing: named Firestore database -> firestore-content-hub.rules binding');
 if (firebaseRc.projects?.default !== expectedProject) failures.push('mismatch: .firebaserc default project does not match firebase-applet-config.json');
 if (firebaseJson.storage?.rules !== 'storage.rules') failures.push('missing: firebase.json storage rules binding');
 
 if (failures.length) {
-  console.error('Security/compliance invariant check failed:');
+  console.error('Content-hub security/compliance invariant check failed:');
   failures.forEach(item => console.error(`- ${item}`));
   process.exit(1);
 }
 
-console.log('Security, moderation, Firebase binding and compliance invariants verified.');
+console.log('Content-hub, external-source, Firebase binding and no-paid-ads invariants verified.');
