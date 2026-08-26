@@ -60,16 +60,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/90 px-3.5 py-1.5 text-[11px] sm:text-xs font-bold text-emerald-800 shadow-sm">
             <Zap className="w-3.5 h-3.5 text-emerald-600" />
-            <span>تواصل مباشر مع أصحاب العمل داخل السعودية</span>
+            <span>إعلانات فرص مهنية وتواصل مباشر مع المعلنين داخل السعودية</span>
           </div>
 
           <h1 className="mt-4 text-[30px] sm:text-4xl md:text-[46px] font-black text-slate-950 leading-[1.3] font-display">
-            ابحث عن فرص عمل تناسب مهنتك ومدينتك
+            استعرض إعلانات فرص مهنية حسب مهنتك ومدينتك
             <span className="block mt-1 text-emerald-700">بخطوات واضحة وتواصل مباشر</span>
           </h1>
 
           <p className="mt-4 text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-7 sm:leading-8">
-            استعرض الوظائف المنشورة، صفِّ النتائج حسب المدينة والمهنة والمزايا، ثم تواصل مع صاحب الإعلان مباشرة دون عمولات توظيف من المنصة.
+            NEXT JOB منصة تقنية لعرض الإعلانات المهنية والملفات المهنية وتسهيل التواصل المباشر بين المستخدمين، وليست جهة توظيف أو استقدام أو إسناد عمالي.
           </p>
         </div>
 
@@ -111,10 +111,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 id="btn-open-ai-generator"
                 onClick={onOpenAICoverLetter}
                 className="w-full min-h-12 sm:h-full px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-[13px] rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/20 active:scale-[0.98]"
-                title="إنشاء رسالة تقديم احترافية للواتساب بالذكاء الاصطناعي"
+                title="إنشاء رسالة تواصل احترافية للواتساب بالذكاء الاصطناعي"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>رسالة تقديم</span>
+                <span>رسالة تواصل</span>
               </button>
             </div>
           </div>
@@ -131,7 +131,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>نقل خدمات متاح</span>
+                <span>الإعلان يذكر إمكانية نقل الخدمات</span>
               </button>
 
               <button
@@ -144,7 +144,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>سكن متوفر</span>
+                <span>سكن مذكور في الإعلان</span>
               </button>
             </div>
 
@@ -184,11 +184,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3 max-w-2xl mx-auto text-center">
           <div className="rounded-2xl border border-emerald-100 bg-white/90 px-2 py-3 sm:px-4 sm:py-4 shadow-sm">
             <p className="text-lg sm:text-2xl font-black text-emerald-700 font-display leading-none">{totalJobs}</p>
-            <p className="mt-1.5 text-[10px] sm:text-xs font-semibold text-slate-500">وظيفة منشورة</p>
+            <p className="mt-1.5 text-[10px] sm:text-xs font-semibold text-slate-500">إعلان منشور</p>
           </div>
           <div className="rounded-2xl border border-emerald-100 bg-white/90 px-2 py-3 sm:px-4 sm:py-4 shadow-sm">
             <p className="text-lg sm:text-2xl font-black text-emerald-700 font-display leading-none">100%</p>
-            <p className="mt-1.5 text-[10px] sm:text-xs font-semibold text-slate-500">التقديم مجاني</p>
+            <p className="mt-1.5 text-[10px] sm:text-xs font-semibold text-slate-500">التواصل مجاني</p>
           </div>
           <div className="rounded-2xl border border-emerald-100 bg-white/90 px-2 py-3 sm:px-4 sm:py-4 shadow-sm">
             <p className="text-sm sm:text-lg font-black text-emerald-700 font-display leading-tight">مباشر</p>
