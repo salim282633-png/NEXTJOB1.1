@@ -27,12 +27,7 @@ import {
   resolvePhoneSquatting
 } from '../lib/firebase';
 import { checkRateLimit } from '../lib/rateLimit';
-import {
-  findUserByPhone,
-  handlePhoneClaimWithVerification,
-  normalizeSaudiPhone,
-  registerUnverifiedSeeker
-} from '../lib/phone';
+import { normalizeSaudiPhone } from '../lib/phone';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -65,11 +60,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
-
     const timer = window.setInterval(() => {
       setResendCooldown(previous => Math.max(0, previous - 1));
     }, 1000);
-
     return () => window.clearInterval(timer);
   }, [resendCooldown]);
 
@@ -100,6 +93,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsPopupBlockedNotice(false);
   };
 
+  const closeWithoutAuthentication = () => {
+    resetState();
+    onClose();
+  };
+
   const buildRecaptchaVerifier = () => {
     clearRecaptcha();
     const verifier = new RecaptchaVerifier(auth, 'phone-recaptcha-container', {
@@ -118,12 +116,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const loggedUser = await loginWithGoogle();
       if (loggedUser) {
         onLoginSuccess(loggedUser);
+        resetState();
         onClose();
       }
     } catch (error: unknown) {
       console.error('Google login caught:', error);
       setErrorMsg(getAuthErrorMessage(error));
-
       const err = error as { code?: string; message?: string };
       if (err.code === 'auth/popup-blocked' || err.message?.includes('popup')) {
         setIsPopupBlockedNotice(true);
@@ -227,7 +225,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const firebaseUser = credential.user;
       const normalized = normalizeSaudiPhone(phoneInput);
 
-      if (!normalized.isValid) {
+      if (!normalized.isValid || firebaseUser.phoneNumber !== normalized.canonical) {
         throw new Error('تعذر مطابقة رقم الجوال بعد التحقق.');
       }
 
@@ -235,13 +233,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         await updateProfile(firebaseUser, { displayName: displayName.trim() });
       }
 
-      handlePhoneClaimWithVerification(
-        normalized.canonical,
-        firebaseUser.uid,
-        displayName.trim() || firebaseUser.displayName || undefined
-      );
-
-      await resolvePhoneSquatting(normalized.displayLocal, firebaseUser.uid);
+      await firebaseUser.getIdToken(true);
+      await resolvePhoneSquatting(normalized.canonical, firebaseUser.uid);
 
       onLoginSuccess(firebaseUser);
       resetState();
@@ -252,50 +245,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleUnverifiedSeekerEntry = () => {
-    setErrorMsg('');
-    const normalized = normalizeSaudiPhone(phoneInput);
-
-    if (!normalized.isValid) {
-      setErrorMsg(normalized.error || 'يرجى كتابة رقم جوال سعودي صحيح للمتابعة كباحث عمل.');
-      return;
-    }
-
-    const existingUser = findUserByPhone(normalized.canonical);
-    if (existingUser?.phoneVerified) {
-      setErrorMsg('هذا الرقم مرتبط بحساب موثق. استخدم رمز SMS لتسجيل الدخول إليه.');
-      return;
-    }
-
-    const userAccount = registerUnverifiedSeeker(normalized.canonical, displayName.trim());
-    const seekerUser = {
-      uid: userAccount.uid,
-      displayName: userAccount.displayName,
-      phoneNumber: userAccount.phone,
-      email: null,
-      emailVerified: false,
-      isAnonymous: false
-    } as unknown as User;
-
-    onLoginSuccess(seekerUser);
-    resetState();
-    onClose();
-  };
-
-  const handleGuestBrowsing = () => {
-    const guestUser = {
-      uid: `user-guest-${crypto.randomUUID()}`,
-      displayName: 'زائر المنصة (تصفح فقط)',
-      email: null,
-      emailVerified: false,
-      isAnonymous: true
-    } as unknown as User;
-
-    onLoginSuccess(guestUser);
-    resetState();
-    onClose();
   };
 
   const handleOpenInNewTab = () => {
@@ -320,10 +269,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           </div>
           <button
-            onClick={() => {
-              resetState();
-              onClose();
-            }}
+            onClick={closeWithoutAuthentication}
             className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-colors"
             aria-label="إغلاق"
           >
@@ -345,7 +291,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </span>
                     <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                       <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                      مسجل
+                      مسجل عبر Firebase
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 truncate font-mono mt-0.5">
@@ -436,11 +382,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                   <button
                     id="btn-auth-guest"
-                    onClick={handleGuestBrowsing}
+                    onClick={closeWithoutAuthentication}
                     className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs rounded-2xl transition-colors flex items-center justify-center gap-2"
                   >
                     <Sparkles className="w-4 h-4 text-slate-500" />
-                    <span>وضع الزائر</span>
+                    <span>متابعة التصفح كزائر</span>
                   </button>
                 </div>
               )}
@@ -496,17 +442,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </button>
 
                   <div className="p-3.5 rounded-2xl border border-sky-200 bg-sky-50 space-y-2">
-                    <p className="text-xs font-bold text-sky-900">باحث عمل جديد؟ التوثيق اختياري</p>
+                    <p className="text-xs font-bold text-sky-900">باحث عمل جديد؟ توثيق الجوال اختياري للنشر</p>
                     <p className="text-[11px] leading-relaxed text-sky-800">
-                      يمكنك إنشاء دخول غير موثق الآن والمتابعة كباحث عمل، ثم توثيق رقمك لاحقاً. الحساب غير الموثق لا يثبت ملكية الرقم.
+                      يمكنك العودة للمنصة ونشر ملف باحث بدون إنشاء جلسة دخول. سيبقى الرقم غير موثق حتى تؤكد ملكيته فعليًا عبر Firebase SMS.
                     </p>
                     <button
                       type="button"
-                      onClick={handleUnverifiedSeekerEntry}
+                      onClick={closeWithoutAuthentication}
                       disabled={isLoading}
                       className="w-full py-2.5 px-3 bg-white hover:bg-sky-100 border border-sky-300 text-sky-800 rounded-xl text-xs font-bold disabled:opacity-50"
                     >
-                      المتابعة كباحث جديد بدون توثيق الجوال
+                      العودة للمنصة والمتابعة بدون تسجيل
                     </button>
                   </div>
 
@@ -592,7 +538,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           <div className="pt-3 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-400">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>رمز SMS يتم إرساله والتحقق منه بواسطة Firebase Authentication، ولا يخزن الموقع رمز OTP محلياً.</span>
+            <span>أي حالة تسجيل دخول في NEXT JOB تأتي من Firebase Authentication فقط. لا يخزن الموقع رمز OTP محلياً.</span>
           </div>
         </div>
       </div>

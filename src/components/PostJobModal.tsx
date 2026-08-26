@@ -92,7 +92,6 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({
         whatsapp: (whatsapp.trim() || phone.trim()).replace(/^0/, '966'),
         contactPerson: contactPerson.trim() || undefined,
         userId: user?.uid,
-        userEmail: user?.email || undefined,
         urgent,
         urgentStartDate,
         urgentExpiresAt,
@@ -111,8 +110,11 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-      <div 
+      <div
         id="post-job-modal-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="post-job-modal-title"
         className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Header */}
@@ -122,7 +124,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({
               <PlusCircle className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-900 leading-none">أعلن عن فرصة عمل جديدة</h2>
+              <h2 id="post-job-modal-title" className="text-lg font-black text-slate-900 leading-none">أعلن عن فرصة عمل جديدة</h2>
               <p className="text-xs text-slate-500 mt-1">يصل إعلانك لآلاف الباحثين عن عمل مباشرة وبدون عمولات</p>
             </div>
           </div>
@@ -130,6 +132,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({
           <button
             id="btn-close-post-job"
             onClick={onClose}
+            aria-label="إغلاق نافذة نشر الوظيفة"
             className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
           >
             <X className="w-5 h-5" />

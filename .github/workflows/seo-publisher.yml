@@ -28,7 +28,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -40,6 +40,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
 
       - name: Generate one production article when eligible
         env:
@@ -59,10 +63,17 @@ jobs:
           node scripts/style-guide-articles.mjs
           node scripts/apply-static-typography.mjs public/guide
 
+      - name: Verify generated repository state
+        run: |
+          npm audit --omit=dev --audit-level=high
+          npm run seo:check
+          npm run lint
+          npm run build
+
       - name: Commit published article
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           git add -A public/guide public/sitemap.xml seo
           if git diff --cached --quiet; then
             echo "No production SEO article was published."
