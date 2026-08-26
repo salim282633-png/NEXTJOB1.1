@@ -1,5 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
-
 export interface JobPitchResult {
   whatsappMessage: string;
   formalCoverLetter: string;
@@ -7,7 +5,7 @@ export interface JobPitchResult {
   source: 'gemini' | 'fallback';
 }
 
-function fallback(params: {
+type JobPitchParams = {
   jobTitle: string;
   companyName: string;
   candidateName?: string;
@@ -15,7 +13,9 @@ function fallback(params: {
   experienceYears?: string;
   iqamaStatus?: string;
   customNotes?: string;
-}): JobPitchResult {
+};
+
+function fallback(params: JobPitchParams): JobPitchResult {
   const name = params.candidateName?.trim() || 'المتقدم';
   const profession = params.candidateProfession?.trim() || params.jobTitle;
   const exp = params.experienceYears?.trim() || 'خبرة عملية مناسبة';
@@ -32,11 +32,6 @@ function fallback(params: {
   };
 }
 
-function extractJson(text: string): unknown {
-  const cleaned = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
-  return JSON.parse(cleaned);
-}
-
 function validResult(value: unknown): value is Omit<JobPitchResult, 'source'> {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
@@ -46,36 +41,37 @@ function validResult(value: unknown): value is Omit<JobPitchResult, 'source'> {
     v.interviewTips.every(item => typeof item === 'string');
 }
 
-export async function generateJobPitch(params: {
-  jobTitle: string;
-  companyName: string;
-  candidateName?: string;
-  candidateProfession?: string;
-  experienceYears?: string;
-  iqamaStatus?: string;
-  customNotes?: string;
-}): Promise<JobPitchResult> {
-  const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
-  if (!apiKey) return fallback(params);
+/**
+ * Client code must never receive a Gemini API key. If a server-side proxy is
+ * configured, this function can use it; otherwise NEXT JOB falls back to a
+ * deterministic local draft that does not send candidate data off-device.
+ */
+export async function generateJobPitch(params: JobPitchParams): Promise<JobPitchResult> {
+  const proxyEndpoint = String(import.meta.env.VITE_GEMINI_PROXY_ENDPOINT || '').trim();
+  if (!proxyEndpoint) return fallback(params);
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
-    const prompt = `أنت مساعد توظيف عربي لمنصة NEXT JOB. اكتب محتوى مهنيًا دقيقًا دون اختلاق خبرات أو شهادات. لا تعد المستخدم بالحصول على الوظيفة ولا تطلب دفع رسوم.\n\nبيانات المتقدم والوظيفة:\n${JSON.stringify(params, null, 2)}\n\nأعد JSON صالحًا فقط بالشكل التالي:\n{"whatsappMessage":"...","formalCoverLetter":"...","interviewTips":["...","...","..."]}\nاجعل رسالة واتساب مختصرة، والخطاب رسميًا، والنصائح عملية ومناسبة للسعودية.`;
+    const endpoint = new URL(proxyEndpoint, window.location.origin);
+    if (endpoint.protocol !== 'https:' && endpoint.origin !== window.location.origin) {
+      throw new Error('INSECURE_GEMINI_PROXY_ENDPOINT');
+    }
 
-    const response = await ai.models.generateContent({
-      model: (import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash').trim(),
-      contents: prompt,
-      config: {
-        temperature: 0.4,
-        responseMimeType: 'application/json'
-      }
+    const response = await fetch(endpoint.toString(), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(params),
+      credentials: endpoint.origin === window.location.origin ? 'same-origin' : 'omit'
     });
 
-    const parsed = extractJson(response.text || '');
-    if (!validResult(parsed)) throw new Error('INVALID_GEMINI_RESPONSE');
+    if (!response.ok) {
+      throw new Error(`GEMINI_PROXY_FAILED_${response.status}`);
+    }
+
+    const parsed: unknown = await response.json();
+    if (!validResult(parsed)) throw new Error('INVALID_GEMINI_PROXY_RESPONSE');
     return { ...parsed, source: 'gemini' };
   } catch (error) {
-    console.warn('Gemini unavailable; safe local fallback used.', error);
+    console.warn('Secure Gemini proxy unavailable; safe local fallback used.', error);
     return fallback(params);
   }
 }
