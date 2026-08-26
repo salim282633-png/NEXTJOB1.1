@@ -69,6 +69,8 @@ export interface Candidate {
   allowContact: boolean;
   nationality?: string;
   userId?: string;
+  /** Legacy form input only. App.tsx strips this before any public candidate write. */
+  userEmail?: string;
   schemaVersion?: 2;
   createdAt: string;
   views?: number;
