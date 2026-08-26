@@ -12,6 +12,9 @@ const googleProduction = read('src/lib/googleProduction.ts');
 const firestore = read('firestore-content-hub.rules');
 const storage = read('storage.rules');
 const externalValidator = read('scripts/validate-external-jobs.mjs');
+const sourceSync = read('scripts/sync-external-jobs.mjs');
+const sourceWorkflow = read('.github/workflows/external-jobs-sync.yml');
+const sourceRegistry = JSON.parse(read('config/job-sources.json'));
 const externalJobs = JSON.parse(read('public/jobs/external-jobs.json'));
 const firebaseJson = JSON.parse(read('firebase.json'));
 const firebaseRc = JSON.parse(read('.firebaserc'));
@@ -92,7 +95,32 @@ for (const required of ['sourceName', 'sourceUrl', 'applyUrl', 'sourcePublishedA
 }
 requireText(externalValidator, "parsed.protocol !== 'https:'", 'HTTPS-only external source links');
 requireText(externalValidator, "job.sourceType !== 'external'", 'external sourceType validation');
+requireText(externalValidator, 'sourceRegistryId', 'automated source registry provenance validation');
+requireText(externalValidator, 'sourceVerifiedAt', 'automated source freshness validation');
 if (!Array.isArray(externalJobs)) failures.push('external jobs feed is not an array');
+
+// Automated collection is restricted to documented public ATS APIs; generic
+// page scraping is intentionally not supported.
+if (!sourceRegistry || sourceRegistry.version !== 1 || !Array.isArray(sourceRegistry.sources)) {
+  failures.push('trusted source registry schema is invalid');
+} else {
+  const enabledSources = sourceRegistry.sources.filter(source => source?.enabled === true);
+  if (!enabledSources.length) failures.push('trusted source registry has no enabled sources');
+  for (const source of enabledSources) {
+    if (!['lever', 'greenhouse'].includes(source.provider)) failures.push(`unsupported trusted provider: ${source.provider}`);
+  }
+}
+requireText(sourceSync, 'https://api.lever.co/v0/postings/', 'Lever public postings API adapter');
+requireText(sourceSync, 'https://boards-api.greenhouse.io/v1/boards/', 'Greenhouse public job board API adapter');
+requireText(sourceSync, 'EXCLUDED_AUDIENCE_PATTERNS', 'Saudi-only/Tamheer audience exclusion');
+requireText(sourceSync, 'All enabled job sources failed. Existing public feed was left untouched.', 'all-source failure safe guard');
+requireText(sourceSync, 'MAX_PRESERVE_FAILURE_HOURS = 72', 'bounded stale-source preservation');
+forbidText(sourceSync, 'linkedin.com', 'LinkedIn scraping integration');
+forbidText(sourceSync, 'indeed.com', 'Indeed scraping integration');
+requireText(sourceWorkflow, "cron: '40 */6 * * *'", 'six-hour trusted source refresh');
+requireText(sourceWorkflow, 'npm run jobs:sources-check', 'source registry verification in sync workflow');
+requireText(sourceWorkflow, 'npm run jobs:check', 'generated feed verification in sync workflow');
+requireText(sourceWorkflow, 'npm run build', 'production build before source-bot commit');
 
 // Firestore is decommissioned from public recruitment operations. Historic
 // records are retained for owner/admin reads and administrative cleanup only.
@@ -127,4 +155,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Content-hub, external-source, Firebase binding and no-paid-ads invariants verified.');
+console.log('Content-hub, trusted external-source, Firebase binding and no-paid-ads invariants verified.');
