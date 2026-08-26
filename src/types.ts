@@ -43,7 +43,12 @@ export interface Job {
   urgentExpiresAt?: string;
   urgentStartDate?: string;
   featured?: boolean;
-  sourceType?: 'employer' | 'community';
+  sourceType?: 'external' | 'employer' | 'community';
+  sourceName?: string;
+  sourceUrl?: string;
+  applyUrl?: string;
+  sourcePublishedAt?: string;
+  sourceVerifiedAt?: string;
   sourceSubmissionId?: string;
   approvedBy?: string;
 }
