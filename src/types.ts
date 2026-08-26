@@ -54,6 +54,13 @@ export interface Job {
   sourceLocation?: string;
   sourceSubmissionId?: string;
   approvedBy?: string;
+  sourceIngestion?: 'rss' | 'manual-community' | 'api';
+  language?: 'ar';
+  audienceLabel?: string;
+  qualificationLevel?: 'بدون شهادة جامعية' | 'ثانوية عامة' | 'دبلوم' | 'غير مذكور';
+  targetRole?: string;
+  priorityScore?: number;
+  sourceTextCheckedAt?: string;
 }
 
 export interface Candidate {
