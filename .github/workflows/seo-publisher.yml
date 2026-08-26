@@ -2,9 +2,10 @@ name: Yemen-focused SEO Publisher
 
 on:
   schedule:
-    # Check every hour at :15. The publisher enforces a minimum
+    # Check four times per hour to reduce the impact of delayed/dropped
+    # GitHub scheduled runs. The publisher still enforces a minimum
     # 1-hour interval between successful articles.
-    - cron: '15 * * * *'
+    - cron: '7,22,37,52 * * * *'
   push:
     paths:
       - 'seo/publisher-trigger.txt'
