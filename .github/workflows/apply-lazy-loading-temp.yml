@@ -1,0 +1,40 @@
+name: Apply Lazy Loading
+
+on:
+  push:
+    branches:
+      - audit/performance-hardening-20260826
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'nextjob-performance-bot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/performance-hardening-20260826
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Apply lazy loading
+        run: node scripts/apply-lazy-loading-temp.mjs
+      - name: Verify source
+        run: |
+          npm ci
+          npm run security:check
+          npm run lint
+          npm run build
+      - name: Commit optimized sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "nextjob-performance-bot"
+          git config user.email "nextjob-performance-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "Lazy load non-critical views and dialogs"
+          git push origin HEAD:audit/performance-hardening-20260826
