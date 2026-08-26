@@ -6,7 +6,7 @@ const ROOT = process.cwd();
 const CONFIG_FILE = path.join(ROOT, 'config/arabic-job-sources.json');
 const FEED_FILE = path.join(ROOT, 'public/jobs/external-jobs.json');
 const REQUEST_TIMEOUT_MS = 15_000;
-const USER_AGENT = 'NEXTJOB-arabic-rss-indexer/1.1';
+const USER_AGENT = 'NEXTJOB-arabic-rss-indexer/1.2';
 
 const CITY_RULES = [
   ['الرياض', [/الرياض/, /riyadh/i]],
@@ -27,6 +27,23 @@ const CITY_RULES = [
   ['عنيزة', [/عنيزة/, /unayzah/i]],
   ['حائل', [/حائل/, /hail/i]],
   ['الأحساء', [/الأحساء/, /ahsa/i, /al.?hasa/i]]
+];
+
+const JOB_SIGNAL_PATTERNS = [
+  /وظائف/,
+  /وظيفة/,
+  /فرص?\s+عمل/,
+  /شواغر?\s+وظيفية/,
+  /شاغر(?:ة|ات)?\s+(?:وظيفي|وظيفية|لدى|في)?/,
+  /توظيف/,
+  /التقديم\s+(?:متاح|مفتوح|على|عبر|من\s+خلال)/,
+  /مطلوب\s+(?:موظف|موظفة|موظفين|سائق|سائقين|عامل|عمال|كاشير|بائع|مندوب|فني|حارس|طباخ|شيف|باريستا|استقبال)/,
+  /راتب\s*(?:يبدأ|من|حتى|:)?\s*[0-9٠-٩]{3,}/,
+  /\bjob(?:s)?\b/i,
+  /\bjob opening(?:s)?\b/i,
+  /\bvacanc(?:y|ies)\b/i,
+  /\bhiring\b/i,
+  /\bapply now\b/i
 ];
 
 function readJson(file, fallback) {
@@ -100,6 +117,25 @@ function safeHttpsUrl(value) {
   }
 }
 
+function resolveOriginalUrl(value) {
+  const safe = safeHttpsUrl(value);
+  if (!safe) return null;
+  try {
+    const parsed = new URL(safe);
+    const isGoogleRedirect = /(^|\.)google\.com$/i.test(parsed.hostname) && parsed.pathname === '/url';
+    if (!isGoogleRedirect) return safe;
+    const target = parsed.searchParams.get('url') || parsed.searchParams.get('q');
+    return safeHttpsUrl(target) || safe;
+  } catch {
+    return safe;
+  }
+}
+
+function hasClearJobSignal(value) {
+  const text = plainText(value);
+  return JOB_SIGNAL_PATTERNS.some(pattern => pattern.test(text));
+}
+
 function toIsoDate(value) {
   const date = new Date(String(value || ''));
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
@@ -152,7 +188,7 @@ async function fetchText(url) {
 }
 
 function normalizedRssJob(source, item, verifiedAt) {
-  const sourceUrl = safeHttpsUrl(item.link);
+  const sourceUrl = resolveOriginalUrl(item.link);
   if (!sourceUrl || !item.title) return null;
   const sourceText = plainText(`${item.title} ${item.description}`).slice(0, 12_000);
   const sourcePublishedAt = toIsoDate(item.publishedAt);
@@ -171,7 +207,7 @@ function normalizedRssJob(source, item, verifiedAt) {
     mealsProvided: false,
     overtimeAvailable: false,
     experienceYears: 'حسب المصدر',
-    description: `فرصة واردة عبر خلاصة RSS العامة لمصدر ${source.name}. راجع الإعلان الأصلي قبل التقديم.`,
+    description: `فرصة واردة عبر خلاصة عامة لمصدر ${source.name}. راجع الإعلان الأصلي قبل التقديم.`,
     phone: '',
     whatsapp: '',
     createdAt: sourcePublishedAt,
@@ -206,9 +242,13 @@ async function main() {
     try {
       const xml = await fetchText(feedUrl);
       const parsed = parseFeed(xml).slice(0, Math.max(1, Math.min(Number(source.maxItems) || 40, 100)));
-      const jobs = parsed.map(item => normalizedRssJob(source, item, verifiedAt)).filter(Boolean);
+      const selected = source.requireJobSignal === true
+        ? parsed.filter(item => hasClearJobSignal(`${item.title} ${item.description}`))
+        : parsed;
+      const jobs = selected.map(item => normalizedRssJob(source, item, verifiedAt)).filter(Boolean);
       appended.push(...jobs);
-      console.log(`${source.id}: ${jobs.length} feed item(s) normalized without page scraping.`);
+      const rejected = parsed.length - selected.length;
+      console.log(`${source.id}: ${jobs.length} feed item(s) normalized without page scraping${source.requireJobSignal === true ? `; ${rejected} non-job item(s) rejected` : ''}.`);
     } catch (error) {
       console.warn(`${source.id}: RSS/Atom source skipped: ${error?.message || error}`);
     }
