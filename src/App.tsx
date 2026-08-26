@@ -47,6 +47,10 @@ function normalizeExternalJob(value: unknown): Job | null {
 
   const jobTypes: Job['jobType'][] = ['دوام كامل', 'دوام جزئي', 'عمل حر / بالقطعة', 'عقد مؤقت'];
   const jobType = jobTypes.includes(raw.jobType as Job['jobType']) ? raw.jobType as Job['jobType'] : 'دوام كامل';
+  const sourceProviders: NonNullable<Job['sourceProvider']>[] = ['lever', 'greenhouse', 'manual'];
+  const sourceProvider = sourceProviders.includes(raw.sourceProvider as NonNullable<Job['sourceProvider']>)
+    ? raw.sourceProvider as NonNullable<Job['sourceProvider']>
+    : undefined;
 
   return {
     id: String(raw.id),
@@ -74,7 +78,10 @@ function normalizeExternalJob(value: unknown): Job | null {
     sourceUrl,
     applyUrl,
     sourcePublishedAt: String(raw.sourcePublishedAt),
-    sourceVerifiedAt: typeof raw.sourceVerifiedAt === 'string' ? raw.sourceVerifiedAt : undefined
+    sourceVerifiedAt: typeof raw.sourceVerifiedAt === 'string' ? raw.sourceVerifiedAt : undefined,
+    sourceProvider,
+    sourceRegistryId: typeof raw.sourceRegistryId === 'string' ? raw.sourceRegistryId : undefined,
+    sourceLocation: typeof raw.sourceLocation === 'string' ? raw.sourceLocation : undefined
   };
 }
 
