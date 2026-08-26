@@ -6,8 +6,6 @@ on:
     # 6-hour interval between successful articles, so missed cron windows
     # are retried on the next hourly check instead of waiting another 6 hours.
     - cron: '15 * * * *'
-  # Recovery trigger: changing only this marker starts the same protected
-  # publisher immediately. The internal 6-hour gate still prevents duplicates.
   push:
     paths:
       - 'seo/publisher-trigger.txt'
@@ -48,10 +46,6 @@ jobs:
       - name: Generate one production article when eligible
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # Preferred model only. The fallback runner discovers models available
-          # to this API key and switches automatically when this model is
-          # unavailable, rate-limited, temporarily unavailable, or fails the
-          # production quality gate.
           GEMINI_MODEL: gemini-3.6-flash
           GEMINI_MAX_MODEL_ATTEMPTS: 4
           SEO_MIN_PUBLISH_INTERVAL_HOURS: 6
@@ -59,14 +53,17 @@ jobs:
           SEO_KEYWORD: ${{ github.event.inputs.keyword || '' }}
         run: |
           node scripts/run-seo-publisher-with-fallback.mjs
+          node scripts/normalize-content-hub-seo.mjs
           node scripts/style-guide-index.mjs
           node scripts/style-guide-articles.mjs
           node scripts/apply-static-typography.mjs public/guide
+          node scripts/normalize-content-hub-seo.mjs
 
       - name: Verify generated repository state
         run: |
           npm audit --omit=dev --audit-level=high
           npm run seo:check
+          npm run jobs:check
           npm run security:check
           npm run lint
           npm run build
