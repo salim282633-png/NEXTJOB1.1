@@ -1,60 +1,48 @@
 {
+  "operatingMode": "professional-content-hub-external-opportunity-directory",
+  "publicDataSource": {
+    "jobs": "public/jobs/external-jobs.json",
+    "description": "Curated external opportunity references. Every public entry must provide a named source, original source URL, and original application URL."
+  },
   "entities": {
-    "jobs": {
-      "title": "Professional Opportunity Listing",
-      "description": "Professional opportunity listings published by advertisers in Saudi Arabia and moderated before public visibility",
-      "type": "object",
-      "properties": {
-        "title": {"type": "string", "description": "Listing title or profession", "maxLength": 150},
-        "company": {"type": "string", "description": "Advertiser, company, store or employer name", "maxLength": 100},
-        "city": {"type": "string", "description": "Saudi city stated in the listing", "maxLength": 50},
-        "category": {"type": "string", "description": "Listing category", "maxLength": 50},
-        "salary": {"type": "string", "description": "Salary information stated by the advertiser", "maxLength": 50},
-        "jobType": {"type": "string", "description": "Full-time, Part-time, Contract, etc.", "maxLength": 50},
-        "sponsorshipTransfer": {"type": "boolean", "description": "Whether the advertiser states that service transfer may be handled through official procedures"},
-        "accommodationProvided": {"type": "boolean", "description": "Whether accommodation is stated as provided by the advertiser"},
-        "transportationProvided": {"type": "boolean", "description": "Whether transportation is stated as provided"},
-        "experienceYears": {"type": "string", "description": "Experience information requested by the advertiser", "maxLength": 50},
-        "description": {"type": "string", "description": "Full listing description and requirements", "maxLength": 3000},
-        "phone": {"type": "string", "description": "Advertiser contact phone number", "maxLength": 30},
-        "whatsapp": {"type": "string", "description": "Advertiser WhatsApp number", "maxLength": 30},
-        "contactPerson": {"type": "string", "description": "Advertiser contact person", "maxLength": 100},
-        "userId": {"type": "string", "description": "UID of the user who published the listing", "maxLength": 128},
-        "userEmail": {"type": "string", "description": "Legacy email field for the listing owner", "maxLength": 128},
-        "createdAt": {"type": "string", "description": "ISO timestamp of creation", "maxLength": 40}
-      },
-      "required": ["title", "company", "city", "category", "phone", "description"]
-    },
-    "candidates": {
-      "title": "User-Published Professional Profile",
-      "description": "Professional profile published by its owner for optional direct contact according to privacy settings",
-      "type": "object",
-      "properties": {
-        "fullName": {"type": "string", "description": "Profile owner's full name", "maxLength": 100},
-        "profession": {"type": "string", "description": "Primary profession or skill", "maxLength": 100},
-        "city": {"type": "string", "description": "Current city in Saudi Arabia", "maxLength": 50},
-        "iqamaStatus": {"type": "string", "description": "Residence/work status selected from the allowed platform values; visitor/visit status is not supported", "maxLength": 80},
-        "experienceYears": {"type": "string", "description": "Years of experience in the field", "maxLength": 50},
-        "phone": {"type": "string", "description": "Profile owner's phone number stored according to the contact model", "maxLength": 30},
-        "whatsapp": {"type": "string", "description": "Profile owner's WhatsApp number stored according to the contact model", "maxLength": 30},
-        "skills": {"type": "string", "description": "Comma separated skills or summary", "maxLength": 500},
-        "bio": {"type": "string", "description": "Professional bio and career summary", "maxLength": 2000},
-        "hasDriverLicense": {"type": "boolean", "description": "Whether the profile owner states having a Saudi driving license"},
-        "availableImmediately": {"type": "boolean", "description": "Whether the profile owner states immediate availability"},
-        "userId": {"type": "string", "description": "UID of the user who owns the professional profile", "maxLength": 128},
-        "createdAt": {"type": "string", "description": "ISO timestamp of creation", "maxLength": 40}
-      },
-      "required": ["fullName", "profession", "city", "iqamaStatus", "phone", "bio"]
+    "externalJobs": {
+      "title": "External Professional Opportunity Reference",
+      "description": "A concise reference to an opportunity originally published by an external source. NEXT JOB does not receive the application.",
+      "required": [
+        "id",
+        "title",
+        "company",
+        "city",
+        "category",
+        "description",
+        "sourceName",
+        "sourceUrl",
+        "applyUrl",
+        "sourcePublishedAt",
+        "createdAt",
+        "sourceType",
+        "status"
+      ],
+      "constraints": {
+        "sourceType": "external",
+        "status": "active",
+        "sourceUrlProtocol": "https",
+        "applyUrlProtocol": "https",
+        "directContactFields": "not allowed"
+      }
     }
   },
   "firestore": {
-    "/jobs/{jobId}": {
-      "schema": "jobs",
-      "description": "Moderated professional opportunity listings with direct advertiser contact"
-    },
-    "/candidates/{candidateId}": {
-      "schema": "candidates",
-      "description": "User-published professional profiles governed by visibility and contact settings"
-    }
+    "rules": "firestore-content-hub.rules",
+    "purpose": "Historical records and administrative cleanup only while content-hub mode is active",
+    "publicRecruitmentWrites": false,
+    "directEmployerPosting": false,
+    "internalApplications": false,
+    "candidateDirectory": false,
+    "candidatePublishing": false
+  },
+  "commercialFeatures": {
+    "cvServices": false,
+    "paidAdvertising": false
   }
 }
