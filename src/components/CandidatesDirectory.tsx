@@ -3,6 +3,7 @@ import { Users, Search, MapPin, UserPlus, Car, CheckCircle2, RefreshCw, X, Globe
 import { Candidate, CandidateFilter } from '../types';
 import { CandidateCard } from './CandidateCard';
 import { SAUDI_CITIES, YEMENI_GOVERNORATES } from '../lib/data';
+import { useOwnedCandidate } from '../hooks/useOwnedCandidate';
 
 interface CandidatesDirectoryProps {
   candidates: Candidate[];
@@ -21,6 +22,7 @@ export const CandidatesDirectory: React.FC<CandidatesDirectoryProps> = ({
   onReportCandidate,
   isLoading
 }) => {
+  const { candidate: ownedCandidate } = useOwnedCandidate();
   const [filter, setFilter] = useState<CandidateFilter>({
     keyword: '',
     profession: '',
@@ -202,6 +204,7 @@ export const CandidatesDirectory: React.FC<CandidatesDirectoryProps> = ({
               onQuickWhatsApp={onQuickWhatsApp}
               onViewCV={onViewCV}
               onReportCandidate={onReportCandidate}
+              isOwner={ownedCandidate?.id === candidate.id}
             />
           ))}
         </div>

@@ -63,63 +63,61 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/candidateContacts/$(candidateId)).data;
     }
 
+    function ownerExists(candidateId) {
+      return exists(/databases/$(database)/documents/candidateOwners/$(candidateId));
+    }
+
+    function ownerData(candidateId) {
+      return get(/databases/$(database)/documents/candidateOwners/$(candidateId)).data;
+    }
+
     function ownsCandidate(candidateId) {
+      return isSignedIn() && ownerExists(candidateId) && ownerData(candidateId).userId == request.auth.uid;
+    }
+
+    function ownsCandidateAfter(candidateId) {
       return isSignedIn() &&
-        contactExists(candidateId) &&
-        contactData(candidateId).userId == request.auth.uid;
+        existsAfter(/databases/$(database)/documents/candidateOwners/$(candidateId)) &&
+        getAfter(/databases/$(database)/documents/candidateOwners/$(candidateId)).data.userId == request.auth.uid;
     }
 
     function verifiedPhoneOwnsCandidateContact(candidateId) {
-      return hasVerifiedSaudiPhone() &&
-        contactExists(candidateId) &&
-        authOwnsPhone(contactData(candidateId).phoneE164);
+      return hasVerifiedSaudiPhone() && ownerExists(candidateId) && authOwnsPhone(ownerData(candidateId).phoneE164);
     }
 
     function publicCandidateReadable(data) {
-      return data.schemaVersion == 2 && data.isHidden == false;
+      return data.schemaVersion == 2 &&
+        data.isHidden == false &&
+        !data.keys().hasAny(['phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId']);
     }
 
-    function publicContactReadable(candidateId) {
+    function publicContactReadable(candidateId, data) {
       return candidateExists(candidateId) &&
         candidateData(candidateId).schemaVersion == 2 &&
         candidateData(candidateId).isHidden == false &&
-        candidateData(candidateId).allowContact == true;
-    }
-
-    function validContactOwner(data) {
-      return (
-        isSignedIn() && data.userId == request.auth.uid
-      ) || (
-        !isSignedIn() && data.userId == null
-      );
+        candidateData(candidateId).allowContact == true &&
+        data.schemaVersion == 3 &&
+        !data.keys().hasAny(['userId', 'phoneE164']);
     }
 
     function validContactState(data, candidateId) {
-      return data.schemaVersion == 2 &&
+      return data.schemaVersion == 3 &&
         data.candidateId == candidateId &&
-        data.phone is string &&
-        data.phone.size() > 0 &&
-        data.phone.size() <= 30 &&
-        data.phoneE164 is string &&
-        data.phoneE164.matches('^\\+9665[0-9]{8}$') &&
-        data.whatsapp is string &&
-        data.whatsapp.size() <= 20 &&
+        data.keys().hasOnly(['candidateId', 'phone', 'whatsapp', 'phoneVerified', 'schemaVersion', 'phoneClaimRevokedAt']) &&
+        data.phone is string && data.phone.size() <= 30 &&
+        data.whatsapp is string && data.whatsapp.size() <= 20 &&
         data.phoneVerified is bool &&
-        validContactOwner(data) &&
-        (
-          data.phoneVerified == false ||
-          (authOwnsPhone(data.phoneE164) && data.userId == request.auth.uid)
-        );
+        (!data.keys().hasAny(['phoneClaimRevokedAt']) || data.phoneClaimRevokedAt is string);
     }
 
     function verifiedPublicStateMatchesContact(candidateId, data) {
       return data.phoneVerified == false ||
         (
           hasVerifiedSaudiPhone() &&
-          existsAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)) &&
-          getAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)).data.phoneVerified == true &&
-          getAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)).data.phoneE164 == request.auth.token.phone_number &&
-          getAfter(/databases/$(database)/documents/candidateContacts/$(candidateId)).data.userId == request.auth.uid
+          existsAfter(/databases/$(database)/documents/candidateOwners/$(candidateId)) &&
+          getAfter(/databases/$(database)/documents/candidateOwners/$(candidateId)).data.phoneVerified == true &&
+          getAfter(/databases/$(database)/documents/candidateOwners/$(candidateId)).data.phoneE164 == request.auth.token.phone_number &&
+          getAfter(/databases/$(database)/documents/candidateOwners/$(candidateId)).data.userId == request.auth.uid
         );
     }
 
@@ -410,12 +408,24 @@ service cloud.firestore {
           incoming().updatedAtServer == request.time;
       }
 
-      allow get: if existing().status != 'closed' || isAdmin() || ownsJob();
+      function ownerSanitizeLegacy() {
+        return ownsJob() &&
+          existing().keys().hasAny(['userEmail']) &&
+          !incoming().keys().hasAny(['userEmail']) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['userEmail']);
+      }
 
-      allow list: if existing().status != 'closed' || isAdmin() || ownsJob();
+      allow get: if
+        (existing().status != 'closed' && !existing().keys().hasAny(['userEmail'])) ||
+        isAdmin() || ownsJob();
+
+      allow list: if
+        (existing().status != 'closed' && !existing().keys().hasAny(['userEmail'])) ||
+        isAdmin() || ownsJob();
 
       allow create: if isValidId(jobId) &&
         validJobCore(incoming()) &&
+        !incoming().keys().hasAny(['userEmail']) &&
         (
           validCommunityJobApproval(jobId) ||
           (
@@ -437,7 +447,7 @@ service cloud.firestore {
         );
 
       allow update: if isValidId(jobId) &&
-        (isAdmin() || ownerEdit() || ownerClose() || ownerReopen() || ownerConfirm() || ownerBump());
+        (isAdmin() || ownerEdit() || ownerClose() || ownerReopen() || ownerConfirm() || ownerBump() || ownerSanitizeLegacy());
 
       allow delete: if isAdmin();
     }
@@ -454,8 +464,8 @@ service cloud.firestore {
 
       function applicantOwnsCandidate(data) {
         return isSignedIn() &&
-          exists(/databases/$(database)/documents/candidateContacts/$(data.candidateId)) &&
-          get(/databases/$(database)/documents/candidateContacts/$(data.candidateId)).data.userId == request.auth.uid;
+          exists(/databases/$(database)/documents/candidateOwners/$(data.candidateId)) &&
+          get(/databases/$(database)/documents/candidateOwners/$(data.candidateId)).data.userId == request.auth.uid;
       }
 
       allow create: if isSignedIn() &&
@@ -559,7 +569,7 @@ service cloud.firestore {
       allow update: if isValidId(candidateId) && (
         isAdmin() ||
         (
-          ownsCandidate(candidateId) &&
+          (ownsCandidate(candidateId) || ownsCandidateAfter(candidateId)) &&
           incoming().schemaVersion == 2 &&
           !incoming().keys().hasAny(['phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId']) &&
           incoming().diff(existing()).affectedKeys().hasOnly([
@@ -567,7 +577,8 @@ service cloud.firestore {
             'iqamaStatus', 'experienceYears', 'educationLevel', 'skills',
             'bio', 'hasDriverLicense', 'availableImmediately',
             'availabilityNote', 'avatarUrl', 'hobbies', 'noExperience', 'isHidden', 'allowContact',
-            'nationality', 'phoneVerified', 'updatedAt', 'views'
+            'nationality', 'phoneVerified', 'updatedAt', 'views',
+            'phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId'
           ]) &&
           (!incoming().keys().hasAny(['hobbies']) || (incoming().hobbies is list && incoming().hobbies.size() <= 12)) &&
           (!incoming().keys().hasAny(['noExperience']) || incoming().noExperience is bool) &&
@@ -603,48 +614,99 @@ service cloud.firestore {
     match /candidateContacts/{candidateId} {
       allow get: if
         isAdmin() ||
-        (isSignedIn() && existing().userId == request.auth.uid) ||
-        publicContactReadable(candidateId);
+        ownsCandidate(candidateId) ||
+        (isSignedIn() && existing().keys().hasAny(['userId']) && existing().userId == request.auth.uid) ||
+        publicContactReadable(candidateId, existing());
 
-      // Owners may query only their own contact documents using where(userId == uid).
+      // Public callers never list contacts. New owners query candidateOwners; the
+      // legacy owner clause exists only to perform one-time self-migration.
       allow list: if
         isAdmin() ||
-        (isSignedIn() && existing().userId == request.auth.uid) ||
-        (hasVerifiedSaudiPhone() && existing().phoneE164 == request.auth.token.phone_number);
+        (isSignedIn() && existing().keys().hasAny(['userId']) && existing().userId == request.auth.uid);
 
       allow create: if isValidId(candidateId) &&
         validContactState(incoming(), candidateId) &&
+        incoming().phone.size() > 0 &&
         existsAfter(/databases/$(database)/documents/candidates/$(candidateId)) &&
         getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data.schemaVersion == 2 &&
-        getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data.phoneVerified == incoming().phoneVerified;
+        getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data.phoneVerified == incoming().phoneVerified &&
+        verifiedPublicStateMatchesContact(candidateId, getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data);
 
       allow update: if isValidId(candidateId) && (
         isAdmin() ||
         (
-          isSignedIn() &&
-          existing().userId == request.auth.uid &&
-          incoming().candidateId == existing().candidateId &&
-          incoming().schemaVersion == existing().schemaVersion &&
-          incoming().userId == existing().userId &&
-          incoming().diff(existing()).affectedKeys().hasOnly([
-            'phone', 'phoneE164', 'whatsapp', 'phoneVerified', 'phoneClaimRevokedAt'
-          ]) &&
+          (ownsCandidate(candidateId) || ownsCandidateAfter(candidateId)) &&
           validContactState(incoming(), candidateId)
         ) ||
         (
-          hasVerifiedSaudiPhone() &&
-          authOwnsPhone(existing().phoneE164) &&
-          incoming().diff(existing()).affectedKeys().hasOnly([
-            'phone', 'phoneE164', 'whatsapp', 'phoneVerified', 'phoneClaimRevokedAt'
-          ]) &&
+          isSignedIn() &&
+          existing().keys().hasAny(['userId']) &&
+          existing().userId == request.auth.uid &&
+          !incoming().keys().hasAny(['userId', 'phoneE164']) &&
+          incoming().schemaVersion == 3 &&
+          ownsCandidateAfter(candidateId) &&
+          validContactState(incoming(), candidateId)
+        ) ||
+        (
+          verifiedPhoneOwnsCandidateContact(candidateId) &&
+          validContactState(incoming(), candidateId) &&
           incoming().phone == '' &&
-          incoming().phoneE164 == '' &&
           incoming().whatsapp == '' &&
           incoming().phoneVerified == false &&
           incoming().phoneClaimRevokedAt is string &&
           existsAfter(/databases/$(database)/documents/candidates/$(candidateId)) &&
           getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data.phoneVerified == false &&
           getAfter(/databases/$(database)/documents/candidates/$(candidateId)).data.allowContact == false
+        )
+      );
+
+      allow delete: if isValidId(candidateId) &&
+        (isAdmin() || ownsCandidate(candidateId));
+    }
+
+    match /candidateOwners/{candidateId} {
+      allow get: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+
+      allow create: if isValidId(candidateId) &&
+        isSignedIn() &&
+        incoming().keys().hasOnly(['candidateId', 'userId', 'phoneE164', 'phoneVerified', 'schemaVersion', 'phoneClaimRevokedAt']) &&
+        incoming().candidateId == candidateId &&
+        incoming().userId == request.auth.uid &&
+        incoming().schemaVersion == 1 &&
+        incoming().phoneE164 is string &&
+        incoming().phoneE164.matches('^\+9665[0-9]{8}  }
+}
+) &&
+        incoming().phoneVerified is bool &&
+        (incoming().phoneVerified == false || authOwnsPhone(incoming().phoneE164)) &&
+        existsAfter(/databases/$(database)/documents/candidates/$(candidateId));
+
+      allow update: if isValidId(candidateId) && (
+        isAdmin() ||
+        (
+          isSignedIn() && existing().userId == request.auth.uid &&
+          incoming().candidateId == existing().candidateId &&
+          incoming().userId == existing().userId &&
+          incoming().schemaVersion == 1 &&
+          incoming().phoneE164 is string &&
+          (incoming().phoneE164 == '' || incoming().phoneE164.matches('^\+9665[0-9]{8}  }
+}
+)) &&
+          incoming().phoneVerified is bool &&
+          (incoming().phoneVerified == false || authOwnsPhone(incoming().phoneE164)) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['phoneE164', 'phoneVerified', 'phoneClaimRevokedAt'])
+        ) ||
+        (
+          hasVerifiedSaudiPhone() &&
+          authOwnsPhone(existing().phoneE164) &&
+          incoming().candidateId == existing().candidateId &&
+          incoming().userId == existing().userId &&
+          incoming().schemaVersion == existing().schemaVersion &&
+          incoming().phoneE164 == '' &&
+          incoming().phoneVerified == false &&
+          incoming().phoneClaimRevokedAt is string &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['phoneE164', 'phoneVerified', 'phoneClaimRevokedAt'])
         )
       );
 

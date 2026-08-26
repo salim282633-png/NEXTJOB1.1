@@ -43,9 +43,13 @@ export const CandidateAvatarUploader: React.FC<Props> = ({ candidateId, currentU
     setDone(false);
     try {
       const blob = await cropAndCompressAvatar(file, zoom, x, y);
-      const path = `candidate-avatars/${user.uid}/${candidateId}-${Date.now()}.webp`;
+      const path = `candidate-avatars-v2/${candidateId}/${Date.now()}.webp`;
       const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, blob, { contentType: 'image/webp', cacheControl: 'public,max-age=604800' });
+      await uploadBytes(storageRef, blob, {
+        contentType: 'image/webp',
+        cacheControl: 'public,max-age=604800',
+        customMetadata: { ownerUid: user.uid, candidateId }
+      });
       const url = await getDownloadURL(storageRef);
       await updateDoc(doc(db, 'candidates', candidateId), {
         avatarUrl: url,
