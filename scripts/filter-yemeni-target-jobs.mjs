@@ -5,7 +5,7 @@ const ROOT = process.cwd();
 const FEED_FILE = path.join(ROOT, 'public/jobs/external-jobs.json');
 const CHECK_ONLY = process.argv.includes('--check');
 const REQUEST_TIMEOUT_MS = 12_000;
-const USER_AGENT = 'NEXTJOB-yemeni-audience-filter/1.1';
+const USER_AGENT = 'NEXTJOB-yemeni-audience-filter/1.2';
 
 const SAUDI_RESTRICTION_PATTERNS = [
   /\bsaudi nationals?\b/i,
@@ -162,6 +162,13 @@ function isSaudiRestricted(text) { return hasAny(stripLocationNoise(plainText(te
 function hasExplicitYemeniAudience(text) { return hasAny(plainText(text), YEMENI_PRIORITY_PATTERNS); }
 function requestsRecruitmentFee(text) { return hasAny(plainText(text), RECRUITMENT_FEE_PATTERNS); }
 
+function isPrimarilyArabic(text) {
+  const normalized = plainText(text);
+  const arabicLetters = (normalized.match(/[\u0600-\u06FF]/g) || []).length;
+  const latinLetters = (normalized.match(/[A-Za-z]/g) || []).length;
+  return arabicLetters >= 20 && arabicLetters >= latinLetters;
+}
+
 function classifyQualification(text) {
   const normalized = plainText(text);
   if (hasAny(normalized, UNIVERSITY_PATTERNS)) return 'شهادة جامعية مطلوبة';
@@ -298,6 +305,7 @@ async function main() {
     const sourceText = await fetchSourceText(job);
     const combinedText = `${job.title || ''} ${job.description || ''} ${sourceText || ''}`;
 
+    if (!isPrimarilyArabic(combinedText)) return null;
     if (isSaudiRestricted(combinedText)) return null;
     if (requestsRecruitmentFee(combinedText)) return null;
 
@@ -340,7 +348,7 @@ async function main() {
 
   validateTargetFeed(output);
   fs.writeFileSync(FEED_FILE, JSON.stringify(output, null, 2) + '\n', 'utf8');
-  console.log(`Audience targeting complete: ${output.length}/${jobs.length} job(s) kept; Saudi-only, university-required, paid-recruitment, and off-target ads excluded.`);
+  console.log(`Audience targeting complete: ${output.length}/${jobs.length} job(s) kept; non-Arabic, Saudi-only, university-required, paid-recruitment, and off-target ads excluded.`);
 }
 
 main().catch(error => {
