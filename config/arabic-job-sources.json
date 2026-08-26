@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "policy": "rss-or-manual-review-only-no-direct-page-scraping",
+  "reviewedAt": "2026-08-27",
+  "rssSources": [
+    {
+      "id": "wdifhlk-company-jobs",
+      "enabled": true,
+      "name": "لك وظيفة",
+      "feedUrl": "https://www.wdifhlk.com/rss/3",
+      "publicPageUrl": "https://www.wdifhlk.com/jobs/archive/3-%D9%88%D8%B8%D8%A7%D8%A6%D9%81-%D8%B4%D8%B1%D9%83%D8%A7%D8%AA",
+      "maxItems": 60,
+      "permissionBasis": "The jobs archive publicly exposes an RSS link. NEXT JOB reads the RSS feed only, stores a short normalized summary, and redirects users to the original item."
+    },
+    {
+      "id": "sahm-company-jobs",
+      "enabled": true,
+      "name": "مجلة سهم",
+      "feedUrl": "https://www.sahm0.com/rss/202",
+      "publicPageUrl": "https://www.sahm0.com/jobs/archive/202",
+      "maxItems": 60,
+      "permissionBasis": "The jobs archive publicly exposes an RSS link. NEXT JOB reads the RSS feed only, stores a short normalized summary, and redirects users to the original item."
+    }
+  ],
+  "manualReviewSources": [
+    {
+      "id": "telegram-job-yemen",
+      "enabled": true,
+      "platform": "telegram",
+      "name": "وظائف في اليمن",
+      "url": "https://t.me/job_yemen",
+      "focus": "Yemeni-oriented job posts, including opportunities in Saudi Arabia",
+      "ingestionMode": "manual-review-only"
+    },
+    {
+      "id": "telegram-atalla3",
+      "enabled": true,
+      "platform": "telegram",
+      "name": "وظائف هندسية وفنية",
+      "url": "https://t.me/atalla3",
+      "focus": "Saudi jobs that sometimes explicitly prefer Yemeni nationality",
+      "ingestionMode": "manual-review-only"
+    },
+    {
+      "id": "telegram-hsajobs",
+      "enabled": true,
+      "platform": "telegram",
+      "name": "وظائف لحملة الثانوية",
+      "url": "https://t.me/hsajobs",
+      "focus": "Saudi jobs suitable for high-school qualification",
+      "ingestionMode": "manual-review-only"
+    },
+    {
+      "id": "telegram-myon",
+      "enabled": true,
+      "platform": "telegram",
+      "name": "ميون للتوظيف",
+      "url": "https://t.me/m_yon_1",
+      "focus": "Jobs in Yemen and Saudi Arabia; every item requires manual fee and legitimacy review",
+      "ingestionMode": "manual-review-only"
+    },
+    {
+      "id": "telegram-sahm",
+      "enabled": true,
+      "platform": "telegram",
+      "name": "قناة وظيفتك",
+      "url": "https://t.me/sahm0000",
+      "focus": "Saudi private-sector and service jobs",
+      "ingestionMode": "manual-review-only"
+    },
+    {
+      "id": "telegram-wdeftksa",
+      "enabled": true,
+      "platform": "telegram",
+      "name": "وظيفتك علينا",
+      "url": "https://t.me/cd4cd",
+      "focus": "Saudi private-sector jobs and training; nationality restrictions must be checked manually",
+      "ingestionMode": "manual-review-only"
+    }
+  ]
+}
