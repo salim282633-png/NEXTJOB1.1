@@ -74,16 +74,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          BRANCH="${GITHUB_REF_NAME:-main}"
+          TMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TMP_DIR"' EXIT
+
+          cp public/jobs/external-jobs.json "$TMP_DIR/external-jobs.json"
+          cp data/job-source-health.json "$TMP_DIR/job-source-health.json"
+
+          # A queued run may have checked out an older event SHA while another
+          # sync updated the generated snapshots. Rebase would then conflict.
+          # Move to the latest branch tip first, then apply this run's complete
+          # generated snapshots on top of it.
+          git restore --worktree -- .
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+
+          cp "$TMP_DIR/external-jobs.json" public/jobs/external-jobs.json
+          cp "$TMP_DIR/job-source-health.json" data/job-source-health.json
           git add public/jobs/external-jobs.json data/job-source-health.json
+
           if git diff --cached --quiet; then
             echo "No external job feed changes."
-            git restore --worktree -- .
             exit 0
           fi
+
           git config user.name "nextjob-source-bot"
           git config user.email "nextjob-source-bot@users.noreply.github.com"
           git commit -m "Sync targeted Arabic jobs for Yemeni audience"
-          git restore --worktree -- .
-          BRANCH="${GITHUB_REF_NAME:-main}"
-          git pull --rebase origin "$BRANCH"
           git push origin HEAD:"$BRANCH"
