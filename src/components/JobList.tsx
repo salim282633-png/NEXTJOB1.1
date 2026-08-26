@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowUpDown, PlusCircle, RefreshCw, Search } from 'lucide-react';
+import { ArrowUpDown, BriefcaseBusiness, PlusCircle, RefreshCw, Search } from 'lucide-react';
 import { Job, JobFilter } from '../types';
 import { JobCard } from './JobCard';
 import { JobApplicationAction } from './JobApplicationAction';
 import { RecommendedJobs } from './RecommendedJobs';
 import { AdSenseSlot } from './AdSenseSlot';
-import { SimulatedJobsFallback } from './SimulatedJobsFallback';
 import { useOwnedCandidate } from '../hooks/useOwnedCandidate';
 import { freshnessMatches, jobActivityMs, salaryMatches, salarySortValue } from '../lib/jobDiscovery';
 import { JOB_PROFESSION_FILTERS } from '../lib/jobProfessions';
@@ -52,7 +51,7 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
   const [sortBy, setSortBy] = useState<'latest' | 'salary'>('latest');
   const [now, setNow] = useState(Date.now());
   const { user, candidate } = useOwnedCandidate();
-  const showSimulatedJobs = !isLoading && jobs.length === 0;
+  const hasRealJobs = jobs.length > 0;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -108,9 +107,7 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
               <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">{filteredJobs.length} فرصة حقيقية</span>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              {showSimulatedJobs
-                ? 'لا توجد وظائف حقيقية منشورة الآن؛ النماذج أدناه توضيحية فقط ولا تُحفظ في قاعدة البيانات.'
-                : 'النتائج مرتبة من البيانات الفعلية للإعلانات، وليست بيانات Seed.'}
+              النتائج المعروضة تأتي من إعلانات الوظائف المنشورة فعليًا في المنصة فقط.
             </p>
           </div>
 
@@ -155,9 +152,7 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
 
       {isLoading && <div className="py-20 text-center flex flex-col items-center gap-3"><RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" /><p className="text-sm font-semibold text-slate-600">جارٍ جلب أحدث الوظائف...</p></div>}
 
-      {showSimulatedJobs && <SimulatedJobsFallback onOpenPostJob={onOpenPostJob} />}
-
-      {!isLoading && !showSimulatedJobs && filteredJobs.length > 0 && (
+      {!isLoading && hasRealJobs && filteredJobs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredJobs.map(job => (
             <div key={job.id} className="flex flex-col">
@@ -168,7 +163,18 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
         </div>
       )}
 
-      {!isLoading && !showSimulatedJobs && filteredJobs.length === 0 && (
+      {!isLoading && !hasRealJobs && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 my-6">
+          <BriefcaseBusiness className="w-9 h-9 text-slate-400 mx-auto" />
+          <h3 className="text-lg font-bold text-slate-900">لا توجد وظائف منشورة حاليًا</h3>
+          <p className="text-sm text-slate-500">ستظهر هنا الوظائف الحقيقية فور نشرها واعتمادها في المنصة. لا نعرض وظائف أو جهات أو رواتب تجريبية.</p>
+          <button onClick={onOpenPostJob} className="mx-auto px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5">
+            <PlusCircle className="w-4 h-4" />أعلن عن وظيفة
+          </button>
+        </div>
+      )}
+
+      {!isLoading && hasRealJobs && filteredJobs.length === 0 && (
         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 my-6">
           <Search className="w-8 h-8 text-slate-400 mx-auto" />
           <h3 className="text-lg font-bold text-slate-900">لم نعثر على وظائف تطابق الفلاتر</h3>
