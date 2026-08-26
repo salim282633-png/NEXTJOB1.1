@@ -105,7 +105,10 @@ for (const [index, job] of jobs.entries()) {
     if (typeof job.sourceLocation !== 'string' || !job.sourceLocation.trim()) {
       throw new Error(`${job.id}: automated listings require sourceLocation.`);
     }
-    if (!job.description.includes('راجع المصدر الأصلي')) {
+    const directsToOriginalSource =
+      job.description.includes('راجع المصدر الأصلي') ||
+      job.description.includes('التقديم يتم عبر المصدر الأصلي');
+    if (!directsToOriginalSource) {
       throw new Error(`${job.id}: automated listing summary must direct users to the original source.`);
     }
 
