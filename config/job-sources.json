@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "countryScope": "Saudi Arabia",
+  "providers": {
+    "lever": {
+      "documentationUrl": "https://github.com/lever/postings-api",
+      "permissionBasis": "Lever documents published postings as publicly viewable and notes that third parties may scrape them. NEXT JOB only reads GET listing data and redirects applications to the hosted source."
+    },
+    "greenhouse": {
+      "documentationUrl": "https://developers.greenhouse.io/job-board.html",
+      "permissionBasis": "Greenhouse documents Job Board GET data as publicly available without authentication. NEXT JOB only reads public GET endpoints and redirects applications to the hosted source."
+    }
+  },
+  "sources": [
+    {
+      "id": "hala-greenhouse",
+      "enabled": true,
+      "provider": "greenhouse",
+      "boardToken": "hala",
+      "company": "HALA",
+      "boardUrl": "https://job-boards.greenhouse.io/hala",
+      "maxItems": 30
+    },
+    {
+      "id": "tamara-greenhouse",
+      "enabled": true,
+      "provider": "greenhouse",
+      "boardToken": "tamara",
+      "company": "Tamara",
+      "boardUrl": "https://job-boards.greenhouse.io/tamara",
+      "maxItems": 35
+    },
+    {
+      "id": "brkz-greenhouse",
+      "enabled": true,
+      "provider": "greenhouse",
+      "boardToken": "brkz",
+      "company": "BRKZ",
+      "boardUrl": "https://job-boards.greenhouse.io/brkz",
+      "maxItems": 35
+    },
+    {
+      "id": "soum-lever",
+      "enabled": true,
+      "provider": "lever",
+      "site": "soum",
+      "company": "SOUM",
+      "boardUrl": "https://jobs.lever.co/soum",
+      "maxItems": 30
+    },
+    {
+      "id": "infinitepl-lever",
+      "enabled": true,
+      "provider": "lever",
+      "site": "infinitepl",
+      "company": "Infinite pl",
+      "boardUrl": "https://jobs.lever.co/infinitepl",
+      "maxItems": 30
+    },
+    {
+      "id": "lalamove-lever",
+      "enabled": true,
+      "provider": "lever",
+      "site": "lalamove",
+      "company": "Lalamove",
+      "boardUrl": "https://jobs.lever.co/lalamove",
+      "maxItems": 20
+    },
+    {
+      "id": "dlocal-lever",
+      "enabled": true,
+      "provider": "lever",
+      "site": "dlocal",
+      "company": "dLocal",
+      "boardUrl": "https://jobs.lever.co/dlocal",
+      "maxItems": 20
+    },
+    {
+      "id": "contentsquare-lever",
+      "enabled": true,
+      "provider": "lever",
+      "site": "contentsquare",
+      "company": "Contentsquare",
+      "boardUrl": "https://jobs.lever.co/contentsquare",
+      "maxItems": 20
+    }
+  ]
+}
