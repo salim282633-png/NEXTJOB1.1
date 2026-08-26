@@ -666,7 +666,10 @@ service cloud.firestore {
 
     match /candidateOwners/{candidateId} {
       allow get: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
-      allow list: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow list: if
+        isAdmin() ||
+        (isSignedIn() && existing().userId == request.auth.uid) ||
+        (hasVerifiedSaudiPhone() && existing().phoneE164 == request.auth.token.phone_number);
 
       allow create: if isValidId(candidateId) &&
         isSignedIn() &&
@@ -675,9 +678,7 @@ service cloud.firestore {
         incoming().userId == request.auth.uid &&
         incoming().schemaVersion == 1 &&
         incoming().phoneE164 is string &&
-        incoming().phoneE164.matches('^\+9665[0-9]{8}  }
-}
-) &&
+        incoming().phoneE164.matches('^\\+9665[0-9]{8}$') &&
         incoming().phoneVerified is bool &&
         (incoming().phoneVerified == false || authOwnsPhone(incoming().phoneE164)) &&
         existsAfter(/databases/$(database)/documents/candidates/$(candidateId));
@@ -690,9 +691,7 @@ service cloud.firestore {
           incoming().userId == existing().userId &&
           incoming().schemaVersion == 1 &&
           incoming().phoneE164 is string &&
-          (incoming().phoneE164 == '' || incoming().phoneE164.matches('^\+9665[0-9]{8}  }
-}
-)) &&
+          (incoming().phoneE164 == '' || incoming().phoneE164.matches('^\\+9665[0-9]{8}$')) &&
           incoming().phoneVerified is bool &&
           (incoming().phoneVerified == false || authOwnsPhone(incoming().phoneE164)) &&
           incoming().diff(existing()).affectedKeys().hasOnly(['phoneE164', 'phoneVerified', 'phoneClaimRevokedAt'])
