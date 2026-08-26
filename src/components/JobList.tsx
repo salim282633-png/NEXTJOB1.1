@@ -1,11 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowUpDown, BriefcaseBusiness, PlusCircle, RefreshCw, Search } from 'lucide-react';
+import { ArrowUpDown, BriefcaseBusiness, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import { Job, JobFilter } from '../types';
 import { JobCard } from './JobCard';
-import { JobApplicationAction } from './JobApplicationAction';
-import { RecommendedJobs } from './RecommendedJobs';
-import { AdSenseSlot } from './AdSenseSlot';
-import { useOwnedCandidate } from '../hooks/useOwnedCandidate';
 import { freshnessMatches, jobActivityMs, salaryMatches, salarySortValue } from '../lib/jobDiscovery';
 import { JOB_PROFESSION_FILTERS } from '../lib/jobProfessions';
 
@@ -16,8 +12,6 @@ interface JobListProps {
   onSelectJob: (job: Job) => void;
   savedJobIds: Set<string>;
   onToggleSave: (job: Job) => void;
-  onQuickWhatsApp: (job: Job) => void;
-  onOpenPostJob: () => void;
   isLoading: boolean;
 }
 
@@ -36,21 +30,14 @@ function normalizeProfessionText(value: string): string {
 
 function jobMatchesProfession(job: Job, profession?: string): boolean {
   if (!profession) return true;
-
-  const haystack = normalizeProfessionText(
-    `${job.title} ${job.category} ${job.description} ${(job.requirements || []).join(' ')}`
-  );
-  const selectedTokens = normalizeProfessionText(profession)
-    .split(' ')
-    .filter(token => token.length > 1);
-
+  const haystack = normalizeProfessionText(`${job.title} ${job.category} ${job.description} ${(job.requirements || []).join(' ')}`);
+  const selectedTokens = normalizeProfessionText(profession).split(' ').filter(token => token.length > 1);
   return selectedTokens.every(token => haystack.includes(token));
 }
 
-export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, onSelectJob, savedJobIds, onToggleSave, onQuickWhatsApp, onOpenPostJob, isLoading }) => {
+export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, onSelectJob, savedJobIds, onToggleSave, isLoading }) => {
   const [sortBy, setSortBy] = useState<'latest' | 'salary'>('latest');
   const [now, setNow] = useState(Date.now());
-  const { user, candidate } = useOwnedCandidate();
   const hasRealJobs = jobs.length > 0;
 
   useEffect(() => {
@@ -60,7 +47,8 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
 
   const filteredJobs = useMemo(() => {
     const filtered = jobs.filter(job => {
-      if (!job || job.status === 'closed') return false;
+      if (!job || job.status === 'closed' || job.sourceType !== 'external') return false;
+      if (!job.sourceName || !job.sourceUrl || !job.applyUrl) return false;
       if (filter.keyword) {
         const q = filter.keyword.toLowerCase().trim();
         const haystack = `${job.title} ${job.company} ${job.description} ${job.city} ${(job.requirements || []).join(' ')}`.toLowerCase();
@@ -83,9 +71,9 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
     return filtered.sort((a, b) => {
       if (sortBy === 'salary') {
         const salaryDiff = salarySortValue(b) - salarySortValue(a);
-        return salaryDiff || jobActivityMs(b) - jobActivityMs(a);
+        return salaryDiff || Date.parse(b.sourcePublishedAt || b.createdAt) - Date.parse(a.sourcePublishedAt || a.createdAt);
       }
-      return jobActivityMs(b) - jobActivityMs(a);
+      return Date.parse(b.sourcePublishedAt || b.createdAt) - Date.parse(a.sourcePublishedAt || a.createdAt) || jobActivityMs(b) - jobActivityMs(a);
     });
   }, [jobs, filter, sortBy, now]);
 
@@ -97,18 +85,19 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
 
   return (
     <section className="py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {candidate && <RecommendedJobs jobs={jobs} candidate={candidate} onSelectJob={onSelectJob} />}
+      <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs leading-6 text-emerald-950 flex items-start gap-2">
+        <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-1" />
+        <p><strong>طريقة عمل هذا القسم:</strong> NEXT JOB يفهرس معلومات مختصرة عن فرص منشورة لدى مصادر خارجية موثوقة. لا نستقبل طلب التوظيف داخل المنصة؛ زر التقديم ينقلك إلى المصدر الأصلي.</p>
+      </div>
 
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900">الوظائف الشاغرة المتاحة</h2>
-              <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">{filteredJobs.length} فرصة حقيقية</span>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900">فرص وظيفية من مصادرها الأصلية</h2>
+              <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">{filteredJobs.length} فرصة</span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              النتائج المعروضة تأتي من إعلانات الوظائف المنشورة فعليًا في المنصة فقط.
-            </p>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">كل بطاقة تعرض اسم المصدر ورابط الإعلان أو التقديم الأصلي.</p>
           </div>
 
           <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 text-xs">
@@ -119,16 +108,9 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-2 bg-white border border-slate-200 rounded-2xl p-3">
-          <select
-            value={filter.profession || ''}
-            onChange={e => setFilter(v => ({ ...v, profession: e.target.value }))}
-            className="col-span-2 border rounded-xl px-2 py-2 text-xs bg-white"
-            aria-label="فلترة الوظائف حسب المهنة"
-          >
+          <select value={filter.profession || ''} onChange={e => setFilter(v => ({ ...v, profession: e.target.value }))} className="col-span-2 border rounded-xl px-2 py-2 text-xs bg-white" aria-label="فلترة الفرص حسب المهنة">
             <option value="">كل المهن</option>
-            {JOB_PROFESSION_FILTERS.map(profession => (
-              <option key={profession} value={profession}>{profession}</option>
-            ))}
+            {JOB_PROFESSION_FILTERS.map(profession => <option key={profession} value={profession}>{profession}</option>)}
           </select>
           <select value={filter.jobType} onChange={e => setFilter(v => ({ ...v, jobType: e.target.value }))} className="border rounded-xl px-2 py-2 text-xs bg-white">
             <option value="">كل أنواع الدوام</option><option value="دوام كامل">دوام كامل</option><option value="دوام جزئي">دوام جزئي</option><option value="عمل حر / بالقطعة">عمل حر / بالقطعة</option><option value="عقد مؤقت">عقد مؤقت</option>
@@ -146,40 +128,28 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
         </div>
       </div>
 
-      {/* Clearly separated from job cards and application buttons. Renders only
-          when Google production config is READY and a real slot ID is present. */}
-      <AdSenseSlot />
-
-      {isLoading && <div className="py-20 text-center flex flex-col items-center gap-3"><RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" /><p className="text-sm font-semibold text-slate-600">جارٍ جلب أحدث الوظائف...</p></div>}
+      {isLoading && <div className="py-20 text-center flex flex-col items-center gap-3"><RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" /><p className="text-sm font-semibold text-slate-600">جارٍ جلب الفرص الموثقة...</p></div>}
 
       {!isLoading && hasRealJobs && filteredJobs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredJobs.map(job => (
-            <div key={job.id} className="flex flex-col">
-              <JobCard job={job} onSelect={onSelectJob} isSaved={savedJobIds.has(job.id)} onToggleSave={onToggleSave} onQuickWhatsApp={onQuickWhatsApp} />
-              <JobApplicationAction job={job} user={user} candidate={candidate} />
-            </div>
-          ))}
+          {filteredJobs.map(job => <JobCard key={job.id} job={job} onSelect={onSelectJob} isSaved={savedJobIds.has(job.id)} onToggleSave={onToggleSave} />)}
         </div>
       )}
 
       {!isLoading && !hasRealJobs && (
         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 my-6">
           <BriefcaseBusiness className="w-9 h-9 text-slate-400 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-900">لا توجد وظائف منشورة حاليًا</h3>
-          <p className="text-sm text-slate-500">ستظهر هنا الوظائف الحقيقية فور نشرها واعتمادها في المنصة. لا نعرض وظائف أو جهات أو رواتب تجريبية.</p>
-          <button onClick={onOpenPostJob} className="mx-auto px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5">
-            <PlusCircle className="w-4 h-4" />أعلن عن وظيفة
-          </button>
+          <h3 className="text-lg font-bold text-slate-900">لا توجد فرص خارجية موثقة معروضة حاليًا</h3>
+          <p className="text-sm text-slate-500">لن نعرض إعلانًا دون مصدر أصلي ورابط تقديم واضح. أضف المصادر الموثوقة إلى سجل الفرص الخارجي بعد التحقق منها.</p>
         </div>
       )}
 
       {!isLoading && hasRealJobs && filteredJobs.length === 0 && (
         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 my-6">
           <Search className="w-8 h-8 text-slate-400 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-900">لم نعثر على وظائف تطابق الفلاتر</h3>
+          <h3 className="text-lg font-bold text-slate-900">لم نعثر على فرص تطابق الفلاتر</h3>
           <p className="text-sm text-slate-500">جرّب تغيير المهنة أو الراتب أو التاريخ أو نوع الدوام أو المدينة.</p>
-          <div className="flex justify-center gap-3"><button onClick={reset} className="px-4 py-2.5 bg-slate-100 rounded-xl text-xs font-bold">عرض جميع الوظائف</button><button onClick={onOpenPostJob} className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"><PlusCircle className="w-4 h-4" />أعلن عن وظيفة</button></div>
+          <button onClick={reset} className="px-4 py-2.5 bg-slate-100 rounded-xl text-xs font-bold">عرض جميع الفرص</button>
         </div>
       )}
     </section>
