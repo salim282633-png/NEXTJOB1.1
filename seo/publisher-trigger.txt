@@ -1,2 +1,2 @@
-trigger-id: verify-clean-push-20260826-1835z
-reason: verify automatic SEO article publishing after clean-worktree fix
+trigger-id: verify-schedule-reliability-20260827
+reason: verify SEO publisher after increasing scheduled checks to four times per hour
