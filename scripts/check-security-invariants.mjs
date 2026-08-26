@@ -40,7 +40,7 @@ requireText(avatarUploader, '`candidate-avatars-v2/${candidateId}/${Date.now()}.
 forbidText(avatarUploader, '`candidate-avatars/${user.uid}/', 'new avatar upload path exposing UID');
 
 forbidText(footer, 'منصة توظيف تقنية مرخصة ومطابقة للأنظمة', 'unsupported licensing/compliance claim');
-requireText(footer, 'ليست مكتب استقدام أو شركة إسناد عمالي', 'footer platform-scope disclaimer');
+requireText(footer, 'ليست مكتب استقدام أو شركة توظيف أو إسناد عمالي', 'footer platform-scope disclaimer');
 requireText(postJob, 'EMPLOYER_COMPLIANCE_ATTESTATION', 'employer compliance attestation');
 requireText(postJob, 'findJobComplianceIssue', 'direct job compliance screening');
 requireText(communityJob, 'findJobComplianceIssue', 'community job compliance screening');
