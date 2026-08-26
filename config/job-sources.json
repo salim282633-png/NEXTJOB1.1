@@ -2,12 +2,37 @@
   "version": 1,
   "countryScope": "Saudi Arabia",
   "audienceScope": "Yemeni residents in Saudi Arabia",
-  "reviewedAt": "2026-08-26",
+  "reviewedAt": "2026-08-27",
   "syncPolicy": {
     "intervalHours": 6,
     "preserveFailedSourceHours": 72,
     "applicationHandling": "redirect-to-original-source",
-    "republicationMode": "index-and-short-summary-only"
+    "republicationMode": "index-and-short-summary-only",
+    "publicLanguage": "ar",
+    "excludeSaudiNationalsOnly": true,
+    "priorityAudience": [
+      "explicit-yemeni-nationality",
+      "yemeni-candidates",
+      "simple-operational-roles"
+    ],
+    "preferredQualifications": [
+      "no-university-degree",
+      "high-school",
+      "diploma",
+      "not-stated"
+    ],
+    "targetRoles": [
+      "workers",
+      "drivers",
+      "security-guards",
+      "cooks",
+      "sales-representatives",
+      "restaurant-workers",
+      "shop-workers",
+      "warehouse-workers",
+      "customer-service",
+      "technicians"
+    ]
   },
   "providers": {
     "lever": {
