@@ -49,6 +49,9 @@ export interface Job {
   applyUrl?: string;
   sourcePublishedAt?: string;
   sourceVerifiedAt?: string;
+  sourceProvider?: 'lever' | 'greenhouse' | 'manual';
+  sourceRegistryId?: string;
+  sourceLocation?: string;
   sourceSubmissionId?: string;
   approvedBy?: string;
 }
@@ -105,20 +108,6 @@ export interface CandidateOwner {
   phoneClaimRevokedAt?: string;
 }
 
-export type ApplicationStatus = 'submitted' | 'viewed' | 'shortlisted' | 'rejected' | 'withdrawn';
-export interface Application {
-  id: string;
-  jobId: string;
-  candidateId: string;
-  applicantUid: string;
-  employerUid: string;
-  status: ApplicationStatus;
-  createdAt: string;
-  createdAtServer?: Timestamp;
-  updatedAt?: string;
-  updatedAtServer?: Timestamp;
-}
-
 export interface JobFilter {
   keyword: string;
   profession?: string;
@@ -131,72 +120,24 @@ export interface JobFilter {
   withOvertime?: boolean;
   jobType: string;
   salaryRange: string;
-  experience?: string;
   freshness?: 'all' | 'today' | '3days' | 'week';
-}
-
-export interface CandidateFilter {
-  keyword: string;
-  profession: string;
-  city: string;
-  yemeniGovernorate: string;
-  iqamaStatus: string;
-  hasLicenseOnly: boolean;
-  availableOnly: boolean;
-  phoneVerifiedOnly?: boolean;
-}
-
-export interface GuideArticle {
-  id: string;
-  title: string;
-  category: 'نقل الخدمات وقوى' | 'الإقامة والأنظمة' | 'عقود العمل والحقوق' | 'نصائح التوظيف والمقابلات' | 'تجارب وحرف اليمنيين';
-  summary: string;
-  content: string[];
-  importantNotes?: string[];
-  readTime: string;
-  iconName: string;
-  cluster: string;
-  date: string;
-  views?: number;
-}
-
-export interface CommunityJobSubmission {
-  id: string;
-  title: string;
-  companyOrShop: string;
-  city: string;
-  category: string;
-  contactNumber: string;
-  details: string;
-  salary?: string;
-  submitterName?: string;
-  submitterPhone?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  submittedAt: string;
-  reviewedAt?: string;
-  reviewedBy?: string;
-  publishedJobId?: string;
-}
-
-export interface FraudReport {
-  id: string;
-  targetType: 'job' | 'candidate' | 'general';
-  targetId: string;
-  targetTitle: string;
-  reason: 'طلب مبالغ أو عمولات توظيف' | 'إعلان وهمي / احتيال' | 'بيانات اتصال خاطئة أو مضللة' | 'رقم التواصل لا يخص صاحب الملف' | 'الوظيفة اكتفت أو غير متاحة' | 'محتوى غير لائق أو مخالف';
-  details: string;
-  reporterPhone?: string;
-  reporterUid?: string;
-  quotaSlot?: string;
-  createdAt: string;
-  createdAtServer?: Timestamp;
-  reviewedAt?: string;
-  reviewedBy?: string;
-  status: 'pending' | 'reviewed' | 'dismissed';
 }
 
 export interface ToastMessage {
   id: string;
   type: 'success' | 'error' | 'info';
   message: string;
+}
+
+export interface GuideArticle {
+  id: string;
+  title: string;
+  category: string;
+  cluster: string;
+  summary: string;
+  readTime: string;
+  date: string;
+  iconName: string;
+  content: string[];
+  importantNotes?: string[];
 }
