@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "checkedAt": "2026-08-26T17:41:45.749Z",
+  "enabledSources": 8,
+  "successfulSources": 8,
+  "totalJobs": 64,
+  "preservedFailureWindowHours": 72,
+  "sources": [
+    {
+      "id": "hala-greenhouse",
+      "provider": "greenhouse",
+      "company": "HALA",
+      "status": "ok",
+      "count": 12,
+      "checkedAt": "2026-08-26T17:41:45.749Z"
+    },
+    {
+      "id": "tamara-greenhouse",
+      "provider": "greenhouse",
+      "company": "Tamara",
+      "status": "ok",
+      "count": 14,
+      "checkedAt": "2026-08-26T17:41:45.749Z"
+    },
+    {
+      "id": "brkz-greenhouse",
+      "provider": "greenhouse",
+      "company": "BRKZ",
+      "status": "ok",
+      "count": 17,
+      "checkedAt": "2026-08-26T17:41:45.749Z"
+    },
+    {
+      "id": "soum-lever",
+      "provider": "lever",
+      "company": "SOUM",
+      "status": "ok",
+      "count": 7,
+      "checkedAt": "2026-08-26T17:41:45.749Z"
+    },
+    {
+      "id": "infinitepl-lever",
+      "provider": "lever",
+      "company": "Infinite pl",
+      "status": "ok",
+      "count": 8,
+      "checkedAt": "2026-08-26T17:41:45.749Z"
+    },
+    {
+      "id": "lalamove-lever",
+      "provider": "lever",
+      "company": "Lalamove",
+      "status": "ok",
+      "count": 2,
+      "checkedAt": "2026-08-26T17:41:45.749Z"
+    },
+    {
+      "id": "dlocal-lever",
+      "provider": "lever",
+      "company": "dLocal",
+      "status": "ok",
+      "count": 2,
+      "checkedAt": "2026-08-26T17:41:45.749Z"
+    },
+    {
+      "id": "contentsquare-lever",
+      "provider": "lever",
+      "company": "Contentsquare",
+      "status": "ok",
+      "count": 2,
+      "checkedAt": "2026-08-26T17:41:45.749Z"
+    }
+  ]
+}

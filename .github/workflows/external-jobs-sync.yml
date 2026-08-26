@@ -59,11 +59,16 @@ jobs:
           git add public/jobs/external-jobs.json data/job-source-health.json
           if git diff --cached --quiet; then
             echo "No external job feed changes."
+            git restore --worktree -- .
             exit 0
           fi
           git config user.name "nextjob-source-bot"
           git config user.email "nextjob-source-bot@users.noreply.github.com"
           git commit -m "Sync trusted external job sources"
+          # Production-build checks intentionally rewrite a few static HTML files.
+          # Only the validated job feed + health report belong in this bot commit;
+          # restore all remaining worktree-only check output before rebasing/pushing.
+          git restore --worktree -- .
           BRANCH="${GITHUB_REF_NAME:-main}"
           git pull --rebase origin "$BRANCH"
           git push origin HEAD:"$BRANCH"
