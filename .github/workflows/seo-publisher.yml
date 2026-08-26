@@ -75,10 +75,15 @@ jobs:
           git add -A public/guide public/sitemap.xml seo
           if git diff --cached --quiet; then
             echo "No production SEO article was published."
+            git restore --worktree -- .
             exit 0
           fi
           git config user.name "nextjob-seo-bot"
           git config user.email "nextjob-seo-bot@users.noreply.github.com"
           git commit -m "Publish Yemen-focused SEO article"
+          # Production verification rewrites static HTML outside the SEO outputs.
+          # The article commit is already complete, so discard only remaining
+          # worktree-only verification changes before rebasing and publishing.
+          git restore --worktree -- .
           git pull --rebase origin main
           git push origin HEAD:main
