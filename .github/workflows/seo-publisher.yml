@@ -2,9 +2,8 @@ name: Yemen-focused SEO Publisher
 
 on:
   schedule:
-    # Check every hour at :15. The publisher itself enforces a minimum
-    # 6-hour interval between successful articles, so missed cron windows
-    # are retried on the next hourly check instead of waiting another 6 hours.
+    # Check every hour at :15. The publisher enforces a minimum
+    # 1-hour interval between successful articles.
     - cron: '15 * * * *'
   push:
     paths:
@@ -48,7 +47,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.6-flash
           GEMINI_MAX_MODEL_ATTEMPTS: 4
-          SEO_MIN_PUBLISH_INTERVAL_HOURS: 6
+          SEO_MIN_PUBLISH_INTERVAL_HOURS: 1
           PUBLIC_SITE_URL: https://nextjob1-1.onrender.com
           SEO_KEYWORD: ${{ github.event.inputs.keyword || '' }}
         run: |
