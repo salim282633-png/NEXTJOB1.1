@@ -4,9 +4,11 @@ import App from './App';
 import { AdminPage } from './components/AdminPage';
 import './index.css';
 import { initializeGoogleConsentDefaults, loadConfiguredGoogleScripts } from './lib/googleProduction';
+import { installFirestoreContentBridge } from './lib/firestoreContentBridge';
 
 initializeGoogleConsentDefaults();
 loadConfiguredGoogleScripts();
+installFirestoreContentBridge();
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
