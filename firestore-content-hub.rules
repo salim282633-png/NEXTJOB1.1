@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function ownsLegacyJob(jobId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/jobs/$(jobId)) &&
+        get(/databases/$(database)/documents/jobs/$(jobId)).data.userId == request.auth.uid;
+    }
+
+    function ownsLegacyCandidate(candidateId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/candidateOwners/$(candidateId)) &&
+        get(/databases/$(database)/documents/candidateOwners/$(candidateId)).data.userId == request.auth.uid;
+    }
+
+    // Admin membership is provisioned out of band. A user may only read their
+    // own admin marker; this ruleset never permits client-side admin creation.
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    // Current production mode uses public/jobs/external-jobs.json. Firestore is
+    // retained only for historical records and administrative cleanup.
+    match /jobs/{jobId} {
+      allow get: if isAdmin() || ownsLegacyJob(jobId);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if false; // Direct employer/community publishing is paused.
+      allow update, delete: if isAdmin();
+    }
+
+    // Internal applications are paused. Historic participants may read their
+    // own records, but no new application or status transition can be written.
+    match /applications/{applicationId} {
+      allow get, list: if isAdmin() ||
+        (isSignedIn() && (
+          resource.data.applicantUid == request.auth.uid ||
+          resource.data.employerUid == request.auth.uid
+        ));
+      allow create, update, delete: if false;
+    }
+
+    // Candidate publishing and the public candidate directory are paused.
+    // Owners can still read their historic record; no client can publish or
+    // modify a candidate while the content-hub compliance mode is active.
+    match /candidates/{candidateId} {
+      allow get: if isAdmin() || ownsLegacyCandidate(candidateId);
+      allow list: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /candidateContacts/{candidateId} {
+      allow get: if isAdmin() || ownsLegacyCandidate(candidateId);
+      allow list: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /candidateOwners/{candidateId} {
+      allow get: if isAdmin() ||
+        (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() ||
+        (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    // Community-supplied job leads are paused together with direct publishing.
+    match /communitySubmissions/{submissionId} {
+      allow get, list: if isAdmin();
+      allow create: if false;
+      allow update, delete: if isAdmin();
+    }
+
+    // Legacy safety/moderation records remain administrative-only. Public job
+    // cards now link to the original source and do not write fraud/application
+    // workflow records to Firestore.
+    match /fraudReports/{reportId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /reportDedupe/{uid}/targets/{targetKey} {
+      allow read, write: if isAdmin();
+    }
+
+    match /reportRateLimits/{uid}/slots/{slotId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Deny every collection not explicitly retained above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
