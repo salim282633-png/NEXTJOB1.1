@@ -27,19 +27,19 @@ import { Job, Candidate, JobFilter, ToastMessage, CommunityJobSubmission, FraudR
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { JobList } from './components/JobList';
-import { JobDetailModal } from './components/JobDetailModal';
-import { PostJobModal } from './components/PostJobModal';
-import { CandidatesDirectory } from './components/CandidatesDirectory';
-import { PostCandidateModal } from './components/PostCandidateModal';
-import { SaudiResidentGuide } from './components/SaudiResidentGuide';
-import { SavedJobsView } from './components/SavedJobsView';
-import { AICoverLetterModal } from './components/AICoverLetterModal';
-import { WageCalculatorModal } from './components/WageCalculatorModal';
-import { FreeCVGeneratorModal } from './components/FreeCVGeneratorModal';
-import { CommunityJobModal } from './components/CommunityJobModal';
-import { ReportFraudModal } from './components/ReportFraudModal';
-import { AdminAndSEOEngineModal } from './components/AdminAndSEOEngineModal';
-import { PrivacyAndTermsModal } from './components/PrivacyAndTermsModal';
+const JobDetailModal = React.lazy(() => import('./components/JobDetailModal').then(module => ({ default: module.JobDetailModal })));
+const PostJobModal = React.lazy(() => import('./components/PostJobModal').then(module => ({ default: module.PostJobModal })));
+const CandidatesDirectory = React.lazy(() => import('./components/CandidatesDirectory').then(module => ({ default: module.CandidatesDirectory })));
+const PostCandidateModal = React.lazy(() => import('./components/PostCandidateModal').then(module => ({ default: module.PostCandidateModal })));
+const SaudiResidentGuide = React.lazy(() => import('./components/SaudiResidentGuide').then(module => ({ default: module.SaudiResidentGuide })));
+const SavedJobsView = React.lazy(() => import('./components/SavedJobsView').then(module => ({ default: module.SavedJobsView })));
+const AICoverLetterModal = React.lazy(() => import('./components/AICoverLetterModal').then(module => ({ default: module.AICoverLetterModal })));
+const WageCalculatorModal = React.lazy(() => import('./components/WageCalculatorModal').then(module => ({ default: module.WageCalculatorModal })));
+const FreeCVGeneratorModal = React.lazy(() => import('./components/FreeCVGeneratorModal').then(module => ({ default: module.FreeCVGeneratorModal })));
+const CommunityJobModal = React.lazy(() => import('./components/CommunityJobModal').then(module => ({ default: module.CommunityJobModal })));
+const ReportFraudModal = React.lazy(() => import('./components/ReportFraudModal').then(module => ({ default: module.ReportFraudModal })));
+const AdminAndSEOEngineModal = React.lazy(() => import('./components/AdminAndSEOEngineModal').then(module => ({ default: module.AdminAndSEOEngineModal })));
+const PrivacyAndTermsModal = React.lazy(() => import('./components/PrivacyAndTermsModal').then(module => ({ default: module.PrivacyAndTermsModal })));
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { AuthModal } from './components/AuthModal';
 import { Footer } from './components/Footer';
@@ -562,7 +562,8 @@ export function App() {
         onLogout={handleLogout}
       />
 
-      <main className="flex-1">
+      <React.Suspense fallback={<div className="flex-1 py-20 text-center text-sm font-semibold text-slate-500">جارٍ تحميل القسم...</div>}>
+        <main className="flex-1">
         {activeTab === 'jobs' && (
           <div>
             <HeroSection
@@ -620,8 +621,10 @@ export function App() {
             }}
           />
         )}
-      </main>
+        </main>
+      </React.Suspense>
 
+      <React.Suspense fallback={null}>
       {selectedJob && (
         <JobDetailModal
           job={selectedJob}
@@ -713,6 +716,7 @@ export function App() {
       )}
 
       {isPrivacyOpen && <PrivacyAndTermsModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />}
+      </React.Suspense>
 
       <CookieConsentBanner onOpenPrivacyModal={() => setIsPrivacyOpen(true)} />
 
