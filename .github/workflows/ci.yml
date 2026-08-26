@@ -11,7 +11,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,5 +22,7 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run seo:check
       - run: npm run security:check
+      - name: Compile Firestore rules in emulator
+        run: npx --yes firebase-tools@15.28.1 emulators:exec --only firestore --project demo-nextjob "node -e \"console.log('Firestore rules compiled successfully')\""
       - run: npm run lint
       - run: npm run build
