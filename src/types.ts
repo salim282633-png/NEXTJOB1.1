@@ -21,7 +21,6 @@ export interface Job {
   whatsapp: string;
   contactPerson?: string;
   userId?: string;
-  userEmail?: string | null;
   createdAt: string;
   createdAtServer?: Timestamp;
   updatedAt?: string;
@@ -70,7 +69,6 @@ export interface Candidate {
   allowContact: boolean;
   nationality?: string;
   userId?: string;
-  userEmail?: string;
   schemaVersion?: 2;
   createdAt: string;
   views?: number;
