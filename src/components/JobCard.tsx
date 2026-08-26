@@ -10,9 +10,17 @@ interface JobCardProps {
   onToggleSave: (job: Job) => void;
 }
 
+function formatSourceDate(value?: string): string {
+  if (!value) return 'غير محدد';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory', { year: 'numeric', month: 'short', day: 'numeric' }).format(date);
+}
+
 export const JobCard: React.FC<JobCardProps> = ({ job, onSelect, isSaved, onToggleSave }) => {
   const [sharing, setSharing] = useState(false);
   const applyUrl = job.applyUrl || job.sourceUrl || '#';
+  const sourceDate = formatSourceDate(job.sourcePublishedAt || job.createdAt);
 
   const share = async () => {
     setSharing(true);
@@ -57,7 +65,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, onSelect, isSaved, onTogg
 
       <div className="pt-3.5 border-t border-slate-100 space-y-3">
         <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400 font-medium">
-          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />نشر المصدر: {job.sourcePublishedAt || job.createdAt}</span>
+          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />تاريخ المصدر: {sourceDate}</span>
           {job.sourceUrl && <a href={job.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-700 font-bold hover:underline">عرض المصدر</a>}
         </div>
         <div className="grid grid-cols-2 gap-2">

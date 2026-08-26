@@ -3,7 +3,8 @@ import { GuideArticle, Job } from '../types';
 export const SAUDI_CITIES = [
   'الرياض', 'جدة', 'مكة المكرمة', 'المدينة المنورة', 'الدمام', 'الخبر',
   'الأحساء', 'القصيم (بريدة / عنيزة)', 'خميس مشيط / أبها', 'تبوك',
-  'جازان', 'نجران', 'ينبع', 'الطائف', 'حائل', 'الجبيل'
+  'جازان', 'نجران', 'ينبع', 'الطائف', 'حائل', 'الجبيل',
+  'السعودية (الموقع حسب المصدر)'
 ];
 
 export const YEMENI_GOVERNORATES = [
@@ -16,13 +17,15 @@ export const JOB_CATEGORIES = [
   { id: 'all', name: 'جميع التخصصات', icon: 'LayoutGrid' },
   { id: 'sales', name: 'مبيعات وكاشير وخدمة عملاء', icon: 'ShoppingBag' },
   { id: 'restaurants', name: 'مطاعم وكافيهات وطهاة', icon: 'Utensils' },
-  { id: 'accounting', name: 'محاسبة ومالية وإدارة', icon: 'Calculator' },
+  { id: 'accounting', name: 'محاسبة ومالية', icon: 'Calculator' },
+  { id: 'management', name: 'إدارة وعمليات', icon: 'BriefcaseBusiness' },
+  { id: 'technology', name: 'تقنية وبرمجة وبيانات', icon: 'Laptop' },
   { id: 'drivers', name: 'سائقين وتوصيل ونقليات', icon: 'Truck' },
   { id: 'technical', name: 'مهن فنية (كهرباء، سباكة، تكييف)', icon: 'Wrench' },
   { id: 'maintenance', name: 'صيانة سيارات وميكانيكا', icon: 'Cog' },
   { id: 'construction', name: 'مقاولات وبناء وتشطيبات', icon: 'Hammer' },
   { id: 'warehousing', name: 'مستودعات وترتيب بضائع', icon: 'Package' },
-  { id: 'marketing', name: 'تسويق وإدارة وتصميم رقمي', icon: 'Share2' },
+  { id: 'marketing', name: 'تسويق وتصميم ومحتوى', icon: 'Share2' },
   { id: 'medical', name: 'صيدلة ومجالات طبية مساندة', icon: 'HeartPulse' }
 ];
 

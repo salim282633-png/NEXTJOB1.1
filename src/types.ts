@@ -49,6 +49,9 @@ export interface Job {
   applyUrl?: string;
   sourcePublishedAt?: string;
   sourceVerifiedAt?: string;
+  sourceProvider?: 'lever' | 'greenhouse' | 'manual';
+  sourceRegistryId?: string;
+  sourceLocation?: string;
   sourceSubmissionId?: string;
   approvedBy?: string;
 }
