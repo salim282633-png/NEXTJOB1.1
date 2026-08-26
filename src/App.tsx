@@ -1,81 +1,91 @@
-import React, { useState, useEffect } from 'react';
-import {
-  collection,
-  onSnapshot,
-  addDoc,
-  query,
-  where,
-  limit,
-  doc,
-  writeBatch,
-  runTransaction,
-  updateDoc,
-  serverTimestamp,
-  Timestamp
-} from 'firebase/firestore';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import {
-  auth,
-  db,
-  logoutUser,
-  testFirestoreConnection,
-  handleFirestoreError,
-  OperationType,
-  sanitizeOwnedLegacyJobs,
-  sanitizeLegacyJobsAsAdmin
-} from './lib/firebase';
-import { Job, Candidate, JobFilter, ToastMessage, CommunityJobSubmission, FraudReport } from './types';
-import { Navbar } from './components/Navbar';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Job, JobFilter, ToastMessage } from './types';
+import { Navbar, PublicTab } from './components/Navbar';
+import { ProfessionalHome } from './components/ProfessionalHome';
 import { HeroSection } from './components/HeroSection';
 import { JobList } from './components/JobList';
 import { JobDetailModal } from './components/JobDetailModal';
-import { PostJobModal } from './components/PostJobModal';
-import { CandidatesDirectory } from './components/CandidatesDirectory';
-import { PostCandidateModal } from './components/PostCandidateModal';
 import { SaudiResidentGuide } from './components/SaudiResidentGuide';
 import { SavedJobsView } from './components/SavedJobsView';
-import { AICoverLetterModal } from './components/AICoverLetterModal';
 import { WageCalculatorModal } from './components/WageCalculatorModal';
-import { FreeCVGeneratorModal } from './components/FreeCVGeneratorModal';
-import { CommunityJobModal } from './components/CommunityJobModal';
-import { ReportFraudModal } from './components/ReportFraudModal';
-import { AdminAndSEOEngineModal } from './components/AdminAndSEOEngineModal';
 import { PrivacyAndTermsModal } from './components/PrivacyAndTermsModal';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
-import { AuthModal } from './components/AuthModal';
 import { Footer } from './components/Footer';
 import { ToastContainer } from './components/Toast';
-import { useAdminAccess } from './hooks/useAdminAccess';
+import { COMPLIANCE_MODE } from './lib/complianceMode';
 
-function firestoreTimeToMillis(value: unknown): number {
-  if (value instanceof Timestamp) return value.toMillis();
-  if (value && typeof (value as { toMillis?: () => number }).toMillis === 'function') {
-    return (value as { toMillis: () => number }).toMillis();
+function initialPublicTab(): PublicTab {
+  if (typeof window === 'undefined') return 'home';
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  const view = new URLSearchParams(window.location.search).get('view');
+  if (path === '/jobs') return 'jobs';
+  if (path === '/guide' || view === 'guide') return 'guide';
+  if (view === 'saved') return 'saved';
+  return 'home';
+}
+
+function safeUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' ? parsed.toString() : undefined;
+  } catch {
+    return undefined;
   }
-  return 0;
 }
 
-function jobActivityMillis(job: Job): number {
-  return firestoreTimeToMillis(job.activityAt) ||
-    firestoreTimeToMillis(job.lastBumpedAt) ||
-    firestoreTimeToMillis(job.createdAtServer) ||
-    Date.parse(job.createdAt) ||
-    0;
-}
+function normalizeExternalJob(value: unknown): Job | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const raw = value as Record<string, unknown>;
+  const required = ['id', 'title', 'company', 'city', 'category', 'description', 'sourceName', 'sourcePublishedAt', 'createdAt'];
+  if (required.some(key => typeof raw[key] !== 'string' || !(raw[key] as string).trim())) return null;
+  if (raw.sourceType !== 'external' || raw.status !== 'active') return null;
 
-function stripUndefined<T extends Record<string, unknown>>(value: T): T {
-  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
+  const sourceUrl = safeUrl(raw.sourceUrl);
+  const applyUrl = safeUrl(raw.applyUrl);
+  if (!sourceUrl || !applyUrl) return null;
+
+  const jobTypes: Job['jobType'][] = ['دوام كامل', 'دوام جزئي', 'عمل حر / بالقطعة', 'عقد مؤقت'];
+  const jobType = jobTypes.includes(raw.jobType as Job['jobType']) ? raw.jobType as Job['jobType'] : 'دوام كامل';
+
+  return {
+    id: String(raw.id),
+    title: String(raw.title),
+    company: String(raw.company),
+    city: String(raw.city),
+    category: String(raw.category),
+    salary: typeof raw.salary === 'string' ? raw.salary : '',
+    jobType,
+    sponsorshipTransfer: raw.sponsorshipTransfer === true,
+    accommodationProvided: raw.accommodationProvided === true,
+    transportationProvided: raw.transportationProvided === true,
+    mealsProvided: raw.mealsProvided === true,
+    overtimeAvailable: raw.overtimeAvailable === true,
+    experienceYears: typeof raw.experienceYears === 'string' ? raw.experienceYears : 'حسب المصدر',
+    educationLevel: typeof raw.educationLevel === 'string' ? raw.educationLevel : undefined,
+    description: String(raw.description),
+    requirements: Array.isArray(raw.requirements) ? raw.requirements.filter(item => typeof item === 'string') as string[] : undefined,
+    phone: '',
+    whatsapp: '',
+    createdAt: String(raw.createdAt),
+    status: 'active',
+    sourceType: 'external',
+    sourceName: String(raw.sourceName),
+    sourceUrl,
+    applyUrl,
+    sourcePublishedAt: String(raw.sourcePublishedAt),
+    sourceVerifiedAt: typeof raw.sourceVerifiedAt === 'string' ? raw.sourceVerifiedAt : undefined
+  };
 }
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'jobs' | 'candidates' | 'guide' | 'saved'>('jobs');
-  const [user, setUser] = useState<User | null>(null);
-  const { isAdmin, isCheckingAdmin } = useAdminAccess();
-
+  const [activeTab, setActiveTab] = useState<PublicTab>(() => initialPublicTab());
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
-  const [isLoadingCandidates, setIsLoadingCandidates] = useState(false);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [isWageCalcOpen, setIsWageCalcOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => {
     try {
@@ -87,196 +97,59 @@ export function App() {
   });
 
   const [filter, setFilter] = useState<JobFilter>({
-    keyword: '',
-    category: 'all',
-    city: '',
-    sponsorshipOnly: false,
-    withAccommodation: false,
-    withTransportation: false,
-    jobType: '',
-    salaryRange: ''
+    keyword: '', category: 'all', city: '', sponsorshipOnly: false,
+    withAccommodation: false, withTransportation: false, jobType: '', salaryRange: ''
   });
 
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [isPostJobOpen, setIsPostJobOpen] = useState(false);
-  const [isPostCandidateOpen, setIsPostCandidateOpen] = useState(false);
-  const [isAIOpen, setIsAIOpen] = useState(false);
-  const [aiJobContext, setAIJobContext] = useState<Job | null>(null);
-  const [isWageCalcOpen, setIsWageCalcOpen] = useState(false);
-  const [isCVGenOpen, setIsCVGenOpen] = useState(false);
-  const [cvCandidatePrefill, setCvCandidatePrefill] = useState<Candidate | null>(null);
-  const [isCommunityJobOpen, setIsCommunityJobOpen] = useState(false);
-  const [isReportFraudOpen, setIsReportFraudOpen] = useState(false);
-  const [fraudTargetJob, setFraudTargetJob] = useState<Job | null>(null);
-  const [fraudTargetCand, setFraudTargetCand] = useState<Candidate | null>(null);
-  const [isAdminSEOOpen, setIsAdminSEOOpen] = useState(false);
-  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
-  const [pendingJobs, setPendingJobs] = useState<Job[]>([]);
-  const [communitySubmissions, setCommunitySubmissions] = useState<CommunityJobSubmission[]>([]);
-  const [fraudReports, setFraudReports] = useState<FraudReport[]>([]);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-
-  const addToast = (type: 'success' | 'error' | 'info', message: string) => {
-    const id = Date.now().toString();
+  const addToast = (type: ToastMessage['type'], message: string) => {
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     setToasts(prev => [...prev, { id, type, message }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+    window.setTimeout(() => setToasts(prev => prev.filter(item => item.id !== id)), 3500);
   };
 
-  const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
-
   useEffect(() => {
-    testFirestoreConnection();
-    const unsubscribeAuth = onAuthStateChanged(auth, currentUser => {
-      setUser(currentUser);
-      if (currentUser) void sanitizeOwnedLegacyJobs(currentUser.uid);
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!isAdmin) setIsAdminSEOOpen(false);
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (!user || !isAdmin) return;
-    void sanitizeLegacyJobsAsAdmin();
-  }, [user?.uid, isAdmin]);
-
-  useEffect(() => {
-    if (!user || !isAdmin) {
-      setPendingJobs([]);
-      return;
-    }
-    const jobsPath = 'jobs';
-    const q = query(collection(db, jobsPath), where('status', '==', 'pending_review'), limit(100));
-    const unsubscribe = onSnapshot(
-      q,
-      snapshot => {
-        const pending = snapshot.docs
-          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Job))
-          .sort((a, b) => jobActivityMillis(b) - jobActivityMillis(a));
-        setPendingJobs(pending);
-      },
-      error => {
-        handleFirestoreError(error, OperationType.LIST, `${jobsPath}:pending_review`);
-        setPendingJobs([]);
-      }
-    );
-    return () => unsubscribe();
-  }, [user?.uid, isAdmin]);
-
-  useEffect(() => {
-    if (!user || !isAdmin) {
-      setCommunitySubmissions([]);
-      return;
-    }
-    const submissionsPath = 'communitySubmissions';
-    const q = query(collection(db, submissionsPath), where('status', '==', 'pending'), limit(100));
-    const unsubscribe = onSnapshot(
-      q,
-      snapshot => {
-        const pending = snapshot.docs
-          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as CommunityJobSubmission))
-          .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
-        setCommunitySubmissions(pending);
-      },
-      error => {
-        handleFirestoreError(error, OperationType.LIST, submissionsPath);
-        setCommunitySubmissions([]);
-      }
-    );
-    return () => unsubscribe();
-  }, [user?.uid, isAdmin]);
-
-  useEffect(() => {
-    if (!user || !isAdmin) {
-      setFraudReports([]);
-      return;
-    }
-    const reportsPath = 'fraudReports';
-    const q = query(collection(db, reportsPath), where('status', '==', 'pending'), limit(100));
-    const unsubscribe = onSnapshot(
-      q,
-      snapshot => {
-        const pending = snapshot.docs
-          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as FraudReport))
-          .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-        setFraudReports(pending);
-      },
-      error => {
-        handleFirestoreError(error, OperationType.LIST, reportsPath);
-        setFraudReports([]);
-      }
-    );
-    return () => unsubscribe();
-  }, [user?.uid, isAdmin]);
-
-  useEffect(() => {
-    setIsLoadingJobs(true);
-    const jobsPath = 'jobs';
-    try {
-      const q = query(
-        collection(db, jobsPath),
-        where('status', 'in', ['active', 'recently_confirmed', 'awaiting_confirmation']),
-        limit(100)
-      );
-      const unsubscribe = onSnapshot(
-        q,
-        snapshot => {
-          const liveJobs = snapshot.docs
-            .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Job))
-            .sort((a, b) => jobActivityMillis(b) - jobActivityMillis(a));
-          setJobs(liveJobs);
-          setIsLoadingJobs(false);
-        },
-        error => {
-          handleFirestoreError(error, OperationType.LIST, jobsPath);
-          setJobs([]);
-          setIsLoadingJobs(false);
-        }
-      );
-      return () => unsubscribe();
-    } catch (err) {
-      console.warn('Error setting up jobs listener:', err);
+    if (!COMPLIANCE_MODE.externalJobsOnly) {
       setJobs([]);
       setIsLoadingJobs(false);
+      return;
     }
+
+    let cancelled = false;
+    setIsLoadingJobs(true);
+    fetch('/jobs/external-jobs.json', { cache: 'no-store' })
+      .then(response => {
+        if (!response.ok) throw new Error(`External jobs feed returned ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        if (cancelled) return;
+        const normalized = Array.isArray(data) ? data.map(normalizeExternalJob).filter((job): job is Job => Boolean(job)) : [];
+        normalized.sort((a, b) => Date.parse(b.sourcePublishedAt || b.createdAt) - Date.parse(a.sourcePublishedAt || a.createdAt));
+        setJobs(normalized);
+      })
+      .catch(error => {
+        console.warn('External jobs feed unavailable:', error);
+        if (!cancelled) setJobs([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingJobs(false);
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
-    setIsLoadingCandidates(true);
-    const candPath = 'candidates';
-    try {
-      const q = query(
-        collection(db, candPath),
-        where('schemaVersion', '==', 2),
-        where('isHidden', '==', false),
-        limit(100)
-      );
-      const unsubscribe = onSnapshot(
-        q,
-        snapshot => {
-          const visibleCandidates = snapshot.docs
-            .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Candidate))
-            .filter(candidate => (candidate.iqamaStatus as string) !== 'تأشيرة زيارة / هوية زائر');
-          setCandidates(visibleCandidates);
-          setIsLoadingCandidates(false);
-        },
-        error => {
-          handleFirestoreError(error, OperationType.LIST, candPath);
-          setCandidates([]);
-          setIsLoadingCandidates(false);
-        }
-      );
-      return () => unsubscribe();
-    } catch (err) {
-      console.warn('Error setting up candidates listener:', err);
-      setCandidates([]);
-      setIsLoadingCandidates(false);
-    }
+    const onPopState = () => setActiveTab(initialPublicTab());
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
+
+  const navigate = (tab: PublicTab) => {
+    setActiveTab(tab);
+    const url = tab === 'home' ? '/' : tab === 'jobs' ? '/jobs/' : tab === 'guide' ? '/?view=guide' : '/?view=saved';
+    if (`${window.location.pathname}${window.location.search}` !== url) window.history.pushState({}, '', url);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleToggleSaveJob = (job: Job) => {
     setSavedJobIds(prev => {
@@ -286,537 +159,57 @@ export function App() {
         addToast('info', `تمت إزالة "${job.title}" من المحفوظات`);
       } else {
         next.add(job.id);
-        addToast('success', `تم حفظ "${job.title}" في المحفوظات`);
+        addToast('success', `تم حفظ "${job.title}"`);
       }
       try {
         localStorage.setItem('nextjob_saved_jobs', JSON.stringify(Array.from(next)));
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        console.warn('Unable to persist saved jobs:', error);
       }
       return next;
     });
   };
 
-  const handleQuickWhatsAppJob = (job: Job) => {
-    const cleanPhone = job.whatsapp ? job.whatsapp.replace(/[^0-9]/g, '') : job.phone.replace(/[^0-9]/g, '');
-    const text = encodeURIComponent(`السلام عليكم ورحمة الله، بخصوص إعلانكم عن وظيفة (${job.title}) في منصة NEXT JOB، أود الاستفسار والتقديم للشاغر.`);
-    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleQuickWhatsAppCandidate = (candidate: Candidate) => {
-    const contactNumber = candidate.whatsapp || candidate.phone || '';
-    const cleanPhone = contactNumber.replace(/[^0-9]/g, '');
-    if (!cleanPhone) return;
-    const text = encodeURIComponent(`السلام عليكم أخي ${candidate.fullName}، شاهدت سيرتك الذاتية (${candidate.profession}) في منصة NEXT JOB ولدينا فرصة عمل مناسبة.`);
-    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleOpenPostJob = () => {
-    if (!auth.currentUser) {
-      addToast('info', 'سجّل الدخول أولاً حتى تُربط الوظيفة بحساب صاحب الإعلان.');
-      setIsAuthModalOpen(true);
-      return;
-    }
-    setIsPostJobOpen(true);
-  };
-
-  const handlePostJob = async (jobData: Omit<Job, 'id' | 'createdAt' | 'views'>) => {
-    const owner = auth.currentUser;
-    if (!owner) {
-      addToast('error', 'يجب تسجيل الدخول قبل إرسال الوظيفة للمراجعة.');
-      throw new Error('AUTH_REQUIRED');
-    }
-
-    const nowIso = new Date().toISOString();
-    const payload = stripUndefined({
-      ...jobData,
-      userId: owner.uid,
-      sourceType: 'employer' as const,
-      createdAt: nowIso,
-      createdAtServer: serverTimestamp(),
-      activityAt: serverTimestamp(),
-      moderationStatus: 'pending' as const,
-      complianceAccepted: true,
-      complianceAcceptedAt: serverTimestamp(),
-      status: 'pending_review' as const,
-      views: 0
-    });
-
-    try {
-      await addDoc(collection(db, 'jobs'), payload);
-      addToast('success', 'تم إرسال إعلان الوظيفة لمراجعة الإدارة. لن يظهر للعامة إلا بعد الاعتماد.');
-    } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, 'jobs');
-      addToast('error', 'تعذر إرسال الوظيفة للمراجعة في قاعدة البيانات.');
-      throw err;
-    }
-  };
-
-  const handlePostCandidate = async (candidateData: Omit<Candidate, 'id' | 'createdAt' | 'views'>) => {
-    const {
-      phone,
-      phoneE164,
-      whatsapp,
-      userId: _submittedUserId,
-      userEmail: _submittedUserEmail,
-      ...publicCandidateData
-    } = candidateData;
-
-    try {
-      const candidateRef = doc(collection(db, 'candidates'));
-      const contactRef = doc(db, 'candidateContacts', candidateRef.id);
-      const owner = auth.currentUser;
-      const ownerRef = owner ? doc(db, 'candidateOwners', candidateRef.id) : null;
-      const createdAt = new Date().toISOString();
-      const batch = writeBatch(db);
-
-      batch.set(candidateRef, { ...publicCandidateData, schemaVersion: 2, createdAt });
-      batch.set(contactRef, {
-        candidateId: candidateRef.id,
-        phone: phone || '',
-        whatsapp: whatsapp || '',
-        phoneVerified: candidateData.phoneVerified,
-        schemaVersion: 3
-      });
-
-      if (ownerRef && owner) {
-        batch.set(ownerRef, {
-          candidateId: candidateRef.id,
-          userId: owner.uid,
-          phoneE164: phoneE164 || '',
-          phoneVerified: candidateData.phoneVerified,
-          schemaVersion: 1
-        });
-      }
-
-      await batch.commit();
-      addToast('success', 'تم نشر ملفك وسيرتك الذاتية بنجاح!');
-    } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, 'candidates + candidateContacts + candidateOwners');
-      addToast('error', 'تعذر نشر ملف الباحث في قاعدة البيانات. لم تتم إضافة بيانات محلية بديلة.');
-      throw err;
-    }
-  };
-
-  const handleCommunityJobSubmit = async (
-    submission: Omit<CommunityJobSubmission, 'id' | 'status' | 'submittedAt' | 'reviewedAt' | 'reviewedBy' | 'publishedJobId'>
-  ) => {
-    try {
-      await addDoc(collection(db, 'communitySubmissions'), {
-        ...submission,
-        status: 'pending',
-        submittedAt: new Date().toISOString()
-      });
-      addToast('success', 'تم إرسال الفرصة للمراجعة. لن تُنشر قبل اعتماد الإدارة.');
-    } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, 'communitySubmissions');
-      addToast('error', 'تعذر إرسال الفرصة للمراجعة. حاول مرة أخرى.');
-      throw err;
-    }
-  };
-
-  const requireAdmin = () => {
-    if (!auth.currentUser || !isAdmin) {
-      setIsAdminSEOOpen(false);
-      addToast('error', 'هذه العملية متاحة لمسؤولي NEXT JOB فقط.');
-      return false;
-    }
-    return true;
-  };
-
-  const handleOpenAdminPanel = () => {
-    if (isCheckingAdmin) {
-      addToast('info', 'جارٍ التحقق من صلاحية الإدارة...');
-      return;
-    }
-    if (!requireAdmin()) return;
-    setIsAdminSEOOpen(true);
-  };
-
-  const handleApprovePendingJob = async (job: Job) => {
-    if (!requireAdmin()) return;
-    const adminUser = auth.currentUser;
-    if (!adminUser) return;
-    const reviewedAt = new Date().toISOString();
-
-    try {
-      await updateDoc(doc(db, 'jobs', job.id), {
-        status: 'recently_confirmed',
-        moderationStatus: 'approved',
-        reviewedAt,
-        reviewedAtServer: serverTimestamp(),
-        reviewedBy: adminUser.uid,
-        lastConfirmedAt: reviewedAt,
-        lastConfirmedAtServer: serverTimestamp(),
-        lastBumpedAt: serverTimestamp(),
-        activityAt: serverTimestamp(),
-        updatedAt: reviewedAt,
-        updatedAtServer: serverTimestamp()
-      });
-      addToast('success', `تم اعتماد ونشر: "${job.title}"`);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `jobs/${job.id}`);
-      addToast('error', 'تعذر اعتماد الوظيفة أو أنها لم تعد بانتظار المراجعة.');
-    }
-  };
-
-  const handleRejectPendingJob = async (job: Job) => {
-    if (!requireAdmin()) return;
-    const adminUser = auth.currentUser;
-    if (!adminUser) return;
-    const reviewedAt = new Date().toISOString();
-
-    try {
-      await updateDoc(doc(db, 'jobs', job.id), {
-        status: 'closed',
-        moderationStatus: 'rejected',
-        reviewedAt,
-        reviewedAtServer: serverTimestamp(),
-        reviewedBy: adminUser.uid,
-        closedAt: serverTimestamp(),
-        updatedAt: reviewedAt,
-        updatedAtServer: serverTimestamp()
-      });
-      addToast('info', `تم رفض الإعلان: "${job.title}" ولن يظهر للعامة.`);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `jobs/${job.id}`);
-      addToast('error', 'تعذر رفض الوظيفة أو أنها لم تعد بانتظار المراجعة.');
-    }
-  };
-
-  const normalizeCommunityWhatsApp = (value: string) => {
-    let digits = value.replace(/\D/g, '');
-    if (digits.startsWith('00')) digits = digits.slice(2);
-    if (digits.startsWith('0')) digits = `966${digits.slice(1)}`;
-    else if (/^5\d{8}$/.test(digits)) digits = `966${digits}`;
-    return digits;
-  };
-
-  const handleApproveCommunityJob = async (submission: CommunityJobSubmission) => {
-    if (!requireAdmin()) return;
-    const adminUser = auth.currentUser;
-    if (!adminUser) return;
-
-    const submissionRef = doc(db, 'communitySubmissions', submission.id);
-    const jobRef = doc(collection(db, 'jobs'));
-    const reviewedAt = new Date().toISOString();
-
-    try {
-      await runTransaction(db, async transaction => {
-        const snap = await transaction.get(submissionRef);
-        if (!snap.exists() || snap.data().status !== 'pending') throw new Error('ALREADY_REVIEWED');
-        const current = snap.data() as CommunityJobSubmission;
-
-        transaction.set(jobRef, {
-          title: current.title,
-          company: current.companyOrShop || 'معلن مجتمعي',
-          city: current.city,
-          category: current.category,
-          salary: current.salary || 'يحدد لاحقاً',
-          jobType: 'دوام كامل',
-          experienceYears: 'حسب متطلبات صاحب العمل',
-          sponsorshipTransfer: false,
-          accommodationProvided: false,
-          transportationProvided: false,
-          description: current.details,
-          phone: current.contactNumber,
-          whatsapp: normalizeCommunityWhatsApp(current.contactNumber),
-          createdAt: reviewedAt,
-          createdAtServer: serverTimestamp(),
-          activityAt: serverTimestamp(),
-          lastBumpedAt: serverTimestamp(),
-          lastConfirmedAt: reviewedAt,
-          lastConfirmedAtServer: serverTimestamp(),
-          views: 0,
-          sourceType: 'community',
-          sourceSubmissionId: submission.id,
-          approvedBy: adminUser.uid,
-          status: 'active'
-        });
-
-        transaction.update(submissionRef, {
-          status: 'approved',
-          reviewedAt,
-          reviewedBy: adminUser.uid,
-          publishedJobId: jobRef.id
-        });
-      });
-      addToast('success', `تم اعتماد ونشر: "${submission.title}"`);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `communitySubmissions/${submission.id} -> jobs/${jobRef.id}`);
-      addToast('error', 'تعذر اعتماد الفرصة أو أنها تمت مراجعتها مسبقاً.');
-    }
-  };
-
-  const handleRejectCommunityJob = async (id: string) => {
-    if (!requireAdmin()) return;
-    const adminUser = auth.currentUser;
-    if (!adminUser) return;
-    const submissionRef = doc(db, 'communitySubmissions', id);
-    const reviewedAt = new Date().toISOString();
-
-    try {
-      await runTransaction(db, async transaction => {
-        const snap = await transaction.get(submissionRef);
-        if (!snap.exists() || snap.data().status !== 'pending') throw new Error('ALREADY_REVIEWED');
-        transaction.update(submissionRef, { status: 'rejected', reviewedAt, reviewedBy: adminUser.uid });
-      });
-      addToast('info', 'تم استبعاد الفرصة من قائمة الانتظار دون نشرها.');
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `communitySubmissions/${id}`);
-      addToast('error', 'تعذر استبعاد الفرصة أو أنها تمت مراجعتها مسبقاً.');
-    }
-  };
-
-  const handleResolveFraudReport = async (id: string) => {
-    if (!requireAdmin()) return;
-    const adminUser = auth.currentUser;
-    if (!adminUser) return;
-    const reportRef = doc(db, 'fraudReports', id);
-    const reviewedAt = new Date().toISOString();
-
-    try {
-      await runTransaction(db, async transaction => {
-        const snap = await transaction.get(reportRef);
-        if (!snap.exists() || snap.data().status !== 'pending') throw new Error('ALREADY_REVIEWED');
-        transaction.update(reportRef, {
-          status: 'reviewed',
-          reviewedAt,
-          reviewedBy: adminUser.uid
-        });
-      });
-      addToast('success', 'تم اتخاذ الإجراء وإغلاق البلاغ في Firestore.');
-    } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, `fraudReports/${id}`);
-      addToast('error', 'تعذر إغلاق البلاغ أو أنه تمت معالجته مسبقاً.');
-    }
-  };
-
-  const handleViewCandidateCV = (candidate: Candidate) => {
-    setCvCandidatePrefill(candidate);
-    setIsCVGenOpen(true);
-  };
-
-  const handleOpenAuth = () => setIsAuthModalOpen(true);
-
-  const handleLoginSuccess = (loggedUser: User) => {
-    if (!auth.currentUser || auth.currentUser.uid !== loggedUser.uid) {
-      addToast('error', 'تعذر تأكيد جلسة Firebase. أعد محاولة تسجيل الدخول.');
-      return;
-    }
-    setUser(loggedUser);
-    addToast('success', `أهلاً بك يا ${loggedUser.displayName || 'مستخدمنا العزيز'}`);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-      setUser(null);
-      setIsAdminSEOOpen(false);
-      setPendingJobs([]);
-      setCommunitySubmissions([]);
-      setFraudReports([]);
-      addToast('info', 'تم تسجيل الخروج بنجاح');
-    } catch (err) {
-      console.error(err);
-      setIsAdminSEOOpen(false);
-      setPendingJobs([]);
-      setCommunitySubmissions([]);
-      setFraudReports([]);
-      addToast('info', 'تم تسجيل الخروج');
-    }
-  };
-
-  const savedJobsList = jobs.filter(j => savedJobIds.has(j.id));
+  const savedJobs = useMemo(() => jobs.filter(job => savedJobIds.has(job.id)), [jobs, savedJobIds]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white font-sans antialiased" dir="rtl">
-      <ToastContainer toasts={toasts} onDismiss={removeToast} />
+    <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
+      <Navbar activeTab={activeTab} setActiveTab={navigate} savedCount={savedJobIds.size} />
 
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenPostJob={handleOpenPostJob}
-        onOpenPostCandidate={() => setIsPostCandidateOpen(true)}
-        savedCount={savedJobIds.size}
-        user={user}
-        onLogin={handleOpenAuth}
-        onLogout={handleLogout}
-      />
+      {activeTab === 'home' && <ProfessionalHome jobs={jobs} onNavigate={navigate} />}
 
-      <main className="flex-1">
-        {activeTab === 'jobs' && (
-          <div>
-            <HeroSection
-              filter={filter}
-              setFilter={setFilter}
-              totalJobs={jobs.length}
-              onOpenAICoverLetter={() => {
-                setAIJobContext(null);
-                setIsAIOpen(true);
-              }}
-            />
-            <JobList
-              jobs={jobs}
-              filter={filter}
-              setFilter={setFilter}
-              onSelectJob={setSelectedJob}
-              savedJobIds={savedJobIds}
-              onToggleSave={handleToggleSaveJob}
-              onQuickWhatsApp={handleQuickWhatsAppJob}
-              onOpenPostJob={handleOpenPostJob}
-              isLoading={isLoadingJobs}
-            />
-          </div>
-        )}
+      {activeTab === 'jobs' && (
+        <>
+          <HeroSection filter={filter} setFilter={setFilter} totalJobs={jobs.length} />
+          <JobList jobs={jobs} filter={filter} setFilter={setFilter} onSelectJob={setSelectedJob} savedJobIds={savedJobIds} onToggleSave={handleToggleSaveJob} isLoading={isLoadingJobs} />
+        </>
+      )}
 
-        {activeTab === 'candidates' && (
-          <CandidatesDirectory
-            candidates={candidates}
-            onOpenPostCandidate={() => setIsPostCandidateOpen(true)}
-            onQuickWhatsApp={handleQuickWhatsAppCandidate}
-            onViewCV={handleViewCandidateCV}
-            onReportCandidate={cand => {
-              setFraudTargetCand(cand);
-              setFraudTargetJob(null);
-              setIsReportFraudOpen(true);
-            }}
-            isLoading={isLoadingCandidates}
-          />
-        )}
+      {activeTab === 'guide' && <SaudiResidentGuide />}
 
-        {activeTab === 'guide' && <SaudiResidentGuide />}
-
-        {activeTab === 'saved' && (
-          <SavedJobsView
-            savedJobs={savedJobsList}
-            onSelectJob={setSelectedJob}
-            savedJobIds={savedJobIds}
-            onToggleSave={handleToggleSaveJob}
-            onQuickWhatsApp={handleQuickWhatsAppJob}
-            onExploreJobs={() => setActiveTab('jobs')}
-            onClearAllSaved={() => {
-              setSavedJobIds(new Set());
-              localStorage.removeItem('nextjob_saved_jobs');
-              addToast('info', 'تم مسح جميع المحفوظات');
-            }}
-          />
-        )}
-      </main>
-
-      {selectedJob && (
-        <JobDetailModal
-          job={selectedJob}
-          onClose={() => setSelectedJob(null)}
-          isSaved={savedJobIds.has(selectedJob.id)}
+      {activeTab === 'saved' && (
+        <SavedJobsView
+          savedJobs={savedJobs}
+          onSelectJob={setSelectedJob}
+          savedJobIds={savedJobIds}
           onToggleSave={handleToggleSaveJob}
-          onOpenAICoverLetterForJob={job => {
-            setAIJobContext(job);
-            setIsAIOpen(true);
-          }}
-          onReportFraud={job => {
-            setFraudTargetJob(job);
-            setFraudTargetCand(null);
-            setIsReportFraudOpen(true);
+          onExploreJobs={() => navigate('jobs')}
+          onClearAllSaved={() => {
+            setSavedJobIds(new Set());
+            localStorage.removeItem('nextjob_saved_jobs');
+            addToast('info', 'تم مسح المحفوظات');
           }}
         />
       )}
 
-      {isPostJobOpen && <PostJobModal isOpen={isPostJobOpen} onClose={() => setIsPostJobOpen(false)} onSubmit={handlePostJob} user={user} />}
-      {isPostCandidateOpen && <PostCandidateModal isOpen={isPostCandidateOpen} onClose={() => setIsPostCandidateOpen(false)} onSubmit={handlePostCandidate} user={user} />}
-
-      {isAIOpen && (
-        <AICoverLetterModal
-          isOpen={isAIOpen}
-          onClose={() => {
-            setIsAIOpen(false);
-            setAIJobContext(null);
-          }}
-          selectedJob={aiJobContext}
-        />
-      )}
+      <JobDetailModal job={selectedJob} onClose={() => setSelectedJob(null)} isSaved={selectedJob ? savedJobIds.has(selectedJob.id) : false} onToggleSave={handleToggleSaveJob} />
 
       {isWageCalcOpen && <WageCalculatorModal isOpen={isWageCalcOpen} onClose={() => setIsWageCalcOpen(false)} />}
-
-      {isCVGenOpen && (
-        <FreeCVGeneratorModal
-          isOpen={isCVGenOpen}
-          onClose={() => {
-            setIsCVGenOpen(false);
-            setCvCandidatePrefill(null);
-          }}
-          initialCandidate={cvCandidatePrefill}
-        />
-      )}
-
-      {isCommunityJobOpen && (
-        <CommunityJobModal isOpen={isCommunityJobOpen} onClose={() => setIsCommunityJobOpen(false)} onSubmit={handleCommunityJobSubmit} />
-      )}
-
-      {isReportFraudOpen && (
-        <ReportFraudModal
-          isOpen={isReportFraudOpen}
-          onClose={() => {
-            setIsReportFraudOpen(false);
-            setFraudTargetJob(null);
-            setFraudTargetCand(null);
-          }}
-          targetType={fraudTargetJob ? 'job' : 'candidate'}
-          targetId={fraudTargetJob?.id || fraudTargetCand?.id || ''}
-          targetTitle={fraudTargetJob?.title || fraudTargetCand?.fullName || ''}
-        />
-      )}
-
-      {user && isAdmin && isAdminSEOOpen && (
-        <AdminAndSEOEngineModal
-          isOpen={isAdminSEOOpen}
-          onClose={() => setIsAdminSEOOpen(false)}
-          pendingJobs={pendingJobs}
-          communitySubmissions={communitySubmissions}
-          fraudReports={fraudReports}
-          onApprovePendingJob={handleApprovePendingJob}
-          onRejectPendingJob={handleRejectPendingJob}
-          onApproveCommunityJob={handleApproveCommunityJob}
-          onRejectCommunityJob={handleRejectCommunityJob}
-          onResolveReport={handleResolveFraudReport}
-          jobsCount={jobs.length}
-          candidatesCount={candidates.length}
-          jobs={jobs}
-          candidates={candidates}
-        />
-      )}
-
-      {isAuthModalOpen && (
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          onClose={() => setIsAuthModalOpen(false)}
-          user={user}
-          onLogout={handleLogout}
-          onLoginSuccess={handleLoginSuccess}
-          savedJobsCount={savedJobIds.size}
-        />
-      )}
-
       {isPrivacyOpen && <PrivacyAndTermsModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />}
 
       <CookieConsentBanner onOpenPrivacyModal={() => setIsPrivacyOpen(true)} />
-
-      <Footer
-        onNavigate={setActiveTab}
-        onOpenWageCalc={() => setIsWageCalcOpen(true)}
-        onOpenCVGen={() => {
-          setCvCandidatePrefill(null);
-          setIsCVGenOpen(true);
-        }}
-        onOpenCommunityJob={() => setIsCommunityJobOpen(true)}
-        onOpenReportFraud={() => {
-          setFraudTargetJob(null);
-          setFraudTargetCand(null);
-          setIsReportFraudOpen(true);
-        }}
-        onOpenPrivacy={() => setIsPrivacyOpen(true)}
-        onOpenAdminSEO={user && isAdmin && !isCheckingAdmin ? handleOpenAdminPanel : undefined}
-      />
+      <Footer onNavigate={navigate} onOpenWageCalc={() => setIsWageCalcOpen(true)} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
+      <ToastContainer toasts={toasts} onDismiss={(id: string) => setToasts(prev => prev.filter(item => item.id !== id))} />
     </div>
   );
 }

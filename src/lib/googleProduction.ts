@@ -1,20 +1,16 @@
 export type ProductionGoogleStatus = 'READY' | 'NEEDS_PRODUCTION_CONFIGURATION';
 
 export const googleProductionConfig = {
-  adsEnabled: String(import.meta.env.VITE_ADS_ENABLED || '').toLowerCase() === 'true',
-  adsenseClient: String(import.meta.env.VITE_ADSENSE_CLIENT || '').trim(),
+  // Commercial advertising is intentionally disabled while NEXT JOB operates
+  // as a professional content hub and external-opportunity directory.
+  adsEnabled: false,
+  adsenseClient: '',
   gtagId: String(import.meta.env.VITE_GTAG_ID || '').trim(),
   googleCmpEnabled: String(import.meta.env.VITE_GOOGLE_CMP_ENABLED || '').toLowerCase() === 'true',
   searchConsoleEndpoint: String(import.meta.env.VITE_SEARCH_CONSOLE_API_ENDPOINT || '').trim()
 };
 
-export const GOOGLE_PRODUCTION_STATUS: ProductionGoogleStatus =
-  googleProductionConfig.adsEnabled &&
-  /^ca-pub-\d+$/.test(googleProductionConfig.adsenseClient) &&
-  /^G-[A-Z0-9]+$/.test(googleProductionConfig.gtagId) &&
-  googleProductionConfig.googleCmpEnabled
-    ? 'READY'
-    : 'NEEDS_PRODUCTION_CONFIGURATION';
+export const GOOGLE_PRODUCTION_STATUS: ProductionGoogleStatus = 'NEEDS_PRODUCTION_CONFIGURATION';
 
 declare global {
   interface Window {
@@ -29,7 +25,7 @@ function ensureGtag() {
   window.gtag = window.gtag || function (...args: unknown[]) { window.dataLayer!.push(args); };
 }
 
-/** Consent Mode v2 defaults must run before Google measurement/ad tags. */
+/** Consent Mode v2 defaults run before optional analytics tags. */
 export function initializeGoogleConsentDefaults() {
   if (typeof window === 'undefined') return;
   ensureGtag();
@@ -44,13 +40,12 @@ export function initializeGoogleConsentDefaults() {
   });
 }
 
-function addScript(id: string, src: string, attrs: Record<string, string> = {}) {
+function addScript(id: string, src: string) {
   if (document.getElementById(id)) return;
   const script = document.createElement('script');
   script.id = id;
   script.async = true;
   script.src = src;
-  Object.entries(attrs).forEach(([key, value]) => script.setAttribute(key, value));
   document.head.appendChild(script);
 }
 
@@ -58,21 +53,11 @@ export function loadConfiguredGoogleScripts() {
   if (typeof window === 'undefined') return;
   ensureGtag();
 
-  // Analytics can load under Consent Mode defaults when a real Measurement ID
-  // exists. Storage remains denied until the user updates consent.
+  // Measurement can remain available under consent mode. No AdSense or other
+  // commercial advertising script is loaded in the current compliance mode.
   if (/^G-[A-Z0-9]+$/.test(googleProductionConfig.gtagId)) {
     addScript('nextjob-google-tag', `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleProductionConfig.gtagId)}`);
     window.gtag!('js', new Date());
     window.gtag!('config', googleProductionConfig.gtagId, { anonymize_ip: true });
-  }
-
-  // Do not load AdSense merely because a ca-pub value exists. The whole
-  // production configuration, including CMP readiness, must be explicitly READY.
-  if (GOOGLE_PRODUCTION_STATUS === 'READY') {
-    addScript(
-      'nextjob-adsense',
-      `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(googleProductionConfig.adsenseClient)}`,
-      { crossorigin: 'anonymous' }
-    );
   }
 }
