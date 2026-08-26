@@ -6,7 +6,7 @@ const ROOT = process.cwd();
 const CONFIG_FILE = path.join(ROOT, 'config/arabic-job-sources.json');
 const FEED_FILE = path.join(ROOT, 'public/jobs/external-jobs.json');
 const REQUEST_TIMEOUT_MS = 15_000;
-const USER_AGENT = 'NEXTJOB-arabic-rss-indexer/1.0';
+const USER_AGENT = 'NEXTJOB-arabic-rss-indexer/1.1';
 
 const CITY_RULES = [
   ['الرياض', [/الرياض/, /riyadh/i]],
@@ -64,14 +64,31 @@ function tagValue(block, tag) {
   return match ? decodeEntities(match[1]).trim() : '';
 }
 
-function parseRss(xml) {
-  const items = String(xml || '').match(/<item\b[\s\S]*?<\/item>/gi) || [];
-  return items.map(item => ({
+function tagAttribute(block, tag, attribute) {
+  const match = String(block || '').match(new RegExp(`<${tag}\\b[^>]*\\b${attribute}=["']([^"']+)["'][^>]*>`, 'i'));
+  return match ? decodeEntities(match[1]).trim() : '';
+}
+
+function parseFeed(xml) {
+  const source = String(xml || '');
+  const rssItems = source.match(/<item\b[\s\S]*?<\/item>/gi) || [];
+  const atomEntries = source.match(/<entry\b[\s\S]*?<\/entry>/gi) || [];
+
+  const rss = rssItems.map(item => ({
     title: plainText(tagValue(item, 'title')),
     link: plainText(tagValue(item, 'link') || tagValue(item, 'guid')),
     description: plainText(tagValue(item, 'description') || tagValue(item, 'content:encoded')),
     publishedAt: tagValue(item, 'pubDate') || tagValue(item, 'dc:date')
   }));
+
+  const atom = atomEntries.map(entry => ({
+    title: plainText(tagValue(entry, 'title')),
+    link: plainText(tagAttribute(entry, 'link', 'href') || tagValue(entry, 'link') || tagValue(entry, 'id')),
+    description: plainText(tagValue(entry, 'summary') || tagValue(entry, 'content')),
+    publishedAt: tagValue(entry, 'published') || tagValue(entry, 'updated') || tagValue(entry, 'dc:date')
+  }));
+
+  return [...rss, ...atom];
 }
 
 function safeHttpsUrl(value) {
@@ -123,7 +140,7 @@ async function fetchText(url) {
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const response = await fetch(url, {
-      headers: { accept: 'application/rss+xml,application/xml,text/xml;q=0.9,*/*;q=0.5', 'user-agent': USER_AGENT },
+      headers: { accept: 'application/rss+xml,application/atom+xml,application/xml,text/xml;q=0.9,*/*;q=0.5', 'user-agent': USER_AGENT },
       signal: controller.signal,
       redirect: 'follow'
     });
@@ -188,12 +205,12 @@ async function main() {
     if (!feedUrl) throw new Error(`${source.id}: feedUrl must be HTTPS.`);
     try {
       const xml = await fetchText(feedUrl);
-      const parsed = parseRss(xml).slice(0, Math.max(1, Math.min(Number(source.maxItems) || 40, 100)));
+      const parsed = parseFeed(xml).slice(0, Math.max(1, Math.min(Number(source.maxItems) || 40, 100)));
       const jobs = parsed.map(item => normalizedRssJob(source, item, verifiedAt)).filter(Boolean);
       appended.push(...jobs);
-      console.log(`${source.id}: ${jobs.length} RSS item(s) normalized without page scraping.`);
+      console.log(`${source.id}: ${jobs.length} feed item(s) normalized without page scraping.`);
     } catch (error) {
-      console.warn(`${source.id}: RSS source skipped: ${error?.message || error}`);
+      console.warn(`${source.id}: RSS/Atom source skipped: ${error?.message || error}`);
     }
   }
 
@@ -208,10 +225,10 @@ async function main() {
   }
 
   fs.writeFileSync(FEED_FILE, JSON.stringify(output, null, 2) + '\n', 'utf8');
-  console.log(`Arabic RSS ingestion complete: ${appended.length} item(s) appended from ${enabled.length} configured feed(s).`);
+  console.log(`Arabic feed ingestion complete: ${appended.length} item(s) appended from ${enabled.length} configured feed(s).`);
 }
 
 main().catch(error => {
-  console.error('Arabic RSS ingestion failed:', error);
+  console.error('Arabic RSS/Atom ingestion failed:', error);
   process.exit(1);
 });
