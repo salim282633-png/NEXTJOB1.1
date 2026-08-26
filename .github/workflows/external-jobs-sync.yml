@@ -10,6 +10,7 @@ on:
       - 'config/arabic-job-sources.json'
       - 'scripts/sync-external-jobs.mjs'
       - 'scripts/append-arabic-rss-jobs.mjs'
+      - 'scripts/filter-rss-nationality-eligibility.mjs'
       - 'scripts/append-community-job-intake.mjs'
       - 'scripts/filter-yemeni-target-jobs.mjs'
       - 'scripts/validate-external-jobs.mjs'
@@ -52,6 +53,9 @@ jobs:
       - name: Append permitted Arabic RSS feeds
         run: node scripts/append-arabic-rss-jobs.mjs
 
+      - name: Reject Saudi-only and ambiguous RSS jobs
+        run: node scripts/filter-rss-nationality-eligibility.mjs
+
       - name: Append approved community intake
         run: node scripts/append-community-job-intake.mjs
 
@@ -61,6 +65,7 @@ jobs:
       - name: Verify generated feed and application destinations
         run: |
           node --check scripts/append-arabic-rss-jobs.mjs
+          node --check scripts/filter-rss-nationality-eligibility.mjs
           node --check scripts/append-community-job-intake.mjs
           node --check scripts/filter-yemeni-target-jobs.mjs
           node scripts/filter-yemeni-target-jobs.mjs --check
