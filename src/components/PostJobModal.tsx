@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { X, PlusCircle, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { SAUDI_CITIES, JOB_CATEGORIES } from '../lib/data';
-import { Job } from '../types';
+import { AlertCircle, CheckCircle2, PlusCircle, ShieldCheck, X } from 'lucide-react';
 import { User } from 'firebase/auth';
+import { SAUDI_CITIES, JOB_CATEGORIES } from '../lib/data';
 import { checkRateLimit } from '../lib/rateLimit';
 import {
   EMPLOYER_COMPLIANCE_ATTESTATION,
   PLATFORM_COMPLIANCE_NOTICE,
   findJobComplianceIssue
 } from '../lib/jobCompliance';
+import { Job } from '../types';
 
 interface PostJobModalProps {
   isOpen: boolean;
@@ -42,12 +42,12 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ isOpen, onClose, onS
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setErrorMsg('');
 
     if (!checkRateLimit('POST_JOB')) {
-      setErrorMsg('لقد تجاوزت الحد المسموح به لنشر الوظائف اليوم (3 وظائف كحد أقصى). يرجى المحاولة غداً.');
+      setErrorMsg('لقد تجاوزت الحد المسموح به لإرسال الوظائف اليوم (3 وظائف كحد أقصى). يرجى المحاولة غداً.');
       return;
     }
 
@@ -57,7 +57,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ isOpen, onClose, onS
     }
 
     if (!complianceAccepted) {
-      setErrorMsg('يجب الموافقة على إقرار الامتثال قبل نشر الإعلان.');
+      setErrorMsg('يجب الموافقة على إقرار الامتثال قبل إرسال الإعلان للمراجعة.');
       return;
     }
 
@@ -73,24 +73,24 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ isOpen, onClose, onS
       return;
     }
 
+    const requirements = requirementsInput
+      .split('\n')
+      .map(item => item.trim())
+      .filter(Boolean);
+
+    let urgent = false;
+    let urgentStartDate: string | undefined;
+    let urgentExpiresAt: string | undefined;
+
+    if (urgentChoice === '24h' || urgentChoice === '48h') {
+      urgent = true;
+      urgentStartDate = new Date().toISOString();
+      const hours = urgentChoice === '24h' ? 24 : 48;
+      urgentExpiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+    }
+
     try {
       setIsSubmitting(true);
-      const requirements = requirementsInput
-        .split('\n')
-        .map(item => item.trim())
-        .filter(Boolean);
-
-      let urgent = false;
-      let urgentStartDate: string | undefined;
-      let urgentExpiresAt: string | undefined;
-
-      if (urgentChoice === '24h' || urgentChoice === '48h') {
-        urgent = true;
-        urgentStartDate = new Date().toISOString();
-        const hours = urgentChoice === '24h' ? 24 : 48;
-        urgentExpiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
-      }
-
       await onSubmit({
         title: title.trim(),
         company: company.trim(),
@@ -113,21 +113,19 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ isOpen, onClose, onS
         urgent,
         urgentStartDate,
         urgentExpiresAt,
-        status: 'recently_confirmed',
-        lastConfirmedAt: 'اليوم'
+        status: 'pending_review'
       });
-
       onClose();
     } catch (error) {
       console.error(error);
-      setErrorMsg('حدث خطأ أثناء نشر الوظيفة. تحقق من الاتصال وحاول مجددًا.');
+      setErrorMsg('حدث خطأ أثناء إرسال الوظيفة للمراجعة. تحقق من الاتصال وحاول مجددًا.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4" dir="rtl">
       <div
         id="post-job-modal-container"
         role="dialog"
@@ -141,19 +139,19 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ isOpen, onClose, onS
               <PlusCircle className="w-5 h-5" />
             </div>
             <div>
-              <h2 id="post-job-modal-title" className="text-lg font-black text-slate-900">أعلن عن فرصة عمل</h2>
-              <p className="text-xs text-slate-500 mt-1">عرض تقني للفرصة وتواصل مباشر دون عمولة توظيف من NEXT JOB</p>
+              <h2 id="post-job-modal-title" className="text-lg font-black text-slate-900">أرسل فرصة عمل للمراجعة</h2>
+              <p className="text-xs text-slate-500 mt-1">لن يظهر الإعلان للعامة إلا بعد مراجعة الإدارة واعتماده.</p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="إغلاق نافذة نشر الوظيفة" className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl">
+          <button onClick={onClose} aria-label="إغلاق نافذة إرسال الوظيفة" className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-950 leading-relaxed">
-            <strong className="block mb-1">تنبيه نظامي قبل النشر</strong>
-            {PLATFORM_COMPLIANCE_NOTICE} لا تُنشر فرص العمالة المنزلية أو بيع التأشيرات أو تأجير العمالة أو أي صياغة تدعو للعمل خارج الإجراءات النظامية.
+            <strong className="block mb-1">تنبيه نظامي قبل الإرسال</strong>
+            {PLATFORM_COMPLIANCE_NOTICE} لا تُقبل فرص العمالة المنزلية أو بيع التأشيرات أو تأجير العمالة أو أي صياغة تدعو للعمل خارج الإجراءات النظامية.
           </div>
 
           {errorMsg && (
@@ -170,7 +168,7 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ isOpen, onClose, onS
             </label>
             <label className="space-y-1.5 text-xs font-bold text-slate-700">
               <span>اسم المنشأة / صاحب العمل *</span>
-              <input required maxLength={150} value={company} onChange={e => setCompany(e.target.value)} placeholder="اسم المنشأة المعلنة" className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
+              <input required maxLength={100} value={company} onChange={e => setCompany(e.target.value)} placeholder="اسم المنشأة المعلنة" className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
             </label>
           </div>
 
@@ -247,11 +245,15 @@ export const PostJobModal: React.FC<PostJobModalProps> = ({ isOpen, onClose, onS
             <span className="text-xs leading-6 text-emerald-950"><strong className="block mb-1 flex items-center gap-1"><ShieldCheck className="w-4 h-4" />إقرار صاحب الإعلان</strong>{EMPLOYER_COMPLIANCE_ATTESTATION}</span>
           </label>
 
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3.5 text-xs leading-6 text-sky-900">
+            بعد الإرسال ستكون الحالة <strong>بانتظار مراجعة الإدارة</strong>. لا يتم عرض رقم التواصل أو تفاصيل الإعلان للعامة قبل الاعتماد.
+          </div>
+
           <div className="flex items-center justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">إلغاء</button>
             <button type="submit" disabled={isSubmitting || !complianceAccepted} className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md disabled:opacity-50 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" />
-              {isSubmitting ? 'جارٍ النشر...' : 'نشر الإعلان بعد الإقرار'}
+              {isSubmitting ? 'جارٍ الإرسال...' : 'إرسال الإعلان للمراجعة'}
             </button>
           </div>
         </form>

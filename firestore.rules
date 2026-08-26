@@ -85,6 +85,15 @@ service cloud.firestore {
       return hasVerifiedSaudiPhone() && ownerExists(candidateId) && authOwnsPhone(ownerData(candidateId).phoneE164);
     }
 
+    function allowedCandidateIqamaStatus(status) {
+      return status is string && (
+        status == 'إقامة سارية وقابلة للنقل' ||
+        status == 'إقامة سارية دون نقل' ||
+        status == 'مهن فردية / سائق خاص' ||
+        status == 'أخرى'
+      );
+    }
+
     function publicCandidateReadable(data) {
       // schemaVersion 2 public documents are written without contact/ownership
       // fields. Legacy pre-v2 documents remain outside this public query.
@@ -120,6 +129,32 @@ service cloud.firestore {
           getAfter(/databases/$(database)/documents/candidateOwners/$(candidateId)).data.phoneE164 == request.auth.token.phone_number &&
           getAfter(/databases/$(database)/documents/candidateOwners/$(candidateId)).data.userId == request.auth.uid
         );
+    }
+
+    function blockedJobText(text) {
+      return text is string && (
+        text.matches('.*بدون[ ]+(نقل[ ]+)?(خدمات|كفال[هة]).*') ||
+        text.matches('.*(اشتغل|اعمل|العمل|عمل)[ ]+(على|علي)[ ]+كفيلك.*') ||
+        text.matches('.*بدون[ ]+(اقام[هة]|إقام[هة]).*') ||
+        text.matches('.*(بيع|شراء)[ ]+(تأشير[هة]|تاشير[هة]|فيزا|كفال[هة]).*') ||
+        text.matches('.*(تأشير[هة]|تاشير[هة]|فيزا)[ ]+حر[هة].*') ||
+        text.matches('.*ت(أ|ا)جير[ ]+(عامل|عمال|عمال[هة]).*') ||
+        text.matches('.*(عامل[هة]?[ ]+منزلي[هة]?|خادم[هة]|مربي[هة][ ]+منزلي[هة]|سائق[ ]+خاص).*') ||
+        text.matches('.*استقدام[ ]+(عامل|عمال|عمال[هة]).*')
+      );
+    }
+
+    function jobContentSafe(data) {
+      return !blockedJobText(data.title) &&
+        !blockedJobText(data.company) &&
+        !blockedJobText(data.description) &&
+        (!data.keys().hasAny(['salary']) || (data.salary is string && !blockedJobText(data.salary)));
+    }
+
+    function publicJobReadable(data) {
+      return data.status == 'active' ||
+        data.status == 'recently_confirmed' ||
+        data.status == 'awaiting_confirmation';
     }
 
     function validCommunityJobApproval(jobId) {
@@ -166,7 +201,9 @@ service cloud.firestore {
         data.description is string && data.description.size() > 0 && data.description.size() <= 3000 &&
         data.phone is string && data.phone.size() > 0 && data.phone.size() <= 30 &&
         data.status is string &&
+        jobContentSafe(data) &&
         (
+          data.status == 'pending_review' ||
           data.status == 'active' ||
           data.status == 'recently_confirmed' ||
           data.status == 'awaiting_confirmation' ||
@@ -297,7 +334,10 @@ service cloud.firestore {
         incoming().contactNumber is string && incoming().contactNumber.size() > 0 && incoming().contactNumber.size() <= 30 &&
         incoming().details is string && incoming().details.size() > 0 && incoming().details.size() <= 3000 &&
         incoming().submittedAt is string &&
-        (!incoming().keys().hasAny(['salary']) || (incoming().salary is string && incoming().salary.size() <= 120)) &&
+        !blockedJobText(incoming().title) &&
+        !blockedJobText(incoming().companyOrShop) &&
+        !blockedJobText(incoming().details) &&
+        (!incoming().keys().hasAny(['salary']) || (incoming().salary is string && incoming().salary.size() <= 120 && !blockedJobText(incoming().salary))) &&
         (!incoming().keys().hasAny(['submitterName']) || (incoming().submitterName is string && incoming().submitterName.size() <= 100)) &&
         (!incoming().keys().hasAny(['submitterPhone']) || (incoming().submitterPhone is string && incoming().submitterPhone.size() <= 30));
 
@@ -351,6 +391,7 @@ service cloud.firestore {
             'requirements', 'phone', 'whatsapp', 'contactPerson', 'urgent',
             'urgentStartDate', 'urgentExpiresAt', 'updatedAt', 'updatedAtServer'
           ]) &&
+          (!incoming().keys().hasAny(['jobType']) || incoming().jobType != 'عمل حر / بالقطعة' || incoming().jobType == existing().jobType) &&
           incoming().updatedAt is string &&
           incoming().updatedAtServer == request.time &&
           validJobCore(incoming());
@@ -371,6 +412,7 @@ service cloud.firestore {
       function ownerReopen() {
         return ownsJob() &&
           existing().status == 'closed' &&
+          (!existing().keys().hasAny(['moderationStatus']) || existing().moderationStatus == 'approved') &&
           incoming().status == 'active' &&
           incoming().diff(existing()).affectedKeys().hasOnly([
             'status', 'reopenedAt', 'updatedAt', 'updatedAtServer'
@@ -383,6 +425,8 @@ service cloud.firestore {
       function ownerConfirm() {
         return ownsJob() &&
           existing().status != 'closed' &&
+          existing().status != 'pending_review' &&
+          (!existing().keys().hasAny(['moderationStatus']) || existing().moderationStatus == 'approved') &&
           confirmReady() &&
           incoming().status == 'recently_confirmed' &&
           incoming().diff(existing()).affectedKeys().hasOnly([
@@ -398,6 +442,8 @@ service cloud.firestore {
       function ownerBump() {
         return ownsJob() &&
           existing().status != 'closed' &&
+          existing().status != 'pending_review' &&
+          (!existing().keys().hasAny(['moderationStatus']) || existing().moderationStatus == 'approved') &&
           bumpReady() &&
           incoming().status == existing().status &&
           incoming().diff(existing()).affectedKeys().hasOnly([
@@ -416,12 +462,11 @@ service cloud.firestore {
           incoming().diff(existing()).affectedKeys().hasOnly(['userEmail']);
       }
 
-      allow get: if existing().status != 'closed' || isAdmin() || ownsJob();
+      allow get: if publicJobReadable(existing()) || isAdmin() || ownsJob();
 
-      // Queries remain compatible with Firestore's "rules are not filters"
-      // model. Historical userEmail cleanup is performed by authenticated
-      // owners/admins; all new writes reject that field below.
-      allow list: if existing().status != 'closed' || isAdmin() || ownsJob();
+      // Public queries explicitly constrain status to public states. Pending
+      // employer submissions are readable only by their owner and admins.
+      allow list: if publicJobReadable(existing()) || isAdmin() || ownsJob();
 
       allow create: if isValidId(jobId) &&
         validJobCore(incoming()) &&
@@ -432,17 +477,20 @@ service cloud.firestore {
             isSignedIn() &&
             incoming().keys().hasAll([
               'userId', 'createdAt', 'createdAtServer', 'activityAt',
-              'lastBumpedAt', 'lastConfirmedAt', 'lastConfirmedAtServer'
+              'moderationStatus', 'complianceAccepted', 'complianceAcceptedAt'
             ]) &&
             incoming().userId == request.auth.uid &&
             (!incoming().keys().hasAny(['sourceType']) || incoming().sourceType == 'employer') &&
-            incoming().status == 'recently_confirmed' &&
+            incoming().status == 'pending_review' &&
+            incoming().moderationStatus == 'pending' &&
+            incoming().complianceAccepted == true &&
+            incoming().complianceAcceptedAt == request.time &&
+            incoming().jobType is string &&
+            incoming().jobType != 'عمل حر / بالقطعة' &&
             incoming().createdAt is string &&
             incoming().createdAtServer == request.time &&
             incoming().activityAt == request.time &&
-            incoming().lastBumpedAt == request.time &&
-            incoming().lastConfirmedAt is string &&
-            incoming().lastConfirmedAtServer == request.time
+            !incoming().keys().hasAny(['reviewedAt', 'reviewedAtServer', 'reviewedBy'])
           )
         );
 
@@ -484,7 +532,7 @@ service cloud.firestore {
         applicationId == incoming().jobId + '__' + request.auth.uid &&
         applicantOwnsCandidate(incoming()) &&
         applicationJobExists(incoming()) &&
-        applicationJob(incoming()).status != 'closed' &&
+        publicJobReadable(applicationJob(incoming())) &&
         applicationJob(incoming()).keys().hasAll(['userId']) &&
         applicationJob(incoming()).userId == incoming().employerUid &&
         incoming().employerUid != request.auth.uid;
@@ -555,7 +603,7 @@ service cloud.firestore {
         incoming().fullName is string && incoming().fullName.size() > 0 && incoming().fullName.size() <= 100 &&
         incoming().profession is string && incoming().profession.size() <= 100 &&
         incoming().city is string && incoming().city.size() <= 50 &&
-        incoming().iqamaStatus is string && incoming().iqamaStatus.size() <= 80 &&
+        allowedCandidateIqamaStatus(incoming().iqamaStatus) &&
         incoming().bio is string && incoming().bio.size() <= 2000 &&
         (!incoming().keys().hasAny(['hobbies']) || (incoming().hobbies is list && incoming().hobbies.size() <= 12)) &&
         (!incoming().keys().hasAny(['noExperience']) || incoming().noExperience is bool) &&
@@ -580,6 +628,7 @@ service cloud.firestore {
             'nationality', 'phoneVerified', 'updatedAt', 'views',
             'phone', 'phoneE164', 'whatsapp', 'userEmail', 'userId'
           ]) &&
+          allowedCandidateIqamaStatus(incoming().iqamaStatus) &&
           (!incoming().keys().hasAny(['hobbies']) || (incoming().hobbies is list && incoming().hobbies.size() <= 12)) &&
           (!incoming().keys().hasAny(['noExperience']) || incoming().noExperience is bool) &&
           verifiedPublicStateMatchesContact(candidateId, incoming())

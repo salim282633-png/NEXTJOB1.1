@@ -31,7 +31,13 @@ export interface Job {
   lastBumpedAt?: Timestamp;
   closedAt?: Timestamp;
   reopenedAt?: Timestamp;
-  status: 'active' | 'recently_confirmed' | 'awaiting_confirmation' | 'closed';
+  status: 'pending_review' | 'active' | 'recently_confirmed' | 'awaiting_confirmation' | 'closed';
+  moderationStatus?: 'pending' | 'approved' | 'rejected';
+  reviewedAt?: string;
+  reviewedAtServer?: Timestamp;
+  reviewedBy?: string;
+  complianceAccepted?: boolean;
+  complianceAcceptedAt?: Timestamp;
   views?: number;
   urgent?: boolean;
   urgentExpiresAt?: string;
@@ -48,7 +54,7 @@ export interface Candidate {
   profession: string;
   city: string;
   yemeniGovernorate: string;
-  iqamaStatus: 'إقامة سارية وقابلة للنقل' | 'تأشيرة زيارة / هوية زائر' | 'إقامة سارية دون نقل' | 'مهن فردية / سائق خاص' | 'أخرى';
+  iqamaStatus: 'إقامة سارية وقابلة للنقل' | 'إقامة سارية دون نقل' | 'مهن فردية / سائق خاص' | 'أخرى';
   experienceYears: string;
   phone?: string;
   phoneE164?: string;
