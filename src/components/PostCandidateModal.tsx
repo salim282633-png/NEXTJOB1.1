@@ -313,6 +313,7 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
             id="btn-close-post-candidate"
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+            aria-label="إغلاق نافذة إضافة الملف المهني"
           >
             <X className="w-5 h-5" />
           </button>
@@ -411,11 +412,11 @@ export const PostCandidateModal: React.FC<PostCandidateModalProps> = ({
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               >
                 <option value="إقامة سارية وقابلة للنقل">إقامة سارية وقابلة للنقل</option>
-                <option value="تأشيرة زيارة / هوية زائر">تأشيرة زيارة / هوية زائر</option>
                 <option value="إقامة سارية دون نقل">إقامة سارية دون نقل</option>
                 <option value="مهن فردية / سائق خاص">مهن فردية / سائق خاص</option>
                 <option value="أخرى">أخرى</option>
               </select>
+              <p className="mt-1.5 text-[10px] leading-5 text-slate-500">لا يظهر خيار الزيارة/هوية زائر ضمن ملفات الباحثين عن عمل.</p>
             </div>
           </div>
 
