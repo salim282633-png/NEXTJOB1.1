@@ -8,6 +8,7 @@ on:
     paths:
       - 'config/job-sources.json'
       - 'scripts/sync-external-jobs.mjs'
+      - 'scripts/filter-yemeni-target-jobs.mjs'
       - 'scripts/validate-external-jobs.mjs'
       - 'data/manual-external-jobs.json'
       - '.github/workflows/external-jobs-sync.yml'
@@ -44,8 +45,12 @@ jobs:
       - name: Fetch and normalize public source jobs
         run: npm run jobs:sync
 
+      - name: Apply Yemeni audience targeting and Arabic display
+        run: node scripts/filter-yemeni-target-jobs.mjs
+
       - name: Verify generated feed and application destinations
         run: |
+          node scripts/filter-yemeni-target-jobs.mjs --check
           npm run jobs:check
           npm audit --omit=dev --audit-level=high
           npm run security:check
@@ -64,10 +69,7 @@ jobs:
           fi
           git config user.name "nextjob-source-bot"
           git config user.email "nextjob-source-bot@users.noreply.github.com"
-          git commit -m "Sync trusted external job sources"
-          # Production-build checks intentionally rewrite a few static HTML files.
-          # Only the validated job feed + health report belong in this bot commit;
-          # restore all remaining worktree-only check output before rebasing/pushing.
+          git commit -m "Sync targeted Arabic jobs for Yemeni audience"
           git restore --worktree -- .
           BRANCH="${GITHUB_REF_NAME:-main}"
           git pull --rebase origin "$BRANCH"
