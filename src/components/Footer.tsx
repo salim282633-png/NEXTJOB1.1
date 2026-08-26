@@ -39,7 +39,7 @@ export const Footer: React.FC<FooterProps> = ({
               <span className="text-xl font-black text-white">NEXT<span className="text-emerald-400">JOB</span></span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed">
-              NEXT JOB منصة تقنية مستقلة لعرض فرص العمل والملفات المهنية وتسهيل التواصل المباشر بين الباحثين وأصحاب العمل داخل السعودية، دون عمولة توظيف من المنصة.
+              NEXT JOB منصة تقنية مستقلة لعرض إعلانات الفرص المهنية والملفات المهنية التي ينشرها المستخدمون، مع تواصل مباشر بين الأطراف دون عمولة من المنصة على التوظيف.
             </p>
             <div className="flex items-start gap-2 text-xs text-emerald-400 font-semibold pt-1 leading-relaxed">
               <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
@@ -50,10 +50,10 @@ export const Footer: React.FC<FooterProps> = ({
           <div className="space-y-3">
             <h4 className="text-sm font-bold text-white">أقسام المنصة</h4>
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
-              <li><button onClick={() => onNavigate('jobs')} className="hover:text-emerald-400 transition-colors">فرص العمل الشاغرة</button></li>
-              <li><button onClick={() => onNavigate('candidates')} className="hover:text-emerald-400 transition-colors">دليل الكفاءات والباحثين</button></li>
+              <li><button onClick={() => onNavigate('jobs')} className="hover:text-emerald-400 transition-colors">إعلانات الفرص المهنية</button></li>
+              <li><button onClick={() => onNavigate('candidates')} className="hover:text-emerald-400 transition-colors">دليل الملفات المهنية</button></li>
               <li><button onClick={() => onNavigate('guide')} className="hover:text-emerald-400 transition-colors">دليل العمل والمصادر الرسمية</button></li>
-              <li><button onClick={() => onNavigate('saved')} className="hover:text-emerald-400 transition-colors">الوظائف المحفوظة</button></li>
+              <li><button onClick={() => onNavigate('saved')} className="hover:text-emerald-400 transition-colors">الإعلانات المحفوظة</button></li>
             </ul>
           </div>
 
@@ -71,7 +71,7 @@ export const Footer: React.FC<FooterProps> = ({
             <h4 className="text-sm font-bold text-white">الأمان والامتثال</h4>
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
               {onOpenPrivacy && <li><button onClick={onOpenPrivacy} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><FileLock2 className="w-3.5 h-3.5 text-sky-400" /><span>الخصوصية وشروط الاستخدام</span></button></li>}
-              <li><a href="/compliance/" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /><span>سياسة الامتثال ونشر الوظائف</span></a></li>
+              <li><a href="/compliance/" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /><span>سياسة الامتثال ونشر الإعلانات</span></a></li>
               <li>
                 <button
                   onClick={() => {
@@ -95,9 +95,9 @@ export const Footer: React.FC<FooterProps> = ({
         </div>
 
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} NEXT JOB — منصة تقنية مستقلة لعرض الفرص والتواصل المباشر.</p>
+          <p>© {new Date().getFullYear()} NEXT JOB — منصة تقنية مستقلة لعرض الإعلانات المهنية والتواصل المباشر.</p>
           <div className="flex flex-wrap items-center justify-center gap-2 text-slate-400 text-[11px]">
-            <span>ليست جهة حكومية</span><span>•</span><span>ليست مكتب استقدام أو شركة إسناد عمالي</span>
+            <span>ليست جهة حكومية</span><span>•</span><span>ليست مكتب استقدام أو شركة توظيف أو إسناد عمالي</span>
           </div>
         </div>
       </div>
