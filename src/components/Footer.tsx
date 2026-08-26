@@ -1,17 +1,13 @@
 import React from 'react';
-import { 
-  Briefcase, 
-  ShieldCheck, 
-  Heart, 
-  ExternalLink, 
-  Calculator, 
-  FileText, 
-  Share2, 
-  ShieldAlert, 
-  FileLock2, 
-  Settings,
-  Sparkles,
-  Award
+import {
+  Briefcase,
+  ShieldCheck,
+  Calculator,
+  FileText,
+  Share2,
+  ShieldAlert,
+  FileLock2,
+  Settings
 } from 'lucide-react';
 
 interface FooterProps {
@@ -24,7 +20,7 @@ interface FooterProps {
   onOpenAdminSEO?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ 
+export const Footer: React.FC<FooterProps> = ({
   onNavigate,
   onOpenWageCalc,
   onOpenCVGen,
@@ -36,148 +32,74 @@ export const Footer: React.FC<FooterProps> = ({
   return (
     <footer className="bg-slate-900 text-slate-300 pt-12 pb-10 border-t border-slate-800 text-xs sm:text-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-        
-        {/* Main Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          
-          {/* Col 1: Brand & Philosophy */}
           <div className="space-y-3 md:col-span-1">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold">
-                <Briefcase className="w-5 h-5" />
-              </div>
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold"><Briefcase className="w-5 h-5" /></div>
               <span className="text-xl font-black text-white">NEXT<span className="text-emerald-400">JOB</span></span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed">
-              NEXT JOB منصة تقنية تربط اليمنيين المقيمين في السعودية بفرص العمل المناسبة، وتسهّل التواصل المباشر مع أصحاب العمل مجانًا ودون عمولات توظيف.
+              NEXT JOB منصة تقنية مستقلة لعرض فرص العمل والملفات المهنية وتسهيل التواصل المباشر بين الباحثين وأصحاب العمل داخل السعودية، دون عمولة توظيف من المنصة.
             </p>
-            <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold pt-1">
-              <ShieldCheck className="w-4 h-4" />
-              <span>البحث عن الوظائف والتقديم والتواصل مع أصحاب العمل عبر NEXT JOB مجاني بالكامل.</span>
+            <div className="flex items-start gap-2 text-xs text-emerald-400 font-semibold pt-1 leading-relaxed">
+              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>المنصة لا تنفذ الاستقدام أو الإسناد العمالي أو نقل الخدمات أو العقود نيابة عن الأطراف.</span>
             </div>
           </div>
 
-          {/* Col 2: Navigation Links */}
           <div className="space-y-3">
             <h4 className="text-sm font-bold text-white">أقسام المنصة</h4>
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
-              <li>
-                <button onClick={() => onNavigate('jobs')} className="hover:text-emerald-400 transition-colors">
-                  فرص العمل الشاغرة
-                </button>
-              </li>
-              <li>
-                <button onClick={() => onNavigate('candidates')} className="hover:text-emerald-400 transition-colors">
-                  دليل الكفاءات والباحثين
-                </button>
-              </li>
-              <li>
-                <button onClick={() => onNavigate('guide')} className="hover:text-emerald-400 transition-colors">
-                  دليل نظام العمل وقوى
-                </button>
-              </li>
-              <li>
-                <button onClick={() => onNavigate('saved')} className="hover:text-emerald-400 transition-colors">
-                  الوظائف المحفوظة
-                </button>
-              </li>
+              <li><button onClick={() => onNavigate('jobs')} className="hover:text-emerald-400 transition-colors">فرص العمل الشاغرة</button></li>
+              <li><button onClick={() => onNavigate('candidates')} className="hover:text-emerald-400 transition-colors">دليل الكفاءات والباحثين</button></li>
+              <li><button onClick={() => onNavigate('guide')} className="hover:text-emerald-400 transition-colors">دليل العمل والمصادر الرسمية</button></li>
+              <li><button onClick={() => onNavigate('saved')} className="hover:text-emerald-400 transition-colors">الوظائف المحفوظة</button></li>
             </ul>
           </div>
 
-          {/* Col 3: Smart Tools & Services */}
           <div className="space-y-3">
-            <h4 className="text-sm font-bold text-white">أدوات وخدمات مجانية</h4>
+            <h4 className="text-sm font-bold text-white">أدوات وخدمات</h4>
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
-              {onOpenCVGen && (
-                <li>
-                  <button onClick={onOpenCVGen} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>صانع السيرة الذاتية A4 المجاني</span>
-                  </button>
-                </li>
-              )}
-              {onOpenWageCalc && (
-                <li>
-                  <button onClick={onOpenWageCalc} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5">
-                    <Calculator className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>حاسبة صافي الدخل والادخار</span>
-                  </button>
-                </li>
-              )}
-              {onOpenCommunityJob && (
-                <li>
-                  <button onClick={onOpenCommunityJob} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5">
-                    <Share2 className="w-3.5 h-3.5 text-teal-400" />
-                    <span>شارك إعلاناً رأيته (فرصة مجتمعية)</span>
-                  </button>
-                </li>
-              )}
-              {onOpenAdminSEO && (
-                <li>
-                  <button onClick={onOpenAdminSEO} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5">
-                    <Settings className="w-3.5 h-3.5 text-slate-400" />
-                    <span>لوحة تحكم السيو والإدارة</span>
-                  </button>
-                </li>
-              )}
+              {onOpenCVGen && <li><button onClick={onOpenCVGen} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><FileText className="w-3.5 h-3.5 text-emerald-500" /><span>صانع السيرة الذاتية</span></button></li>}
+              {onOpenWageCalc && <li><button onClick={onOpenWageCalc} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><Calculator className="w-3.5 h-3.5 text-emerald-500" /><span>حاسبة صافي الدخل والادخار</span></button></li>}
+              {onOpenCommunityJob && <li><button onClick={onOpenCommunityJob} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><Share2 className="w-3.5 h-3.5 text-teal-400" /><span>شارك فرصة رأيتها للمراجعة</span></button></li>}
+              {onOpenAdminSEO && <li><button onClick={onOpenAdminSEO} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><Settings className="w-3.5 h-3.5 text-slate-400" /><span>لوحة الإدارة</span></button></li>}
             </ul>
           </div>
 
-          {/* Col 4: Safety, Legal & Privacy */}
           <div className="space-y-3">
-            <h4 className="text-sm font-bold text-white">الأمان والخصوصية</h4>
+            <h4 className="text-sm font-bold text-white">الأمان والامتثال</h4>
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
-              {onOpenPrivacy && (
-                <li>
-                  <button onClick={onOpenPrivacy} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5">
-                    <FileLock2 className="w-3.5 h-3.5 text-sky-400" />
-                    <span>سياسة الخصوصية وشروط الاستخدام</span>
-                  </button>
-                </li>
-              )}
+              {onOpenPrivacy && <li><button onClick={onOpenPrivacy} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><FileLock2 className="w-3.5 h-3.5 text-sky-400" /><span>الخصوصية وشروط الاستخدام</span></button></li>}
+              <li><a href="/compliance/" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /><span>سياسة الامتثال ونشر الوظائف</span></a></li>
               <li>
-                <button 
+                <button
                   onClick={() => {
                     if (typeof window !== 'undefined' && (window as any).googlefc?.callbackQueue?.push) {
                       (window as any).googlefc.callbackQueue.push({
-                        'CONSENT_DATA_READY': () => (window as any).googlefc.showRevocationMessage()
+                        CONSENT_DATA_READY: () => (window as any).googlefc.showRevocationMessage()
                       });
                     } else {
                       window.dispatchEvent(new CustomEvent('reopen_cookie_consent'));
                     }
-                  }} 
+                  }}
                   className="hover:text-emerald-400 transition-colors flex items-center gap-1.5 text-slate-400"
                 >
-                  <Settings className="w-3.5 h-3.5 text-slate-400" />
-                  <span>إعدادات الخصوصية وملفات تعريف الارتباط</span>
+                  <Settings className="w-3.5 h-3.5 text-slate-400" /><span>إعدادات الخصوصية والكوكيز</span>
                 </button>
               </li>
-              {onOpenReportFraud && (
-                <li>
-                  <button onClick={onOpenReportFraud} className="hover:text-rose-400 transition-colors flex items-center gap-1.5 text-rose-300">
-                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                    <span>إبلاغ عن احتيال أو طلب رسوم</span>
-                  </button>
-                </li>
-              )}
-              <li className="text-[11px] text-amber-400/90 pt-2 leading-relaxed font-semibold">
-                تنبيه: لا تدفع أي مبلغ مقابل وعد بالحصول على وظيفة، وأبلغنا فوراً عن أي طلب مالي مشبوه.
-              </li>
+              {onOpenReportFraud && <li><button onClick={onOpenReportFraud} className="hover:text-rose-400 transition-colors flex items-center gap-1.5 text-rose-300"><ShieldAlert className="w-3.5 h-3.5 text-rose-400" /><span>إبلاغ عن احتيال أو طلب رسوم</span></button></li>}
+              <li className="text-[11px] text-amber-400/90 pt-2 leading-relaxed font-semibold">لا تدفع أي مبلغ مقابل وعد بالحصول على وظيفة، ولا تشارك رموز التحقق أو بيانات الدخول الحكومية.</li>
             </ul>
           </div>
-
         </div>
 
-        {/* Bottom copyright & disclaimer */}
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} NEXT JOB (نكست جوب) - منصة توظيف تقنية مرخصة ومطابقة للأنظمة.</p>
-          <div className="flex items-center gap-3 text-slate-400 text-[11px]">
-            <span>متوافقة مع معايير الخصوصية</span>
-            <span>•</span>
-            <span>نظام Zero-PII للتحليلات الآمنة</span>
+          <p>© {new Date().getFullYear()} NEXT JOB — منصة تقنية مستقلة لعرض الفرص والتواصل المباشر.</p>
+          <div className="flex flex-wrap items-center justify-center gap-2 text-slate-400 text-[11px]">
+            <span>ليست جهة حكومية</span><span>•</span><span>ليست مكتب استقدام أو شركة إسناد عمالي</span>
           </div>
         </div>
-
       </div>
     </footer>
   );
