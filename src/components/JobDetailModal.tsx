@@ -11,12 +11,21 @@ interface JobDetailModalProps {
   onReportFraud?: (job: Job) => void;
 }
 
+function formatSourceDate(value?: string): string {
+  if (!value) return 'غير محدد';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory', { year: 'numeric', month: 'short', day: 'numeric' }).format(date);
+}
+
 export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, onClose, isSaved, onToggleSave, onReportFraud }) => {
   const [sharing, setSharing] = useState(false);
 
   if (!job) return null;
 
   const applyUrl = job.applyUrl || job.sourceUrl || '#';
+  const sourceDate = formatSourceDate(job.sourcePublishedAt || job.createdAt);
+  const verifiedDate = formatSourceDate(job.sourceVerifiedAt);
 
   const share = async () => {
     setSharing(true);
@@ -49,6 +58,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, onClose, is
           <div>
             <h2 id="job-detail-title" className="text-2xl font-black text-slate-900">{job.title}</h2>
             <div className="flex flex-wrap gap-4 mt-2 text-sm text-slate-600"><span className="flex gap-1"><Building2 className="w-4 h-4 text-emerald-600" />{job.company}</span><span className="flex gap-1"><MapPin className="w-4 h-4" />{job.city}</span></div>
+            {job.sourceLocation && <p className="mt-2 text-xs text-slate-500">الموقع كما ورد في المصدر: <span dir="auto">{job.sourceLocation}</span></p>}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -59,7 +69,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, onClose, is
           </div>
 
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-950 leading-relaxed">
-            <strong>تنبيه:</strong> NEXT JOB يعرض ملخصًا وإحالة فقط. راجع المصدر الأصلي للتحقق من المتطلبات والتفاصيل وحداثة الإعلان قبل التقديم.
+            <strong>تنبيه:</strong> NEXT JOB يعرض فهرسة وملخصًا فقط. الأهلية والجنسية والإقامة والخبرة والمزايا يحددها الإعلان الأصلي؛ راجع المصدر قبل التقديم.
           </div>
 
           <div><h3 className="font-bold flex gap-2 mb-2"><Briefcase className="w-4 h-4 text-emerald-600" />ملخص الفرصة</h3><div className="bg-slate-50 border rounded-2xl p-4 text-sm whitespace-pre-line leading-relaxed">{job.description}</div></div>
@@ -67,7 +77,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, onClose, is
 
           <div className="rounded-3xl bg-slate-900 p-5 text-white space-y-3">
             <h4 className="font-bold">المصدر والتقديم</h4>
-            <p className="text-xs leading-6 text-slate-300">المصدر: {job.sourceName || 'المصدر الأصلي'}{job.sourcePublishedAt ? ` · تاريخ النشر: ${job.sourcePublishedAt}` : ''}</p>
+            <p className="text-xs leading-6 text-slate-300">المصدر: {job.sourceName || 'المصدر الأصلي'} · تاريخ المصدر: {sourceDate}{job.sourceVerifiedAt ? ` · آخر تحقق: ${verifiedDate}` : ''}</p>
             <div className="grid sm:grid-cols-2 gap-3">
               <a href={applyUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3 bg-emerald-500 text-slate-950 font-bold rounded-2xl"><ExternalLink className="w-5 h-5" />التقديم عبر المصدر الأصلي</a>
               {job.sourceUrl && <a href={job.sourceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3 bg-white/10 border border-white/20 rounded-2xl font-bold"><ExternalLink className="w-5 h-5 text-emerald-400" />عرض الإعلان الأصلي</a>}
