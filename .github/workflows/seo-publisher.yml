@@ -1,0 +1,116 @@
+name: NEXT JOB SEO Publisher
+
+on:
+  schedule:
+    # Two off-peak checks per hour. The publisher itself enforces
+    # a minimum one-hour interval between successful articles.
+    - cron: '17,47 * * * *'
+  push:
+    paths:
+      - 'seo/publisher-trigger.txt'
+      - '.github/workflows/seo-publisher.yml'
+  workflow_dispatch:
+    inputs:
+      keyword:
+        description: 'اختياري: كلمة مستهدفة يجب أن تخص اليمنيين + الوظائف + السعودية'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nextjob-seo-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Generate one article when eligible
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-3.6-flash
+          GEMINI_MAX_MODEL_ATTEMPTS: 4
+          SEO_MIN_PUBLISH_INTERVAL_HOURS: 1
+          PUBLIC_SITE_URL: https://nextjob1-1.onrender.com
+          SEO_KEYWORD: ${{ github.event.inputs.keyword || '' }}
+        run: |
+          node scripts/run-seo-publisher-with-fallback.mjs
+          node scripts/normalize-content-hub-seo.mjs
+          node scripts/style-guide-index.mjs
+          node scripts/style-guide-articles.mjs
+          node scripts/apply-static-typography.mjs public/guide
+          node scripts/normalize-content-hub-seo.mjs
+
+      - name: Verify article and production build
+        run: |
+          npm audit --omit=dev --audit-level=high
+          npm run seo:check
+          npm run jobs:check
+          npm run security:check
+          npm run lint
+          npm run build
+
+      - name: Publish article to latest main without rebase conflicts
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA="$(git rev-parse HEAD)"
+          git add -A public/guide public/sitemap.xml seo
+
+          if git diff --cached --quiet; then
+            echo "No article is due yet; publisher completed normally."
+            git restore --staged --worktree -- .
+            exit 0
+          fi
+
+          TMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TMP_DIR"' EXIT
+          tar -czf "$TMP_DIR/seo-output.tgz" public/guide public/sitemap.xml seo
+
+          git restore --staged --worktree -- .
+          git fetch origin main
+
+          # Never merge generated article snapshots. If another publisher changed
+          # SEO outputs while this run was generating, keep the newer remote result.
+          if ! git diff --quiet "$BASE_SHA" origin/main -- public/guide public/sitemap.xml seo; then
+            echo "Concurrent SEO publication detected; newer main content is kept."
+            git reset --hard origin/main
+            exit 0
+          fi
+
+          git reset --hard origin/main
+          tar -xzf "$TMP_DIR/seo-output.tgz"
+          git add -A public/guide public/sitemap.xml seo
+
+          if git diff --cached --quiet; then
+            echo "SEO output is already present on latest main."
+            exit 0
+          fi
+
+          git config user.name "nextjob-seo-bot"
+          git config user.email "nextjob-seo-bot@users.noreply.github.com"
+          git commit -m "Publish Yemen-focused SEO article"
+          git push origin HEAD:main
+
+      - name: Persist published articles in Firestore
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: npx tsx scripts/sync-firestore-content.ts --articles
