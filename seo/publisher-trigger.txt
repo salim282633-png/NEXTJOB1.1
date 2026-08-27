@@ -1,2 +1,2 @@
-trigger-id: verify-conflict-safe-publisher-20260827-0948
-reason: verify final conflict-safe SEO auto publisher workflow
+trigger-id: verify-gemini-discovery-fallback-20260827-1612
+reason: verify restored scheduled SEO publisher after model discovery fallback fix
