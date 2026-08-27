@@ -1,2 +1,2 @@
-trigger-id: repair-auto-publisher-20260827-0943
-reason: verify repaired automatic SEO publisher end-to-end after scheduled publishing stopped
+trigger-id: verify-seo-auto-publisher-v2-20260827-0944
+reason: end-to-end verification of the new active SEO auto publisher workflow
