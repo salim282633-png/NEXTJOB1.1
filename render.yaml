@@ -15,3 +15,15 @@ services:
       - type: rewrite
         source: /admin/*
         destination: /admin/index.html
+
+  - type: cron
+    name: nextjob-seo-scheduler
+    runtime: node
+    repo: https://github.com/salim282633-png/NEXTJOB1.1
+    branch: main
+    schedule: '7,17,27,37,47,57 * * * *'
+    buildCommand: echo "No build required"
+    startCommand: node scripts/trigger-seo-workflow.mjs
+    envVars:
+      - key: GITHUB_ACTIONS_TOKEN
+        sync: false
