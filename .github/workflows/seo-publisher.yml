@@ -2,9 +2,10 @@ name: NEXT JOB SEO Publisher
 
 on:
   schedule:
-    # Two off-peak checks per hour. The publisher itself enforces
-    # a minimum one-hour interval between successful articles.
-    - cron: '17,47 * * * *'
+    # Retry every 10 minutes at off-peak minute offsets. A lightweight
+    # eligibility gate below prevents heavy work until one hour has passed
+    # since the latest successful article.
+    - cron: '7,17,27,37,47,57 * * * *'
   push:
     paths:
       - 'seo/publisher-trigger.txt'
@@ -34,16 +35,63 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Check scheduled publish eligibility
+        id: eligibility
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Push/manual runs are verification runs and should execute fully.
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+            echo "Non-scheduled verification run: full publisher enabled."
+            exit 0
+          fi
+
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'public/guide/articles.json';
+          const output = process.env.GITHUB_OUTPUT;
+          const intervalMs = 60 * 60 * 1000;
+          let latest = null;
+
+          try {
+            const articles = JSON.parse(fs.readFileSync(path, 'utf8'));
+            for (const article of Array.isArray(articles) ? articles : []) {
+              const value = article?.publishedAt || article?.publishedDate;
+              const timestamp = value ? Date.parse(value) : NaN;
+              if (Number.isFinite(timestamp) && (latest === null || timestamp > latest)) latest = timestamp;
+            }
+          } catch (error) {
+            console.warn(`Could not read ${path}; allowing publisher to decide eligibility: ${error.message}`);
+          }
+
+          const eligible = latest === null || Date.now() >= latest + intervalMs;
+          fs.appendFileSync(output, `eligible=${eligible}\n`);
+
+          if (latest === null) {
+            console.log('No valid previous publication timestamp found; publisher is eligible.');
+          } else {
+            console.log(`Latest article: ${new Date(latest).toISOString()}`);
+            console.log(eligible
+              ? 'One-hour interval has passed; full publisher is eligible.'
+              : `Cooldown active until ${new Date(latest + intervalMs).toISOString()}; scheduled check ends safely.`);
+          }
+          NODE
+
       - name: Setup Node
+        if: steps.eligibility.outputs.eligible == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
 
       - name: Install locked dependencies
+        if: steps.eligibility.outputs.eligible == 'true'
         run: npm ci
 
       - name: Generate one article when eligible
+        if: steps.eligibility.outputs.eligible == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.6-flash
@@ -60,6 +108,7 @@ jobs:
           node scripts/normalize-content-hub-seo.mjs
 
       - name: Verify article and production build
+        if: steps.eligibility.outputs.eligible == 'true'
         run: |
           npm audit --omit=dev --audit-level=high
           npm run seo:check
@@ -69,6 +118,7 @@ jobs:
           npm run build
 
       - name: Publish article to latest main without rebase conflicts
+        if: steps.eligibility.outputs.eligible == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -111,6 +161,7 @@ jobs:
           git push origin HEAD:main
 
       - name: Persist published articles in Firestore
+        if: steps.eligibility.outputs.eligible == 'true'
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: npx tsx scripts/sync-firestore-content.ts --articles
