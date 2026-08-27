@@ -2,12 +2,16 @@ name: NEXT JOB SEO Auto Publisher
 
 on:
   schedule:
-    # GitHub schedules can be delayed or occasionally dropped. Check four times
-    # per hour while the publisher itself enforces one successful article/hour.
-    - cron: '11,26,41,56 * * * *'
+    # Use separate cron entries so GitHub registers each schedule explicitly.
+    # The publisher itself still enforces one successful article per hour.
+    - cron: '11 * * * *'
+    - cron: '26 * * * *'
+    - cron: '41 * * * *'
+    - cron: '56 * * * *'
   push:
     paths:
       - 'seo/publisher-trigger.txt'
+      - '.github/workflows/seo-auto-publisher.yml'
   workflow_dispatch:
     inputs:
       keyword:
