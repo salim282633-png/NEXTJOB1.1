@@ -23,6 +23,15 @@ function unique(values) {
   return [...new Set(values.filter(Boolean))];
 }
 
+const STATIC_FALLBACK_MODELS = unique([
+  PREFERRED_MODEL,
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
+  'gemini-3.7-flash',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite'
+]);
+
 function getLatestPublishedAt() {
   try {
     const raw = readFileSync(ARTICLES_INDEX, 'utf8');
@@ -112,7 +121,7 @@ function shouldAbortWithoutFallback(output) {
 }
 
 function shouldTryAnotherModel(output) {
-  return /\b404\b|NOT_FOUND|no longer available|not available|unsupported model|\b429\b|RESOURCE_EXHAUSTED|rate limit|quota exceeded|\b500\b|\b502\b|\b503\b|\b504\b|INTERNAL|UNAVAILABLE|DEADLINE_EXCEEDED|overloaded|Article failed production quality gates/i.test(output);
+  return /\b403\b|Forbidden|\b404\b|NOT_FOUND|no longer available|not available|unsupported model|\b429\b|RESOURCE_EXHAUSTED|rate limit|quota exceeded|\b500\b|\b502\b|\b503\b|\b504\b|INTERNAL|UNAVAILABLE|DEADLINE_EXCEEDED|overloaded|Article failed production quality gates/i.test(output);
 }
 
 function runPublisher(model) {
@@ -147,29 +156,35 @@ async function main() {
     return;
   }
 
-  let discovered;
+  let discovered = [];
+  let discoveryAvailable = true;
 
   try {
     discovered = await fetchAvailableGenerateContentModels();
   } catch (error) {
-    console.error('SEO publisher could not discover Gemini models:', error);
-    process.exitCode = 1;
-    return;
+    discoveryAvailable = false;
+    console.warn(
+      'SEO publisher model discovery is unavailable; continuing with known generateContent models instead:',
+      error?.message || error
+    );
   }
 
-  const candidates = unique([
-    PREFERRED_MODEL,
-    ...discovered
-  ]).filter(model => discovered.includes(model) || model === PREFERRED_MODEL);
+  const candidates = discovered.length
+    ? unique([PREFERRED_MODEL, ...discovered, ...STATIC_FALLBACK_MODELS])
+    : STATIC_FALLBACK_MODELS;
 
   if (!candidates.length) {
-    console.error('SEO publisher found no Gemini models that support generateContent.');
+    console.error('SEO publisher found no Gemini model candidates.');
     process.exitCode = 1;
     return;
   }
 
   const attempts = candidates.slice(0, MAX_ATTEMPTS);
-  console.log(`SEO publisher discovered ${discovered.length} generateContent model(s).`);
+  if (discoveryAvailable) {
+    console.log(`SEO publisher discovered ${discovered.length} generateContent model(s).`);
+  } else {
+    console.log('SEO publisher bypassed model discovery safely.');
+  }
   console.log(`SEO publisher fallback order: ${attempts.join(' -> ')}`);
 
   let lastFailure = '';
