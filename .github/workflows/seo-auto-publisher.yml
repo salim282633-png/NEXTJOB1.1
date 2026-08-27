@@ -67,26 +67,48 @@ jobs:
           npm run lint
           npm run build
 
-      - name: Publish article to main
+      - name: Publish article to latest main without rebase conflicts
         shell: bash
         run: |
           set -euo pipefail
+          BASE_SHA="$(git rev-parse HEAD)"
           git add -A public/guide public/sitemap.xml seo
+
           if git diff --cached --quiet; then
             echo "No article is due yet; publisher completed normally."
-            git restore --worktree -- .
+            git restore --staged --worktree -- .
+            exit 0
+          fi
+
+          TMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TMP_DIR"' EXIT
+          tar -czf "$TMP_DIR/seo-output.tgz" public/guide public/sitemap.xml seo
+
+          git restore --staged --worktree -- .
+          git fetch origin main
+
+          # Never merge generated article snapshots. If another publisher changed
+          # SEO outputs while this run was generating, keep the newer remote
+          # result and let the next scheduled run decide whether another article
+          # is due. This avoids duplicate slugs and rebase conflicts.
+          if ! git diff --quiet "$BASE_SHA" origin/main -- public/guide public/sitemap.xml seo; then
+            echo "Concurrent SEO publication detected; newer main content is kept."
+            git reset --hard origin/main
+            exit 0
+          fi
+
+          git reset --hard origin/main
+          tar -xzf "$TMP_DIR/seo-output.tgz"
+          git add -A public/guide public/sitemap.xml seo
+
+          if git diff --cached --quiet; then
+            echo "SEO output is already present on latest main."
             exit 0
           fi
 
           git config user.name "nextjob-seo-bot"
           git config user.email "nextjob-seo-bot@users.noreply.github.com"
           git commit -m "Publish Yemen-focused SEO article"
-
-          # Verification may rewrite files outside the committed SEO outputs.
-          # Remove those worktree-only changes before rebasing onto current main.
-          git restore --worktree -- .
-          git fetch origin main
-          git rebase origin/main
           git push origin HEAD:main
 
       - name: Persist published articles in Firestore
