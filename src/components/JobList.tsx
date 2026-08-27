@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowUpDown, BriefcaseBusiness, RefreshCw, Search, ShieldCheck } from 'lucide-react';
+import { ArrowUpDown, BriefcaseBusiness, RefreshCw, Search } from 'lucide-react';
 import { Job, JobFilter } from '../types';
 import { JobCard } from './JobCard';
 import { freshnessMatches, jobActivityMs, salaryMatches, salarySortValue } from '../lib/jobDiscovery';
@@ -87,19 +87,14 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
 
   return (
     <section className="py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs leading-6 text-emerald-950 flex items-start gap-2">
-        <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-1" />
-        <p><strong>طريقة عمل هذا القسم:</strong> NEXT JOB يفهرس معلومات مختصرة من مصادر مسموحة أو مراجعة يدويًا، ويستبعد الوظائف المقصورة على السعوديين والمؤهلات الجامعية المطلوبة. الفرص التي تطلب يمنيين صراحة تظهر بأولوية قصوى.</p>
-      </div>
-
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900">فرص وظيفية مناسبة للجمهور المستهدف</h2>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900">فرص وظيفية متاحة</h2>
               <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">{filteredJobs.length} فرصة</span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">الأولوية لإعلانات «مطلوب يمنيين» ثم الوظائف التشغيلية والبسيطة المناسبة للثانوية أو بدون شهادة جامعية.</p>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">اكتشف الفرص الأحدث واستخدم الفلاتر للوصول إلى الأنسب لك.</p>
           </div>
 
           <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 text-xs">
@@ -130,7 +125,7 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
         </div>
       </div>
 
-      {isLoading && <div className="py-20 text-center flex flex-col items-center gap-3"><RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" /><p className="text-sm font-semibold text-slate-600">جارٍ جلب الفرص الموثقة...</p></div>}
+      {isLoading && <div className="py-20 text-center flex flex-col items-center gap-3"><RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" /><p className="text-sm font-semibold text-slate-600">جارٍ جلب الفرص المتاحة...</p></div>}
 
       {!isLoading && hasRealJobs && filteredJobs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -142,7 +137,7 @@ export const JobList: React.FC<JobListProps> = ({ jobs = [], filter, setFilter, 
         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-xl mx-auto space-y-4 my-6">
           <BriefcaseBusiness className="w-9 h-9 text-slate-400 mx-auto" />
           <h3 className="text-lg font-bold text-slate-900">لا توجد فرص مطابقة معروضة حاليًا</h3>
-          <p className="text-sm text-slate-500">لن نعرض إعلانًا مقصورًا على السعوديين أو يتطلب مؤهلًا جامعيًا ضمن هذا المسار، ولن نعرض مصدرًا مجتمعيًا قبل مراجعته.</p>
+          <p className="text-sm text-slate-500">سيتم عرض الفرص المناسبة فور توفرها.</p>
         </div>
       )}
 
