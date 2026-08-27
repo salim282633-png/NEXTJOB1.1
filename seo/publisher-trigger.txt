@@ -1,2 +1,2 @@
-trigger-id: verify-seo-auto-publisher-v2-20260827-0944
-reason: end-to-end verification of the new active SEO auto publisher workflow
+trigger-id: verify-conflict-safe-publisher-20260827-0948
+reason: verify final conflict-safe SEO auto publisher workflow
