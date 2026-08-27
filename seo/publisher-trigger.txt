@@ -1,2 +1,2 @@
-trigger-id: verify-schedule-reliability-20260827
-reason: verify SEO publisher after increasing scheduled checks to four times per hour
+trigger-id: repair-auto-publisher-20260827-0943
+reason: verify repaired automatic SEO publisher end-to-end after scheduled publishing stopped
