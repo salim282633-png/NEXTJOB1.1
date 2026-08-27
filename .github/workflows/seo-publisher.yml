@@ -1,19 +1,20 @@
 name: NEXT JOB SEO Publisher
 
 on:
-  schedule:
-    # Retry every 10 minutes at off-peak minute offsets. A lightweight
-    # eligibility gate below prevents heavy work until one hour has passed
-    # since the latest successful article.
-    - cron: '7,17,27,37,47,57 * * * *'
   push:
     paths:
       - 'seo/publisher-trigger.txt'
       - '.github/workflows/seo-publisher.yml'
+      - 'scripts/trigger-seo-workflow.mjs'
+      - 'render.yaml'
   workflow_dispatch:
     inputs:
       keyword:
         description: 'اختياري: كلمة مستهدفة يجب أن تخص اليمنيين + الوظائف + السعودية'
+        required: false
+        type: string
+      scheduler:
+        description: 'مصدر التشغيل الآلي'
         required: false
         type: string
 
@@ -35,16 +36,18 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Check scheduled publish eligibility
+      - name: Check automated publish eligibility
         id: eligibility
         shell: bash
         run: |
           set -euo pipefail
 
-          # Push/manual runs are verification runs and should execute fully.
-          if [ "${{ github.event_name }}" != "schedule" ]; then
+          # Push and ordinary manual runs are verification/override runs.
+          # Render Cron dispatches identify themselves explicitly and must
+          # respect the one-hour publication interval before heavy work starts.
+          if [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event.inputs.scheduler || '' }}" != "render-cron" ]; then
             echo "eligible=true" >> "$GITHUB_OUTPUT"
-            echo "Non-scheduled verification run: full publisher enabled."
+            echo "Verification/manual run: full publisher enabled."
             exit 0
           fi
 
@@ -75,7 +78,7 @@ jobs:
             console.log(`Latest article: ${new Date(latest).toISOString()}`);
             console.log(eligible
               ? 'One-hour interval has passed; full publisher is eligible.'
-              : `Cooldown active until ${new Date(latest + intervalMs).toISOString()}; scheduled check ends safely.`);
+              : `Cooldown active until ${new Date(latest + intervalMs).toISOString()}; Render check ends safely.`);
           }
           NODE
 
