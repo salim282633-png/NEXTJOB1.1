@@ -1,2 +1,2 @@
-trigger-id: verify-gemini-discovery-fallback-20260827-1612
-reason: verify restored scheduled SEO publisher after model discovery fallback fix
+trigger-id: recovery-publish-20260827-2051
+reason: recover missed scheduled SEO publication while GitHub schedule events are not firing
