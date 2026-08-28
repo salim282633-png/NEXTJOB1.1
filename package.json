@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "node --check scripts/append-arabic-rss-jobs.mjs && node --check scripts/append-community-job-intake.mjs && node --check scripts/filter-yemeni-target-jobs.mjs && node scripts/validate-external-jobs.mjs && node scripts/filter-yemeni-target-jobs.mjs --check && node scripts/normalize-content-hub-seo.mjs && node scripts/style-guide-index.mjs && node scripts/style-guide-articles.mjs && node scripts/build-guide-categories.mjs && node scripts/inject-guide-category-nav.mjs && node scripts/apply-static-typography.mjs && node scripts/normalize-content-hub-seo.mjs && vite build",
+    "build": "node --check scripts/append-arabic-rss-jobs.mjs && node --check scripts/append-community-job-intake.mjs && node --check scripts/filter-yemeni-target-jobs.mjs && node scripts/validate-external-jobs.mjs && node scripts/filter-yemeni-target-jobs.mjs --check && node scripts/normalize-content-hub-seo.mjs && node scripts/style-guide-index.mjs && node scripts/style-guide-articles.mjs && node scripts/build-guide-categories.mjs && node scripts/inject-guide-category-nav.mjs && node scripts/apply-static-typography.mjs && node scripts/normalize-content-hub-seo.mjs && node scripts/hide-opportunities-ui.mjs && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
@@ -15,9 +15,9 @@
     "jobs:sources-check": "node scripts/sync-external-jobs.mjs --check-config",
     "jobs:check": "node --check scripts/append-arabic-rss-jobs.mjs && node --check scripts/append-community-job-intake.mjs && node --check scripts/filter-yemeni-target-jobs.mjs && node scripts/validate-external-jobs.mjs && node scripts/filter-yemeni-target-jobs.mjs --check",
     "security:check": "node scripts/check-security-invariants.mjs",
-    "seo:check": "node --check scripts/publish-guidance-seo.mjs && node --check scripts/run-seo-publisher-with-fallback.mjs && node --check scripts/build-guide-categories.mjs && node --check scripts/inject-guide-category-nav.mjs && node --check scripts/normalize-content-hub-seo.mjs && node --check scripts/style-guide-index.mjs && node --check scripts/style-guide-articles.mjs && node --check scripts/apply-static-typography.mjs",
+    "seo:check": "node --check scripts/publish-guidance-seo.mjs && node --check scripts/run-seo-publisher-with-fallback.mjs && node --check scripts/build-guide-categories.mjs && node --check scripts/inject-guide-category-nav.mjs && node --check scripts/hide-opportunities-ui.mjs && node --check scripts/normalize-content-hub-seo.mjs && node --check scripts/style-guide-index.mjs && node --check scripts/style-guide-articles.mjs && node --check scripts/apply-static-typography.mjs",
     "seo:publish": "node scripts/publish-guidance-seo.mjs",
-    "seo:categories": "node scripts/build-guide-categories.mjs && node scripts/inject-guide-category-nav.mjs",
+    "seo:categories": "node scripts/build-guide-categories.mjs && node scripts/inject-guide-category-nav.mjs && node scripts/hide-opportunities-ui.mjs",
     "seo:style-articles": "node scripts/style-guide-articles.mjs",
     "seo:typography": "node scripts/apply-static-typography.mjs"
   },
