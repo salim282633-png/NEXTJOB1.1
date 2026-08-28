@@ -1,18 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Job, JobFilter, ToastMessage } from './types';
 import { Navbar, PublicTab } from './components/Navbar';
 import { ProfessionalHome } from './components/ProfessionalHome';
-import { HeroSection } from './components/HeroSection';
-import { JobList } from './components/JobList';
-import { JobDetailModal } from './components/JobDetailModal';
-import { SaudiResidentGuide } from './components/SaudiResidentGuide';
-import { SavedJobsView } from './components/SavedJobsView';
-import { WageCalculatorModal } from './components/WageCalculatorModal';
-import { PrivacyAndTermsModal } from './components/PrivacyAndTermsModal';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { Footer } from './components/Footer';
 import { ToastContainer } from './components/Toast';
 import { COMPLIANCE_MODE } from './lib/complianceMode';
+
+const HeroSection = lazy(() => import('./components/HeroSection').then(module => ({ default: module.HeroSection })));
+const JobList = lazy(() => import('./components/JobList').then(module => ({ default: module.JobList })));
+const JobDetailModal = lazy(() => import('./components/JobDetailModal').then(module => ({ default: module.JobDetailModal })));
+const SaudiResidentGuide = lazy(() => import('./components/SaudiResidentGuide').then(module => ({ default: module.SaudiResidentGuide })));
+const SavedJobsView = lazy(() => import('./components/SavedJobsView').then(module => ({ default: module.SavedJobsView })));
+const WageCalculatorModal = lazy(() => import('./components/WageCalculatorModal').then(module => ({ default: module.WageCalculatorModal })));
+const PrivacyAndTermsModal = lazy(() => import('./components/PrivacyAndTermsModal').then(module => ({ default: module.PrivacyAndTermsModal })));
 
 function initialPublicTab(): PublicTab {
   if (typeof window === 'undefined') return 'home';
@@ -85,10 +86,14 @@ function normalizeExternalJob(value: unknown): Job | null {
   };
 }
 
+function DeferredViewFallback() {
+  return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-sm font-bold text-slate-500" aria-busy="true">جارٍ تحميل المحتوى...</div>;
+}
+
 export function App() {
   const [activeTab, setActiveTab] = useState<PublicTab>(() => initialPublicTab());
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isWageCalcOpen, setIsWageCalcOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
@@ -115,35 +120,42 @@ export function App() {
   };
 
   useEffect(() => {
-    if (!COMPLIANCE_MODE.externalJobsOnly) {
-      setJobs([]);
+    const needsJobs = activeTab === 'jobs' || activeTab === 'saved';
+    if (!COMPLIANCE_MODE.externalJobsOnly || !needsJobs) {
       setIsLoadingJobs(false);
       return;
     }
 
     let cancelled = false;
     setIsLoadingJobs(true);
-    fetch('/jobs/external-jobs.json', { cache: 'no-store' })
-      .then(response => {
+
+    const loadJobs = async () => {
+      try {
+        const { installFirestoreContentBridge } = await import('./lib/firestoreContentBridge');
+        installFirestoreContentBridge();
+      } catch (error) {
+        console.warn('Firestore bridge unavailable; using static jobs cache.', error);
+      }
+
+      try {
+        const response = await fetch('/jobs/external-jobs.json', { cache: 'no-store' });
         if (!response.ok) throw new Error(`External jobs feed returned ${response.status}`);
-        return response.json();
-      })
-      .then(data => {
+        const data = await response.json();
         if (cancelled) return;
         const normalized = Array.isArray(data) ? data.map(normalizeExternalJob).filter((job): job is Job => Boolean(job)) : [];
         normalized.sort((a, b) => Date.parse(b.sourcePublishedAt || b.createdAt) - Date.parse(a.sourcePublishedAt || a.createdAt));
         setJobs(normalized);
-      })
-      .catch(error => {
+      } catch (error) {
         console.warn('External jobs feed unavailable:', error);
         if (!cancelled) setJobs([]);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setIsLoadingJobs(false);
-      });
+      }
+    };
 
+    void loadJobs();
     return () => { cancelled = true; };
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     const onPopState = () => setActiveTab(initialPublicTab());
@@ -185,34 +197,39 @@ export function App() {
 
       {activeTab === 'home' && <ProfessionalHome jobs={jobs} onNavigate={navigate} />}
 
-      {activeTab === 'jobs' && (
-        <>
-          <HeroSection filter={filter} setFilter={setFilter} totalJobs={jobs.length} />
-          <JobList jobs={jobs} filter={filter} setFilter={setFilter} onSelectJob={setSelectedJob} savedJobIds={savedJobIds} onToggleSave={handleToggleSaveJob} isLoading={isLoadingJobs} />
-        </>
-      )}
+      <Suspense fallback={<DeferredViewFallback />}>
+        {activeTab === 'jobs' && (
+          <>
+            <HeroSection filter={filter} setFilter={setFilter} totalJobs={jobs.length} />
+            <JobList jobs={jobs} filter={filter} setFilter={setFilter} onSelectJob={setSelectedJob} savedJobIds={savedJobIds} onToggleSave={handleToggleSaveJob} isLoading={isLoadingJobs} />
+          </>
+        )}
 
-      {activeTab === 'guide' && <SaudiResidentGuide />}
+        {activeTab === 'guide' && <SaudiResidentGuide />}
 
-      {activeTab === 'saved' && (
-        <SavedJobsView
-          savedJobs={savedJobs}
-          onSelectJob={setSelectedJob}
-          savedJobIds={savedJobIds}
-          onToggleSave={handleToggleSaveJob}
-          onExploreJobs={() => navigate('jobs')}
-          onClearAllSaved={() => {
-            setSavedJobIds(new Set());
-            localStorage.removeItem('nextjob_saved_jobs');
-            addToast('info', 'تم مسح المحفوظات');
-          }}
-        />
-      )}
+        {activeTab === 'saved' && (
+          <SavedJobsView
+            savedJobs={savedJobs}
+            onSelectJob={setSelectedJob}
+            savedJobIds={savedJobIds}
+            onToggleSave={handleToggleSaveJob}
+            onExploreJobs={() => navigate('jobs')}
+            onClearAllSaved={() => {
+              setSavedJobIds(new Set());
+              localStorage.removeItem('nextjob_saved_jobs');
+              addToast('info', 'تم مسح المحفوظات');
+            }}
+          />
+        )}
+      </Suspense>
 
-      <JobDetailModal job={selectedJob} onClose={() => setSelectedJob(null)} isSaved={selectedJob ? savedJobIds.has(selectedJob.id) : false} onToggleSave={handleToggleSaveJob} />
-
-      {isWageCalcOpen && <WageCalculatorModal isOpen={isWageCalcOpen} onClose={() => setIsWageCalcOpen(false)} />}
-      {isPrivacyOpen && <PrivacyAndTermsModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />}
+      <Suspense fallback={null}>
+        {selectedJob && (
+          <JobDetailModal job={selectedJob} onClose={() => setSelectedJob(null)} isSaved={savedJobIds.has(selectedJob.id)} onToggleSave={handleToggleSaveJob} />
+        )}
+        {isWageCalcOpen && <WageCalculatorModal isOpen={isWageCalcOpen} onClose={() => setIsWageCalcOpen(false)} />}
+        {isPrivacyOpen && <PrivacyAndTermsModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />}
+      </Suspense>
 
       <CookieConsentBanner onOpenPrivacyModal={() => setIsPrivacyOpen(true)} />
       <Footer onNavigate={navigate} onOpenWageCalc={() => setIsWageCalcOpen(true)} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
