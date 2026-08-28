@@ -78,7 +78,7 @@ forbidText(jobDetail, 'wa.me', 'direct WhatsApp application in job detail');
 forbidText(jobDetail, 'tel:', 'direct phone application in job detail');
 forbidText(jobDetail, 'onOpenAICoverLetterForJob', 'internal application-message generator in job detail');
 
-requireText(footer, 'خدمات إعداد أو بيع السير الذاتية والإعلانات التجارية المدفوعة متوقفة حاليًا', 'CV/paid-ads suspension disclosure');
+requireText(footer, 'المحتوى والخدمات المتاحة حاليًا إرشادية فقط، ولا تتضمن بيع السير الذاتية أو إعلانات تجارية مدفوعة', 'guidance-only CV/paid-ads disclosure');
 requireText(footer, 'لا نستقبل طلبات التوظيف نيابة عن أصحاب العمل', 'non-intermediation disclosure');
 forbidText(footer, 'صانع السيرة الذاتية', 'public CV service link');
 forbidText(footer, 'شارك فرصة رأيتها للمراجعة', 'public community-submission link');
