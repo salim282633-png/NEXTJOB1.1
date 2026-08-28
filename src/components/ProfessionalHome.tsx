@@ -26,6 +26,9 @@ interface ProfessionalHomeProps {
   onNavigate: (tab: 'home' | 'jobs' | 'guide' | 'saved') => void;
 }
 
+// Temporary visibility switch. Set to true when دليل الفرص is ready to return.
+const SHOW_OPPORTUNITIES = false;
+
 const topics = [
   { title: 'البحث عن عمل', text: 'خطوات البحث والتقديم وتقييم الفرص والوصول إلى المصدر الأصلي.', icon: SearchCheck, href: '/guide/job-search/' },
   { title: 'السيرة الذاتية', text: 'إرشادات لعرض الخبرات وبناء ملف مهني واضح ومقنع.', icon: GraduationCap, href: '/guide/cv/' },
@@ -69,15 +72,17 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
             <span className="block text-emerald-700">لليمنيين في السعودية</span>
           </h1>
           <p className="mx-auto mt-5 max-w-3xl text-sm leading-8 text-slate-600 sm:text-base">
-            NEXT JOB مركز إرشادي مستقل يقدم مقالات وأدلة عملية للباحث اليمني داخل السعودية، مع روابط فرص منشورة لدى مصادر خارجية موثوقة. لا نتوسط في التوظيف، والتقديم يتم مباشرة لدى المصدر الأصلي.
+            NEXT JOB مركز إرشادي مستقل يقدم مقالات وأدلة عملية للباحث اليمني داخل السعودية حول البحث عن عمل، السيرة الذاتية، المقابلات، العقود، نقل الخدمات، والأمان المهني.
           </p>
           <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
             <a href="/guide/" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">
               ابدأ من الدليل المهني <ArrowLeft className="h-4 w-4" />
             </a>
-            <button onClick={() => onNavigate('jobs')} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-800 hover:border-emerald-300 hover:text-emerald-800">
-              تصفح فرصًا من مصادرها <BriefcaseBusiness className="h-4 w-4" />
-            </button>
+            {SHOW_OPPORTUNITIES && (
+              <button onClick={() => onNavigate('jobs')} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-800 hover:border-emerald-300 hover:text-emerald-800">
+                تصفح فرصًا من مصادرها <BriefcaseBusiness className="h-4 w-4" />
+              </button>
+            )}
           </div>
           <div className="mx-auto mt-7 grid max-w-3xl grid-cols-1 gap-2 text-xs text-slate-600 sm:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold">محتوى إرشادي عملي</div>
@@ -134,44 +139,46 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <div>
-            <span className="text-xs font-black text-emerald-700">دليل الفرص</span>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">فرص منشورة لدى مصادر خارجية</h2>
-            <p className="mt-2 max-w-2xl text-xs leading-6 text-slate-500">هذا القسم مكمل للمحتوى الإرشادي: نعرض المعلومات الأساسية والمصدر، ثم نوجهك إلى الموقع الأصلي للتفاصيل والتقديم.</p>
+      {SHOW_OPPORTUNITIES && (
+        <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div>
+              <span className="text-xs font-black text-emerald-700">دليل الفرص</span>
+              <h2 className="mt-1 text-2xl font-black text-slate-950">فرص منشورة لدى مصادر خارجية</h2>
+              <p className="mt-2 max-w-2xl text-xs leading-6 text-slate-500">هذا القسم مكمل للمحتوى الإرشادي: نعرض المعلومات الأساسية والمصدر، ثم نوجهك إلى الموقع الأصلي للتفاصيل والتقديم.</p>
+            </div>
+            <button onClick={() => onNavigate('jobs')} className="hidden text-xs font-black text-emerald-700 sm:inline-flex items-center gap-1">كل الفرص <ArrowLeft className="h-4 w-4" /></button>
           </div>
-          <button onClick={() => onNavigate('jobs')} className="hidden text-xs font-black text-emerald-700 sm:inline-flex items-center gap-1">كل الفرص <ArrowLeft className="h-4 w-4" /></button>
-        </div>
 
-        {latestJobs.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {latestJobs.map(job => (
-              <article key={job.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-black leading-6 text-slate-950">{job.title}</h3>
-                    <p className="mt-1 text-xs font-semibold text-slate-500">{job.company} · {job.city}</p>
+          {latestJobs.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {latestJobs.map(job => (
+                <article key={job.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-black leading-6 text-slate-950">{job.title}</h3>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">{job.company} · {job.city}</p>
+                    </div>
+                    <Sparkles className="h-4 w-4 shrink-0 text-emerald-600" />
                   </div>
-                  <Sparkles className="h-4 w-4 shrink-0 text-emerald-600" />
-                </div>
-                <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-[11px] text-slate-600">
-                  المصدر: <a href={job.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-black text-emerald-700 hover:underline">{job.sourceName}</a>
-                </div>
-                <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black text-white hover:bg-emerald-700">
-                  الانتقال للمصدر للتقديم <ExternalLink className="h-4 w-4" />
-                </a>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
-            <BriefcaseBusiness className="mx-auto h-8 w-8 text-slate-400" />
-            <h3 className="mt-3 font-black text-slate-900">لا توجد فرص خارجية موثقة معروضة حاليًا</h3>
-            <p className="mt-2 text-xs leading-6 text-slate-500">لن نعرض فرصة قبل توفر مصدر أصلي ورابط تقديم واضح يمكن التحقق منه.</p>
-          </div>
-        )}
-      </section>
+                  <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-[11px] text-slate-600">
+                    المصدر: <a href={job.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-black text-emerald-700 hover:underline">{job.sourceName}</a>
+                  </div>
+                  <a href={job.applyUrl} target="_blank" rel="noopener noreferrer" className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black text-white hover:bg-emerald-700">
+                    الانتقال للمصدر للتقديم <ExternalLink className="h-4 w-4" />
+                  </a>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
+              <BriefcaseBusiness className="mx-auto h-8 w-8 text-slate-400" />
+              <h3 className="mt-3 font-black text-slate-900">لا توجد فرص خارجية موثقة معروضة حاليًا</h3>
+              <p className="mt-2 text-xs leading-6 text-slate-500">لن نعرض فرصة قبل توفر مصدر أصلي ورابط تقديم واضح يمكن التحقق منه.</p>
+            </div>
+          )}
+        </section>
+      )}
     </main>
   );
 };
