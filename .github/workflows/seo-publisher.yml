@@ -109,6 +109,8 @@ jobs:
           node scripts/build-guide-categories.mjs
           node scripts/apply-static-typography.mjs public/guide
           node scripts/normalize-content-hub-seo.mjs
+          node scripts/normalize-guidance-identity.mjs
+          node scripts/hide-opportunities-ui.mjs
 
       - name: Verify article and production build
         if: steps.eligibility.outputs.eligible == 'true'
