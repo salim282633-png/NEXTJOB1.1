@@ -7,7 +7,6 @@ import {
   ExternalLink,
   GraduationCap,
   MapPin,
-  Newspaper,
   SearchCheck,
   ShieldCheck,
   Sparkles
@@ -28,12 +27,14 @@ interface ProfessionalHomeProps {
 }
 
 const topics = [
-  { title: 'البحث عن عمل بوعي', text: 'خطوات عملية للبحث، تقييم الإعلان، والوصول إلى المصدر الأصلي قبل التقديم.', icon: SearchCheck },
-  { title: 'السيرة الذاتية والمقابلات', text: 'إرشادات لعرض خبراتك، كتابة ملف مهني واضح، والاستعداد للمقابلات.', icon: GraduationCap },
-  { title: 'العقود ونقل الخدمات', text: 'شرح مبسط للأسئلة التي تحتاج للتحقق منها عبر قوى والجهات الرسمية المختصة.', icon: Building2 },
-  { title: 'أدلة المدن والمهن', text: 'محتوى يساعد الباحث اليمني على فهم المدن والقطاعات والمسارات المهنية المختلفة.', icon: MapPin },
-  { title: 'الأمان وتجنب الاحتيال', text: 'علامات تحذيرية قبل إرسال بياناتك أو دفع أي مبلغ مقابل وعد بالتوظيف.', icon: ShieldCheck },
-  { title: 'تحديثات مهنية موثوقة', text: 'محتوى وتحديثات عملية مع توضيح المصدر والتاريخ عندما يكون الموضوع متغيرًا.', icon: Newspaper }
+  { title: 'البحث عن عمل', text: 'خطوات البحث والتقديم وتقييم الفرص والوصول إلى المصدر الأصلي.', icon: SearchCheck, href: '/guide/job-search/' },
+  { title: 'السيرة الذاتية', text: 'إرشادات لعرض الخبرات وبناء ملف مهني واضح ومقنع.', icon: GraduationCap, href: '/guide/cv/' },
+  { title: 'المقابلات', text: 'الاستعداد للمقابلات والأسئلة وعرض الخبرات بصورة مهنية.', icon: Sparkles, href: '/guide/interviews/' },
+  { title: 'العقود', text: 'ما ينبغي مراجعته قبل توقيع عقد عمل والرجوع للمصدر الرسمي.', icon: Building2, href: '/guide/contracts/' },
+  { title: 'نقل الخدمات', text: 'أسئلة وإجراءات تحتاج للتحقق عبر قوى والجهات الرسمية المختصة.', icon: BriefcaseBusiness, href: '/guide/sponsorship/' },
+  { title: 'الأمان وتجنب الاحتيال', text: 'علامات التحذير وحماية البيانات وتجنب الوعود الوهمية.', icon: ShieldCheck, href: '/guide/safety/' },
+  { title: 'أدلة المدن', text: 'محتوى يساعد الباحث اليمني على فهم البحث حسب مدن السعودية.', icon: MapPin, href: '/guide/cities/' },
+  { title: 'المهن والقطاعات', text: 'أدلة حسب المهنة والقطاع والمهارات والمسارات المهنية.', icon: BriefcaseBusiness, href: '/guide/professions/' }
 ];
 
 export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavigate }) => {
@@ -71,9 +72,9 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
             NEXT JOB مركز إرشادي مستقل يقدم مقالات وأدلة عملية للباحث اليمني داخل السعودية، مع روابط فرص منشورة لدى مصادر خارجية موثوقة. لا نتوسط في التوظيف، والتقديم يتم مباشرة لدى المصدر الأصلي.
           </p>
           <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-            <button onClick={() => onNavigate('guide')} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">
+            <a href="/guide/" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">
               ابدأ من الدليل المهني <ArrowLeft className="h-4 w-4" />
-            </button>
+            </a>
             <button onClick={() => onNavigate('jobs')} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-800 hover:border-emerald-300 hover:text-emerald-800">
               تصفح فرصًا من مصادرها <BriefcaseBusiness className="h-4 w-4" />
             </button>
@@ -92,17 +93,17 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
             <span className="text-xs font-black text-emerald-700">مركز المعرفة</span>
             <h2 className="mt-1 text-2xl font-black text-slate-950">ابدأ بالموضوع الذي تحتاجه</h2>
           </div>
-          <button onClick={() => onNavigate('guide')} className="hidden text-xs font-black text-emerald-700 sm:inline-flex items-center gap-1">كل الأدلة <ArrowLeft className="h-4 w-4" /></button>
+          <a href="/guide/" className="hidden text-xs font-black text-emerald-700 sm:inline-flex items-center gap-1">كل الأدلة <ArrowLeft className="h-4 w-4" /></a>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {topics.map(topic => {
             const Icon = topic.icon;
             return (
-              <button key={topic.title} onClick={() => onNavigate('guide')} className="rounded-3xl border border-slate-200 bg-white p-5 text-right shadow-sm transition hover:border-emerald-200 hover:shadow-md">
+              <a key={topic.title} href={topic.href} className="rounded-3xl border border-slate-200 bg-white p-5 text-right shadow-sm transition hover:border-emerald-200 hover:shadow-md">
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700"><Icon className="h-5 w-5" /></div>
                 <h3 className="font-black text-slate-900">{topic.title}</h3>
                 <p className="mt-2 text-xs leading-6 text-slate-500">{topic.text}</p>
-              </button>
+              </a>
             );
           })}
         </div>
