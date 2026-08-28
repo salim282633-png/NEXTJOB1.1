@@ -126,9 +126,10 @@ function updateManifest() {
   const next = manifest.map(item => {
     const override = OVERRIDES[item?.slug];
     if (!override) return item;
-    if (item.title === override.title && item.description === override.description) return item;
+    const modifiedAt = item.modifiedAt || LEGACY_UPDATED_AT;
+    if (item.title === override.title && item.description === override.description && item.modifiedAt === modifiedAt) return item;
     changed = true;
-    return { ...item, title: override.title, description: override.description };
+    return { ...item, title: override.title, description: override.description, modifiedAt };
   });
   if (changed) writeJson(MANIFEST_FILE, next);
 }
@@ -143,6 +144,7 @@ function updatePublishedSources() {
     const next = sanitizeJson(source);
     next.title = override.title;
     next.description = override.description;
+    next.modifiedAt = next.modifiedAt || LEGACY_UPDATED_AT;
     if (next.article && typeof next.article === 'object') {
       next.article.title = override.title;
       next.article.metaDescription = override.description;
