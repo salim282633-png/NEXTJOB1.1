@@ -3,6 +3,5 @@ Allow: /
 Disallow: /admin
 Disallow: /applications
 Disallow: /saved
-Disallow: /candidates/
 
 Sitemap: https://nextjob1-1.onrender.com/sitemap.xml
