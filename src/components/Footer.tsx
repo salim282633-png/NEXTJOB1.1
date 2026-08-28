@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Briefcase, Calculator, FileLock2, Settings, ShieldCheck } from 'lucide-react';
+import { BookOpen, Calculator, FileLock2, Settings, ShieldCheck } from 'lucide-react';
 import type { PublicTab } from './Navbar';
 
 interface FooterProps {
@@ -15,11 +15,11 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-3 md:col-span-1">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold"><Briefcase className="w-5 h-5" /></div>
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold"><BookOpen className="w-5 h-5" /></div>
               <span className="text-xl font-black text-white">NEXT<span className="text-emerald-400">JOB</span></span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed">
-              دليل مهني عربي يقدم محتوى أصليًا ويفهرس فرصًا وظيفية منشورة لدى مصادر خارجية موثوقة، مع إحالة المستخدم إلى المصدر الأصلي للتفاصيل والتقديم.
+              مركز إرشادي مستقل للعمل والمسار المهني لليمنيين في السعودية، يقدم مقالات وأدلة عملية ويفهرس فرصًا منشورة لدى مصادر خارجية مع إحالة المستخدم إلى المصدر الأصلي للتقديم.
             </p>
             <div className="flex items-start gap-2 text-xs text-emerald-400 font-semibold pt-1 leading-relaxed">
               <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
@@ -31,8 +31,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
             <h4 className="text-sm font-bold text-white">أقسام NEXT JOB</h4>
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
               <li><button onClick={() => onNavigate('home')} className="hover:text-emerald-400 transition-colors">الرئيسية</button></li>
-              <li><button onClick={() => onNavigate('jobs')} className="hover:text-emerald-400 transition-colors">فرص وظيفية</button></li>
-              <li><button onClick={() => onNavigate('guide')} className="hover:text-emerald-400 transition-colors">الدليل المهني</button></li>
+              <li><button onClick={() => onNavigate('guide')} className="hover:text-emerald-400 transition-colors">المقالات والأدلة</button></li>
+              <li><button onClick={() => onNavigate('jobs')} className="hover:text-emerald-400 transition-colors">دليل الفرص</button></li>
               <li><button onClick={() => onNavigate('saved')} className="hover:text-emerald-400 transition-colors">الفرص المحفوظة</button></li>
             </ul>
           </div>
@@ -58,7 +58,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
         </div>
 
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} NEXT JOB — دليل مهني وفهرس فرص من مصادرها الأصلية.</p>
+          <p>© {new Date().getFullYear()} NEXT JOB — مركز إرشادي وفهرس فرص من مصادرها الأصلية.</p>
           <div className="flex flex-wrap items-center justify-center gap-2 text-slate-400 text-[11px]">
             <span>ليست جهة حكومية</span><span>•</span><span>ليست مكتب توظيف أو استقدام أو إسناد عمالي</span>
           </div>
