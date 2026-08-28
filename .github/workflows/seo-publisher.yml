@@ -1,6 +1,11 @@
 name: NEXT JOB SEO Publisher
 
 on:
+  schedule:
+    # GitHub fallback scheduler. Render Cron also dispatches this workflow.
+    # Both paths use the lightweight eligibility gate below so only due
+    # publications continue to dependency install, generation, and build.
+    - cron: '7,17,27,37,47,57 * * * *'
   push:
     paths:
       - 'seo/publisher-trigger.txt'
@@ -43,9 +48,11 @@ jobs:
           set -euo pipefail
 
           # Push and ordinary manual runs are verification/override runs.
-          # Render Cron dispatches identify themselves explicitly and must
-          # respect the one-hour publication interval before heavy work starts.
-          if [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event.inputs.scheduler || '' }}" != "render-cron" ]; then
+          # GitHub schedule and Render Cron are automated scheduler runs and
+          # must respect the one-hour publication interval before heavy work.
+          EVENT_NAME="${{ github.event_name }}"
+          SCHEDULER="${{ github.event.inputs.scheduler || '' }}"
+          if [ "$EVENT_NAME" = "push" ] || { [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$SCHEDULER" != "render-cron" ]; }; then
             echo "eligible=true" >> "$GITHUB_OUTPUT"
             echo "Verification/manual run: full publisher enabled."
             exit 0
@@ -78,7 +85,7 @@ jobs:
             console.log(`Latest article: ${new Date(latest).toISOString()}`);
             console.log(eligible
               ? 'One-hour interval has passed; full publisher is eligible.'
-              : `Cooldown active until ${new Date(latest + intervalMs).toISOString()}; Render check ends safely.`);
+              : `Cooldown active until ${new Date(latest + intervalMs).toISOString()}; automated check ends safely.`);
           }
           NODE
 
