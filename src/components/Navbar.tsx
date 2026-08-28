@@ -15,7 +15,7 @@ const SHOW_OPPORTUNITIES = false;
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, savedCount }) => {
   const navItems: Array<{ id: PublicTab; label: string; mobileLabel: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'home', label: 'الرئيسية', mobileLabel: 'الرئيسية', icon: Home },
-    { id: 'guide', label: 'المقالات والأدلة', mobileLabel: 'الدليل', icon: BookOpen },
+    { id: 'guide', label: 'المدونة', mobileLabel: 'المدونة', icon: BookOpen },
     ...(SHOW_OPPORTUNITIES ? [{ id: 'jobs' as PublicTab, label: 'دليل الفرص', mobileLabel: 'الفرص', icon: Briefcase }] : []),
     { id: 'saved', label: 'المحفوظات', mobileLabel: 'المحفوظ', icon: Bookmark }
   ];
@@ -33,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, savedCo
                 <span className="text-[21px] sm:text-2xl font-black tracking-tight text-slate-950 font-display leading-none">NEXT<span className="text-emerald-600">JOB</span></span>
                 <span className="hidden sm:inline-flex text-[10px] bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-100">السعودية</span>
               </div>
-              <p className="hidden lg:block text-[11px] text-slate-500 font-medium mt-1 whitespace-nowrap">دليلك للعمل والمسار المهني في السعودية</p>
+              <p className="hidden lg:block text-[11px] text-slate-500 font-medium mt-1 whitespace-nowrap">مدونة للعمل والمسار المهني في السعودية</p>
             </div>
           </button>
 
@@ -56,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, savedCo
           </nav>
 
           <div className="hidden md:flex items-center rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-800">
-            {SHOW_OPPORTUNITIES ? 'التقديم يتم لدى المصدر الأصلي' : 'محتوى إرشادي مستقل'}
+            {SHOW_OPPORTUNITIES ? 'التقديم يتم لدى المصدر الأصلي' : 'مدونة إرشادية مستقلة'}
           </div>
         </div>
 
