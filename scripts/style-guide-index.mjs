@@ -34,7 +34,7 @@ function articleCard(item) {
   return `
     <article class="article-card" data-search="${escapeHtml(searchable)}">
       <div class="card-topline">
-        <span class="tag">${escapeHtml(item.keyword || 'وظائف لليمنيين')}</span>
+        <span class="tag">${escapeHtml(item.keyword || 'محتوى مهني')}</span>
         <span class="date">${escapeHtml(item.publishedDate || '')}</span>
       </div>
       <h2><a href="/guide/${escapeHtml(item.slug)}/">${escapeHtml(item.title)}</a></h2>
@@ -50,20 +50,20 @@ function articleCard(item) {
 function render(manifest) {
   const sorted = [...manifest].sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')));
   const latest = sorted[0];
-  const updatedDate = latest?.publishedDate || new Date().toISOString().slice(0, 10);
+  const updatedDate = latest?.modifiedAt?.slice?.(0, 10) || latest?.publishedDate || '';
 
   const latestMarkup = latest ? `
       <article class="featured">
         <div class="featured-copy">
-          <div class="kicker">أحدث مقال</div>
+          <div class="kicker">مقال مميز</div>
           <h2>${escapeHtml(latest.title)}</h2>
           <p>${escapeHtml(latest.description || '')}</p>
           <div class="featured-meta">${escapeHtml(latest.publishedDate || '')}${latest.keyword ? ` · ${escapeHtml(latest.keyword)}` : ''}</div>
-          <a class="primary-btn" href="/guide/${escapeHtml(latest.slug)}/">قراءة أحدث مقال <span aria-hidden="true">←</span></a>
+          <a class="primary-btn" href="/guide/${escapeHtml(latest.slug)}/">قراءة المقال <span aria-hidden="true">←</span></a>
         </div>
         <div class="featured-mark" aria-hidden="true">NJ</div>
       </article>` : `
-      <div class="empty-state">سيظهر أول مقال هنا بعد نجاح أول تشغيل لمحرك النشر.</div>`;
+      <div class="empty-state">ستظهر المقالات المميزة هنا عند نشر أول محتوى في المدونة.</div>`;
 
   const cards = sorted.length ? sorted.map(articleCard).join('\n') : '';
 
@@ -72,17 +72,18 @@ function render(manifest) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>المقالات ودليل وظائف اليمنيين في السعودية | NEXT JOB</title>
-  <meta name="description" content="مقالات عملية ومحدثة لليمنيين الباحثين عن وظائف وفرص عمل داخل السعودية، تشمل المدن والمهن ونقل الخدمات والتقديم الآمن.">
+  <title>مدونة NEXT JOB لليمنيين في السعودية | العمل والمسار المهني</title>
+  <meta name="description" content="مدونة إرشادية لليمنيين في السعودية تضم مقالات عملية عن البحث عن عمل والسيرة الذاتية والمقابلات والعقود ونقل الخدمات والأمان والمدن والمهن.">
   <meta name="robots" content="index,follow,max-image-preview:large">
   <link rel="canonical" href="${SITE_URL}/guide/">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="ar_SA">
-  <meta property="og:title" content="المقالات ودليل وظائف اليمنيين في السعودية | NEXT JOB">
-  <meta property="og:description" content="مقالات عملية ومحدثة لليمنيين الباحثين عن وظائف داخل السعودية.">
+  <meta property="og:site_name" content="NEXT JOB">
+  <meta property="og:title" content="مدونة NEXT JOB لليمنيين في السعودية | العمل والمسار المهني">
+  <meta property="og:description" content="مقالات وأدلة عملية تساعد الباحث اليمني في السعودية على فهم خطوات العمل والمسار المهني واتخاذ قرارات أكثر وعيًا.">
   <meta property="og:url" content="${SITE_URL}/guide/">
   <style>
-    :root{--bg:#f6f8f7;--surface:#fff;--ink:#10221d;--muted:#66736f;--line:#dfe7e3;--green:#0f7a55;--green-dark:#0b4f3b;--soft:#eaf6f0;--warm:#fff8e8}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif;line-height:1.8}a{text-decoration:none;color:inherit}.shell{max-width:1180px;margin:auto;padding:0 20px}.topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}.topbar-inner{height:72px;display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px}.brand-mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--green);color:#fff;font-size:13px;box-shadow:0 8px 20px rgba(15,122,85,.18)}.navlinks{display:flex;align-items:center;gap:8px;font-size:14px}.navlinks a{padding:9px 12px;border-radius:10px;color:#41514b}.navlinks a:hover{background:var(--soft);color:var(--green-dark)}.hero{padding:62px 0 28px}.hero-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.7fr);gap:28px;align-items:stretch}.hero-main,.hero-stat{background:var(--surface);border:1px solid var(--line);border-radius:30px}.hero-main{padding:42px}.eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--soft);color:var(--green-dark);font-size:12px;font-weight:800;padding:7px 11px;border-radius:999px}.hero h1{font-size:clamp(32px,5vw,54px);line-height:1.28;margin:16px 0 14px;letter-spacing:-.7px}.hero-main>p{color:var(--muted);font-size:17px;max-width:760px;margin:0}.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}.primary-btn,.secondary-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:13px;font-weight:800;font-size:14px}.primary-btn{background:var(--green);color:#fff}.primary-btn:hover{background:var(--green-dark)}.secondary-btn{background:#fff;border:1px solid var(--line);color:var(--green-dark)}.hero-stat{padding:30px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(145deg,#0b4f3b,#0f7a55);color:#fff}.stat-number{font-size:48px;font-weight:900;line-height:1}.stat-label{font-size:14px;color:#d8f5e8;margin-top:8px}.stat-note{font-size:12px;color:#bfe8d7;border-top:1px solid rgba(255,255,255,.18);padding-top:16px;margin-top:24px}.notice{margin-top:18px;background:var(--warm);border:1px solid #f4dfaa;border-radius:16px;padding:13px 16px;font-size:13px;color:#725b22}.section{padding:20px 0 34px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}.section-head h2{font-size:27px;margin:0}.section-head p{margin:5px 0 0;color:var(--muted);font-size:14px}.featured{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:30px;display:grid;grid-template-columns:minmax(0,1fr) 160px;gap:24px;align-items:center;box-shadow:0 14px 40px rgba(16,34,29,.05)}.featured h2{font-size:clamp(24px,4vw,36px);line-height:1.45;margin:8px 0 10px}.featured p{color:var(--muted);margin:0 0 10px}.kicker{color:var(--green);font-weight:900;font-size:12px}.featured-meta{color:#819089;font-size:12px;margin-bottom:18px}.featured-mark{height:160px;border-radius:28px;display:grid;place-items:center;background:var(--soft);color:var(--green);font-size:46px;font-weight:900;border:1px dashed #b9dcca}.tools{margin:24px 0 18px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;align-items:center;gap:10px}.tools input{width:100%;border:0;outline:0;background:transparent;padding:10px 12px;font:inherit;color:var(--ink)}.search-icon{font-size:18px;color:var(--green)}.article-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.article-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:22px;display:flex;flex-direction:column;min-height:250px;transition:.2s ease}.article-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(16,34,29,.06);border-color:#c8d9d1}.card-topline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.tag{background:var(--soft);color:var(--green-dark);font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.date{font-size:11px;color:#89958f}.article-card h2{font-size:20px;line-height:1.5;margin:0 0 9px}.article-card h2 a:hover{color:var(--green)}.article-card p{color:var(--muted);font-size:14px;margin:0}.details{font-size:12px;color:#718079;margin-top:10px}.card-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #edf1ef;margin-top:auto;padding-top:15px;font-size:12px;color:#83908a}.read{color:var(--green);font-weight:900}.empty-state{background:#fff;border:1px dashed #cfdad5;border-radius:20px;padding:28px;text-align:center;color:var(--muted)}.no-results{display:none;background:#fff;border:1px dashed #cfdad5;border-radius:18px;padding:22px;text-align:center;color:var(--muted);margin-top:12px}.trust{background:#102c24;color:#fff;border-radius:28px;padding:28px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}.trust h2{margin:0 0 7px;font-size:24px}.trust p{margin:0;color:#c9ded6;font-size:14px}.trust a{background:#fff;color:#103f31;padding:12px 18px;border-radius:13px;font-size:13px;font-weight:900}.footer{padding:34px 0 48px;color:#718079;font-size:12px;text-align:center}@media(max-width:800px){.topbar-inner{height:64px}.navlinks a:not(:first-child){display:none}.hero{padding-top:28px}.hero-grid{grid-template-columns:1fr}.hero-main{padding:26px}.hero-stat{min-height:180px}.featured{grid-template-columns:1fr}.featured-mark{display:none}.article-grid{grid-template-columns:1fr}.section-head{align-items:start;flex-direction:column}.trust{grid-template-columns:1fr}.trust a{text-align:center}.hero h1{font-size:34px}.shell{padding:0 14px}}
+    :root{--bg:#f6f8f7;--surface:#fff;--ink:#10221d;--muted:#66736f;--line:#dfe7e3;--green:#0f7a55;--green-dark:#0b4f3b;--soft:#eaf6f0;--warm:#fff8e8}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif;line-height:1.8}a{text-decoration:none;color:inherit}.shell{max-width:1180px;margin:auto;padding:0 20px}.topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}.topbar-inner{height:72px;display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px}.brand-mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--green);color:#fff;font-size:13px;box-shadow:0 8px 20px rgba(15,122,85,.18)}.navlinks{display:flex;align-items:center;gap:8px;font-size:14px}.navlinks a{padding:9px 12px;border-radius:10px;color:#41514b}.navlinks a:hover{background:var(--soft);color:var(--green-dark)}.hero{padding:62px 0 28px}.hero-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.7fr);gap:28px;align-items:stretch}.hero-main,.hero-stat{background:var(--surface);border:1px solid var(--line);border-radius:30px}.hero-main{padding:42px}.eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--soft);color:var(--green-dark);font-size:12px;font-weight:800;padding:7px 11px;border-radius:999px}.hero h1{font-size:clamp(32px,5vw,54px);line-height:1.28;margin:16px 0 14px;letter-spacing:-.7px}.hero-main>p{color:var(--muted);font-size:17px;max-width:760px;margin:0}.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}.primary-btn,.secondary-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:13px;font-weight:800;font-size:14px}.primary-btn{background:var(--green);color:#fff}.primary-btn:hover{background:var(--green-dark)}.secondary-btn{background:#fff;border:1px solid var(--line);color:var(--green-dark)}.hero-stat{padding:30px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(145deg,#0b4f3b,#0f7a55);color:#fff}.stat-number{font-size:48px;font-weight:900;line-height:1}.stat-label{font-size:14px;color:#d8f5e8;margin-top:8px}.stat-note{font-size:12px;color:#bfe8d7;border-top:1px solid rgba(255,255,255,.18);padding-top:16px;margin-top:24px}.notice{margin-top:18px;background:var(--warm);border:1px solid #f4dfaa;border-radius:16px;padding:13px 16px;font-size:13px;color:#725b22}.section{padding:20px 0 34px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}.section-head h2{font-size:27px;margin:0}.section-head p{margin:5px 0 0;color:var(--muted);font-size:14px}.featured{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:30px;display:grid;grid-template-columns:minmax(0,1fr) 160px;gap:24px;align-items:center;box-shadow:0 14px 40px rgba(16,34,29,.05)}.featured h2{font-size:clamp(24px,4vw,36px);line-height:1.45;margin:8px 0 10px}.featured p{color:var(--muted);margin:0 0 10px}.kicker{color:var(--green);font-weight:900;font-size:12px}.featured-meta{color:#819089;font-size:12px;margin-bottom:18px}.featured-mark{height:160px;border-radius:28px;display:grid;place-items:center;background:var(--soft);color:var(--green);font-size:46px;font-weight:900;border:1px dashed #b9dcca}.tools{margin:24px 0 18px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;align-items:center;gap:10px}.tools input{width:100%;border:0;outline:0;background:transparent;padding:10px 12px;font:inherit;color:var(--ink)}.search-icon{font-size:18px;color:var(--green)}.article-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.article-card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:22px;display:flex;flex-direction:column;min-height:250px;transition:.2s ease}.article-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(16,34,29,.06);border-color:#c8d9d1}.card-topline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.tag{background:var(--soft);color:var(--green-dark);font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.date{font-size:11px;color:#89958f}.article-card h2{font-size:20px;line-height:1.5;margin:0 0 9px}.article-card h2 a:hover{color:var(--green)}.article-card p{color:var(--muted);font-size:14px;margin:0}.details{font-size:12px;color:#718079;margin-top:10px}.card-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #edf1ef;margin-top:auto;padding-top:15px;font-size:12px;color:#83908a}.read{color:var(--green);font-weight:900}.empty-state{background:#fff;border:1px dashed #cfdad5;border-radius:20px;padding:28px;text-align:center;color:var(--muted)}.no-results{display:none;background:#fff;border:1px dashed #cfdad5;border-radius:18px;padding:22px;text-align:center;color:var(--muted);margin-top:12px}.trust{background:#102c24;color:#fff;border-radius:28px;padding:28px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}.trust h2{margin:0 0 7px;font-size:24px}.trust p{margin:0;color:#c9ded6;font-size:14px}.trust a{background:#fff;color:#103f31;padding:12px 18px;border-radius:13px;font-size:13px;font-weight:900}.footer{padding:34px 0 48px;color:#718079;font-size:12px;text-align:center}@media(max-width:800px){.topbar-inner{height:64px}.navlinks a:nth-child(2){display:none}.hero{padding-top:28px}.hero-grid{grid-template-columns:1fr}.hero-main{padding:26px}.hero-stat{min-height:180px}.featured{grid-template-columns:1fr}.featured-mark{display:none}.article-grid{grid-template-columns:1fr}.section-head{align-items:start;flex-direction:column}.trust{grid-template-columns:1fr}.trust a{text-align:center}.hero h1{font-size:34px}.shell{padding:0 14px}}
   </style>
 </head>
 <body>
@@ -90,10 +91,9 @@ function render(manifest) {
     <div class="shell topbar-inner">
       <a class="brand" href="/"><span class="brand-mark">NJ</span><span>NEXT JOB</span></a>
       <nav class="navlinks" aria-label="التنقل الرئيسي">
-        <a href="/guide/">المقالات</a>
-        <a href="/jobs/">فرص العمل</a>
-        <a href="/candidates/">الباحثون</a>
-        <a href="/">المنصة</a>
+        <a href="/guide/">المدونة</a>
+        <a href="#blog-categories">أقسام المدونة</a>
+        <a href="/">الرئيسية</a>
       </nav>
     </div>
   </header>
@@ -102,25 +102,25 @@ function render(manifest) {
     <section class="hero">
       <div class="shell hero-grid">
         <div class="hero-main">
-          <span class="eyebrow">محتوى مهني مخصص لليمنيين داخل السعودية</span>
-          <h1>مقالات تساعدك على البحث عن عمل بوعي أكبر</h1>
-          <p>دليل عملي ومتجدد حول البحث عن الوظائف، تجهيز الملف المهني، المدن والمهن، نقل الخدمات، والتقديم الآمن — دون ادعاءات توظيف أو وعود غير موثوقة.</p>
+          <span class="eyebrow">مدونة إرشادية لليمنيين داخل السعودية</span>
+          <h1>مدونة NEXT JOB للعمل والمسار المهني</h1>
+          <p>مقالات وأدلة عملية تساعدك على تنظيم البحث عن عمل، تطوير السيرة الذاتية، الاستعداد للمقابلات، وفهم العقود ونقل الخدمات والأمان المهني.</p>
           <div class="hero-actions">
-            <a class="primary-btn" href="#latest">ابدأ بأحدث المقالات <span aria-hidden="true">↓</span></a>
-            <a class="secondary-btn" href="/jobs/">عرض الوظائف المنشورة</a>
+            <a class="primary-btn" href="#latest">أحدث المقالات <span aria-hidden="true">↓</span></a>
+            <a class="secondary-btn" href="#blog-categories">تصفح أقسام المدونة</a>
           </div>
-          <div class="notice">المقالات محتوى إرشادي وليست إعلانات وظائف. تحقق من أي إجراء نظامي أو تعاقدي عبر الجهة الرسمية المختصة.</div>
+          <div class="notice">المحتوى إرشادي عام. في الإجراءات النظامية أو التعاقدية، تحقق دائمًا من الجهة الرسمية المختصة قبل اتخاذ القرار.</div>
         </div>
         <aside class="hero-stat">
-          <div><div class="stat-number">${sorted.length}</div><div class="stat-label">مقال منشور في الدليل</div></div>
-          <div class="stat-note">آخر تحديث: ${escapeHtml(updatedDate)} · يتم تحديث الدليل تلقائيًا مع النشر الجديد.</div>
+          <div><div class="stat-number">${sorted.length}</div><div class="stat-label">مقال منشور في المدونة</div></div>
+          <div class="stat-note">${updatedDate ? `آخر تحديث: ${escapeHtml(updatedDate)} · ` : ''}تُحدّث المدونة مع نشر المحتوى الجديد.</div>
         </aside>
       </div>
     </section>
 
     <section class="section" id="latest">
       <div class="shell">
-        <div class="section-head"><div><h2>ابدأ من هنا</h2><p>أحدث محتوى منشور في دليل NEXT JOB.</p></div></div>
+        <div class="section-head"><div><h2>أحدث المقالات</h2><p>مقال مميز من أحدث محتوى مدونة NEXT JOB.</p></div></div>
         ${latestMarkup}
       </div>
     </section>
@@ -128,10 +128,10 @@ function render(manifest) {
     <section class="section" id="all-articles">
       <div class="shell">
         <div class="section-head">
-          <div><h2>جميع المقالات</h2><p>ابحث بالمدينة أو المهنة أو الكلمة المفتاحية.</p></div>
+          <div><h2>جميع المقالات</h2><p>ابحث بالمدينة أو المهنة أو الموضوع الذي تحتاجه.</p></div>
           <span id="visible-count">${sorted.length} مقال</span>
         </div>
-        <label class="tools" for="article-search"><span class="search-icon" aria-hidden="true">⌕</span><input id="article-search" type="search" autocomplete="off" placeholder="مثال: الرياض، محاسب، نقل الخدمات..." aria-label="البحث في المقالات"></label>
+        <label class="tools" for="article-search"><span class="search-icon" aria-hidden="true">⌕</span><input id="article-search" type="search" autocomplete="off" placeholder="مثال: الرياض، السيرة الذاتية، نقل الخدمات..." aria-label="البحث في مقالات المدونة"></label>
         <div class="article-grid" id="article-grid">${cards}</div>
         <div class="no-results" id="no-results">لا توجد مقالات مطابقة لعبارة البحث.</div>
       </div>
@@ -139,13 +139,13 @@ function render(manifest) {
 
     <section class="section">
       <div class="shell trust">
-        <div><h2>استخدم المحتوى كبداية، ثم تحقق من المصدر الرسمي</h2><p>في العقود ونقل الخدمات والإجراءات الحكومية، راجع الجهة الرسمية المعنية قبل اتخاذ القرار.</p></div>
-        <a href="/">العودة إلى NEXT JOB</a>
+        <div><h2>اقرأ، قارن، ثم تحقق من المصدر الرسمي</h2><p>في العقود ونقل الخدمات والإجراءات الحكومية، ارجع إلى الجهة الرسمية المعنية قبل اتخاذ القرار.</p></div>
+        <a href="/">العودة إلى الرئيسية</a>
       </div>
     </section>
   </main>
 
-  <footer class="footer"><div class="shell">NEXT JOB · فرصتك القادمة تبدأ هنا</div></footer>
+  <footer class="footer"><div class="shell">NEXT JOB · مدونة إرشادية مستقلة للعمل والمسار المهني</div></footer>
 
   <script>
     (() => {
@@ -173,5 +173,6 @@ function render(manifest) {
 }
 
 const manifest = readManifest();
+fs.mkdirSync(path.dirname(GUIDE_INDEX_FILE), { recursive: true });
 fs.writeFileSync(GUIDE_INDEX_FILE, render(manifest), 'utf8');
-console.log(`Guide index styled: ${manifest.length} article(s).`);
+console.log(`Guide blog index styled: ${manifest.length} article(s).`);
