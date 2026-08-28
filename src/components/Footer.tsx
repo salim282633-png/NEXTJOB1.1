@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Calculator, FileLock2, Settings, ShieldCheck } from 'lucide-react';
+import { BookOpen, Calculator, FileLock2, ShieldCheck } from 'lucide-react';
 import type { PublicTab } from './Navbar';
 
 interface FooterProps {
@@ -41,7 +41,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
               <li><a href="/guide/" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5 text-emerald-500" /><span>أرشيف المقالات والأدلة</span></a></li>
               {onOpenWageCalc && <li><button onClick={onOpenWageCalc} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><Calculator className="w-3.5 h-3.5 text-emerald-500" /><span>حاسبة دخل استرشادية</span></button></li>}
-              <li className="text-[11px] text-slate-500 leading-relaxed pt-2">خدمات إعداد أو بيع السير الذاتية والإعلانات التجارية المدفوعة متوقفة حاليًا.</li>
+              <li className="text-[11px] text-slate-500 leading-relaxed pt-2">المحتوى والخدمات المتاحة حاليًا إرشادية فقط، ولا تتضمن بيع السير الذاتية أو إعلانات تجارية مدفوعة.</li>
             </ul>
           </div>
 
@@ -50,7 +50,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
               {onOpenPrivacy && <li><button onClick={onOpenPrivacy} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><FileLock2 className="w-3.5 h-3.5 text-sky-400" /><span>الخصوصية وشروط الاستخدام</span></button></li>}
               <li><a href="/compliance/" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /><span>سياسة الامتثال والمصادر</span></a></li>
-              <li><a href="/admin/" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><Settings className="w-3.5 h-3.5 text-slate-400" /><span>دخول الإدارة</span></a></li>
               <li className="text-[11px] text-amber-400/90 pt-2 leading-relaxed font-semibold">تحقق من أي جهة أو إعلان قبل مشاركة بياناتك أو دفع أي مبلغ.</li>
             </ul>
           </div>
