@@ -19,7 +19,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
               <span className="text-xl font-black text-white">NEXT<span className="text-emerald-400">JOB</span></span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed">
-              مركز إرشادي مستقل للعمل والمسار المهني لليمنيين في السعودية، يقدم مقالات وأدلة عملية تساعد الباحث على اتخاذ خطوات مهنية أوضح وأكثر أمانًا.
+              مدونة إرشادية مستقلة للعمل والمسار المهني لليمنيين في السعودية، تقدم مقالات وأدلة عملية تساعد الباحث على اتخاذ خطوات مهنية أوضح وأكثر أمانًا.
             </p>
             <div className="flex items-start gap-2 text-xs text-emerald-400 font-semibold pt-1 leading-relaxed">
               <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
@@ -56,7 +56,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
         </div>
 
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} NEXT JOB — مركز إرشادي للعمل والمسار المهني.</p>
+          <p>© {new Date().getFullYear()} NEXT JOB — مدونة إرشادية للعمل والمسار المهني.</p>
           <div className="flex flex-wrap items-center justify-center gap-2 text-slate-400 text-[11px]">
             <span>ليست جهة حكومية</span><span>•</span><span>ليست مكتب توظيف أو استقدام أو إسناد عمالي</span>
           </div>
