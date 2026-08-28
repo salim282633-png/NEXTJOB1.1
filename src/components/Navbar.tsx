@@ -12,8 +12,8 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, savedCount }) => {
   const navItems: Array<{ id: PublicTab; label: string; mobileLabel: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'home', label: 'الرئيسية', mobileLabel: 'الرئيسية', icon: Home },
-    { id: 'jobs', label: 'فرص وظيفية', mobileLabel: 'الفرص', icon: Briefcase },
-    { id: 'guide', label: 'الدليل المهني', mobileLabel: 'الدليل', icon: BookOpen },
+    { id: 'guide', label: 'المقالات والأدلة', mobileLabel: 'الدليل', icon: BookOpen },
+    { id: 'jobs', label: 'دليل الفرص', mobileLabel: 'الفرص', icon: Briefcase },
     { id: 'saved', label: 'المحفوظات', mobileLabel: 'المحفوظ', icon: Bookmark }
   ];
 
@@ -23,14 +23,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, savedCo
         <div className="flex items-center justify-between gap-3 min-h-[68px] sm:min-h-[76px]">
           <button className="flex items-center gap-2.5 sm:gap-3 min-w-0 text-right" onClick={() => setActiveTab('home')} id="brand-logo-btn">
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-[14px] bg-gradient-to-tr from-emerald-700 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-600/15 shrink-0">
-              <Briefcase className="w-5 h-5 sm:w-6 sm:h-6" />
+              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-[21px] sm:text-2xl font-black tracking-tight text-slate-950 font-display leading-none">NEXT<span className="text-emerald-600">JOB</span></span>
                 <span className="hidden sm:inline-flex text-[10px] bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-100">السعودية</span>
               </div>
-              <p className="hidden lg:block text-[11px] text-slate-500 font-medium mt-1 whitespace-nowrap">محتوى مهني وفرص من مصادرها الأصلية</p>
+              <p className="hidden lg:block text-[11px] text-slate-500 font-medium mt-1 whitespace-nowrap">دليلك للعمل والمسار المهني في السعودية</p>
             </div>
           </button>
 
@@ -53,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, savedCo
           </nav>
 
           <div className="hidden md:flex items-center rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-800">
-            التقديم يتم لدى المصدر الأصلي
+            معرفة عملية · مصادر واضحة · تقديم مباشر
           </div>
         </div>
 
