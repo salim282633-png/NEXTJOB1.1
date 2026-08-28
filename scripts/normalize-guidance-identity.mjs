@@ -1,0 +1,57 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+const ROOT = process.cwd();
+const GUIDE_DIR = path.join(ROOT, 'public/guide');
+const HOME_FILE = path.join(ROOT, 'index.html');
+
+const replacements = [
+  ['دليل الفرص من مصادرها الأصلية', 'مركز الأدلة المهنية'],
+  ['دليل الفرص كمصدر مساعد فقط دون ادعاء توفر شواغر معينة', 'موضوعات NEXT JOB الإرشادية ذات الصلة فقط'],
+  ['دليل الفرص', 'مركز الأدلة'],
+  ['فرص العمل المفهرسة في NEXT JOB مع الإحالة إلى المصدر الأصلي', 'المقالات والأدلة المهنية المنشورة في NEXT JOB'],
+  ['الفرص المفهرسة في NEXT JOB وروابط مصادرها الأصلية', 'المحتوى الإرشادي في NEXT JOB وروابط المصادر الرسمية عند الحاجة'],
+  ['عرض الفرص الوظيفية ومصادرها', 'عرض الأدلة المهنية'],
+  ['راجع فرص العمل المفهرسة في NEXT JOB ثم انتقل إلى المصدر الأصلي للتحقق والتقديم', 'راجع الأدلة المهنية في NEXT JOB وتحقق من المصدر الرسمي المختص عند الحاجة'],
+  ['مركز إرشادي وفهرس فرص من مصادرها الأصلية', 'مركز إرشادي للعمل والمسار المهني'],
+  ['صفحات الفرص العامة', 'المحتوى الإرشادي العام']
+];
+
+function normalizeHtml(source) {
+  let next = source;
+
+  // Replace the old generated-article CTA with a guidance-only CTA before generic link removal.
+  next = next.replace(
+    /تابع\s*(<a\b[^>]*href=["']\/guide\/[^"']+["'][^>]*>[^<]+<\/a>)\s*أو تصفح\s*<a\b[^>]*href=["']\/jobs\/?["'][^>]*>[^<]+<\/a>\.?/gi,
+    'تابع $1 واستكشف <a href="/guide/">مركز الأدلة المهنية</a>.'
+  );
+
+  // Remove any remaining public opportunities navigation while the section is paused.
+  next = next.replace(/<a\b[^>]*href=["']\/jobs\/?[^"']*["'][^>]*>[\s\S]*?<\/a>/gi, '');
+
+  for (const [from, to] of replacements) {
+    next = next.split(from).join(to);
+  }
+
+  return next;
+}
+
+function normalizeFile(file) {
+  if (!fs.existsSync(file)) return;
+  const source = fs.readFileSync(file, 'utf8');
+  const next = normalizeHtml(source);
+  if (next !== source) fs.writeFileSync(file, next, 'utf8');
+}
+
+function walk(dir) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const target = path.join(dir, entry.name);
+    if (entry.isDirectory()) walk(target);
+    else if (entry.isFile() && entry.name.endsWith('.html')) normalizeFile(target);
+  }
+}
+
+normalizeFile(HOME_FILE);
+walk(GUIDE_DIR);
+console.log('NEXT JOB guidance identity normalization complete.');
