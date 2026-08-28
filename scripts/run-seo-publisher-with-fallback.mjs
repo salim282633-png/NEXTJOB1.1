@@ -4,7 +4,8 @@ import process from 'node:process';
 
 const API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
 const PREFERRED_MODEL = String(process.env.GEMINI_MODEL || 'gemini-3.6-flash').trim().replace(/^models\//, '');
-const MAX_ATTEMPTS = Math.max(1, Math.min(8, Number(process.env.GEMINI_MAX_MODEL_ATTEMPTS || 4)));
+const MAX_ATTEMPTS = Math.max(8, Math.min(12, Number(process.env.GEMINI_MAX_MODEL_ATTEMPTS || 8)));
+const MODEL_RETRIES = Math.max(1, Math.min(3, Number(process.env.GEMINI_MODEL_RETRIES || 2)));
 const MIN_PUBLISH_INTERVAL_HOURS = Math.max(1, Number(process.env.SEO_MIN_PUBLISH_INTERVAL_HOURS || 6));
 const PUBLISHER_SCRIPT = 'scripts/publish-yemeni-seo.mjs';
 const ARTICLES_INDEX = 'public/guide/articles.json';
@@ -124,6 +125,10 @@ function shouldTryAnotherModel(output) {
   return /\b403\b|Forbidden|\b404\b|NOT_FOUND|no longer available|not available|unsupported model|\b429\b|RESOURCE_EXHAUSTED|rate limit|quota exceeded|\b500\b|\b502\b|\b503\b|\b504\b|INTERNAL|UNAVAILABLE|DEADLINE_EXCEEDED|overloaded|Article failed production quality gates/i.test(output);
 }
 
+function shouldRetrySameModel(output) {
+  return /\b500\b|\b502\b|\b503\b|\b504\b|INTERNAL|UNAVAILABLE|DEADLINE_EXCEEDED|overloaded|Article failed production quality gates/i.test(output);
+}
+
 function runPublisher(model) {
   console.log(`SEO publisher model attempt: ${model}`);
 
@@ -169,8 +174,10 @@ async function main() {
     );
   }
 
+  // Try known stable fallbacks first, then widen to models discovered at runtime.
+  // This prevents a newly listed but quota-blocked model from crowding out proven fallbacks.
   const candidates = discovered.length
-    ? unique([PREFERRED_MODEL, ...discovered, ...STATIC_FALLBACK_MODELS])
+    ? unique([...STATIC_FALLBACK_MODELS, ...discovered])
     : STATIC_FALLBACK_MODELS;
 
   if (!candidates.length) {
@@ -186,34 +193,45 @@ async function main() {
     console.log('SEO publisher bypassed model discovery safely.');
   }
   console.log(`SEO publisher fallback order: ${attempts.join(' -> ')}`);
+  console.log(`SEO publisher transient/quality retries per model: ${MODEL_RETRIES}.`);
 
   let lastFailure = '';
 
   for (let index = 0; index < attempts.length; index += 1) {
     const model = attempts[index];
-    const result = runPublisher(model);
 
-    if (result.status === 0) {
-      console.log(`SEO publisher completed successfully with model: ${model}`);
-      return;
+    for (let retry = 1; retry <= MODEL_RETRIES; retry += 1) {
+      const result = runPublisher(model);
+
+      if (result.status === 0) {
+        console.log(`SEO publisher completed successfully with model: ${model}`);
+        return;
+      }
+
+      lastFailure = result.output;
+
+      if (shouldAbortWithoutFallback(result.output)) {
+        console.error('SEO publisher stopped because the failure is not model-specific. Check the API key, permissions, billing, or project configuration.');
+        process.exitCode = result.status;
+        return;
+      }
+
+      const canRetrySameModel = retry < MODEL_RETRIES && shouldRetrySameModel(result.output);
+      if (canRetrySameModel) {
+        console.warn(`SEO publisher retrying ${model} after transient/quality failure (${retry}/${MODEL_RETRIES}).`);
+        continue;
+      }
+
+      const hasNextModel = index + 1 < attempts.length;
+      if (!hasNextModel || !shouldTryAnotherModel(result.output)) {
+        console.error(`SEO publisher failed with model ${model} and no safe automatic fallback remains.`);
+        process.exitCode = result.status;
+        return;
+      }
+
+      console.warn(`SEO publisher switching automatically from ${model} to ${attempts[index + 1]}.`);
+      break;
     }
-
-    lastFailure = result.output;
-
-    if (shouldAbortWithoutFallback(result.output)) {
-      console.error('SEO publisher stopped because the failure is not model-specific. Check the API key, permissions, billing, or project configuration.');
-      process.exitCode = result.status;
-      return;
-    }
-
-    const hasNext = index + 1 < attempts.length;
-    if (!hasNext || !shouldTryAnotherModel(result.output)) {
-      console.error(`SEO publisher failed with model ${model} and no safe automatic fallback remains.`);
-      process.exitCode = result.status;
-      return;
-    }
-
-    console.warn(`SEO publisher switching automatically from ${model} to ${attempts[index + 1]}.`);
   }
 
   console.error('SEO publisher exhausted all automatic Gemini model fallbacks.');
