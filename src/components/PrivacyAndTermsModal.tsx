@@ -17,7 +17,7 @@ export const PrivacyAndTermsModal: React.FC<PrivacyAndTermsModalProps> = ({ isOp
             <div className="p-2.5 bg-emerald-500/20 rounded-xl"><ShieldCheck className="w-6 h-6 text-emerald-400" /></div>
             <div>
               <h2 id="privacy-title" className="text-lg font-bold">شروط الاستخدام والخصوصية</h2>
-              <p className="text-xs text-slate-300">NEXT JOB — مركز إرشادي مستقل للعمل والمسار المهني</p>
+              <p className="text-xs text-slate-300">NEXT JOB — مدونة إرشادية مستقلة للعمل والمسار المهني</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20" aria-label="إغلاق"><X className="w-5 h-5" /></button>
@@ -27,7 +27,7 @@ export const PrivacyAndTermsModal: React.FC<PrivacyAndTermsModalProps> = ({ isOp
           <section className="bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-2">
             <h3 className="font-bold text-amber-950 text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4" />1. طبيعة NEXT JOB</h3>
             <p className="text-amber-950 font-medium">
-              NEXT JOB مركز إرشادي مستقل يقدم مقالات وأدلة وأدوات عامة تساعد الباحث على تنظيم خطواته المهنية واتخاذ قرارات أكثر وعيًا.
+              NEXT JOB مدونة إرشادية مستقلة تقدم مقالات وأدلة وأدوات عامة تساعد الباحث على تنظيم خطواته المهنية واتخاذ قرارات أكثر وعيًا.
             </p>
             <ul className="list-disc list-inside space-y-1 text-amber-900">
               <li>ليست جهة حكومية، ولا تمثل وزارة الموارد البشرية أو منصة قوى أو أي جهة رسمية.</li>
