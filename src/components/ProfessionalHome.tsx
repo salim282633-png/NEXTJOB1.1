@@ -65,14 +65,14 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
         <div className="relative mx-auto max-w-5xl text-center">
           <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-black text-emerald-800 shadow-sm">
             <BookOpen className="h-4 w-4" />
-            مركز إرشادي للعمل والمسار المهني
+            مدونة إرشادية للعمل والمسار المهني
           </div>
           <h1 className="mt-5 text-3xl font-black leading-[1.35] text-slate-950 sm:text-5xl font-display">
             دليلك للعمل والمسار المهني
             <span className="block text-emerald-700">لليمنيين في السعودية</span>
           </h1>
           <p className="mx-auto mt-5 max-w-3xl text-sm leading-8 text-slate-600 sm:text-base">
-            NEXT JOB مركز إرشادي مستقل يقدم مقالات وأدلة عملية للباحث اليمني داخل السعودية حول البحث عن عمل، السيرة الذاتية، المقابلات، العقود، نقل الخدمات، والأمان المهني.
+            NEXT JOB مدونة إرشادية مستقلة تقدم مقالات وأدلة عملية للباحث اليمني داخل السعودية حول البحث عن عمل، السيرة الذاتية، المقابلات، العقود، نقل الخدمات، والأمان المهني.
           </p>
           <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
             <a href="/guide/" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">
