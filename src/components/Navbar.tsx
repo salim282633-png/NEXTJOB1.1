@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bookmark, BookOpen, Briefcase, Home } from 'lucide-react';
+import { Bookmark, BookOpen, Home } from 'lucide-react';
 
 export type PublicTab = 'home' | 'jobs' | 'guide' | 'saved';
 
@@ -9,11 +9,14 @@ interface NavbarProps {
   savedCount: number;
 }
 
+// Temporary visibility switch. Set to true when دليل الفرص is ready to return.
+const SHOW_OPPORTUNITIES = false;
+
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, savedCount }) => {
   const navItems: Array<{ id: PublicTab; label: string; mobileLabel: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'home', label: 'الرئيسية', mobileLabel: 'الرئيسية', icon: Home },
     { id: 'guide', label: 'المقالات والأدلة', mobileLabel: 'الدليل', icon: BookOpen },
-    { id: 'jobs', label: 'دليل الفرص', mobileLabel: 'الفرص', icon: Briefcase },
+    ...(SHOW_OPPORTUNITIES ? [] : []),
     { id: 'saved', label: 'المحفوظات', mobileLabel: 'المحفوظ', icon: Bookmark }
   ];
 
@@ -53,11 +56,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, savedCo
           </nav>
 
           <div className="hidden md:flex items-center rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-800">
-            التقديم يتم لدى المصدر الأصلي
+            محتوى إرشادي مستقل
           </div>
         </div>
 
-        <div className="md:hidden grid grid-cols-4 gap-1 border-t border-slate-100 py-2">
+        <div className="md:hidden grid gap-1 border-t border-slate-100 py-2" style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}>
           {navItems.map(item => {
             const Icon = item.icon;
             return (
