@@ -76,7 +76,7 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
           </p>
           <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
             <a href="/guide/" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">
-              ابدأ من الدليل المهني <ArrowLeft className="h-4 w-4" />
+              تصفح المدونة <ArrowLeft className="h-4 w-4" />
             </a>
             {SHOW_OPPORTUNITIES && (
               <button onClick={() => onNavigate('jobs')} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-800 hover:border-emerald-300 hover:text-emerald-800">
@@ -85,7 +85,7 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
             )}
           </div>
           <div className="mx-auto mt-7 grid max-w-3xl grid-cols-1 gap-2 text-xs text-slate-600 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold">محتوى إرشادي عملي</div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold">مقالات عملية ومباشرة</div>
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold">مصادر رسمية عند الحاجة</div>
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold">لا وعود ولا وساطة توظيف</div>
           </div>
@@ -95,10 +95,10 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <span className="text-xs font-black text-emerald-700">مركز المعرفة</span>
+            <span className="text-xs font-black text-emerald-700">أقسام المدونة</span>
             <h2 className="mt-1 text-2xl font-black text-slate-950">ابدأ بالموضوع الذي تحتاجه</h2>
           </div>
-          <a href="/guide/" className="hidden text-xs font-black text-emerald-700 sm:inline-flex items-center gap-1">كل الأدلة <ArrowLeft className="h-4 w-4" /></a>
+          <a href="/guide/" className="hidden text-xs font-black text-emerald-700 sm:inline-flex items-center gap-1">تصفح المدونة <ArrowLeft className="h-4 w-4" /></a>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {topics.map(topic => {
@@ -118,10 +118,10 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
         <div className="rounded-[30px] bg-slate-950 p-5 text-white sm:p-8">
           <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
-              <span className="text-xs font-black text-emerald-300">أحدث المحتوى</span>
-              <h2 className="mt-1 text-xl font-black sm:text-2xl">مقالات وأدلة مهنية</h2>
+              <span className="text-xs font-black text-emerald-300">من المدونة</span>
+              <h2 className="mt-1 text-xl font-black sm:text-2xl">أحدث المقالات</h2>
             </div>
-            <a href="/guide/" className="inline-flex items-center gap-2 text-xs font-black text-emerald-300">عرض الأرشيف <ExternalLink className="h-4 w-4" /></a>
+            <a href="/guide/" className="inline-flex items-center gap-2 text-xs font-black text-emerald-300">عرض جميع المقالات <ExternalLink className="h-4 w-4" /></a>
           </div>
           {articles.length > 0 ? (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -134,7 +134,7 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
               ))}
             </div>
           ) : (
-            <p className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm text-slate-300">سيظهر أحدث المحتوى المهني هنا عند نشره في الدليل.</p>
+            <p className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm text-slate-300">ستظهر أحدث المقالات هنا عند نشر محتوى جديد في المدونة.</p>
           )}
         </div>
       </section>
