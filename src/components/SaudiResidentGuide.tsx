@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
+import {
+  AlertCircle,
+  BookOpen,
+  BriefcaseBusiness,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  FileText,
+  GraduationCap,
+  MapPin,
+  SearchCheck,
+  ShieldCheck
+} from 'lucide-react';
 import { SAUDI_GUIDE_ARTICLES } from '../lib/data';
 
 interface GeneratedArticleMeta {
@@ -8,8 +21,35 @@ interface GeneratedArticleMeta {
   description: string;
   keyword: string;
   publishedDate: string;
+  intent?: string;
   city?: string | null;
   profession?: string | null;
+}
+
+const guidanceTopics = [
+  { title: 'البحث عن عمل بوعي', text: 'كيف تبحث، تقارن، وتتحقق من الإعلان والمصدر قبل التقديم.', icon: SearchCheck },
+  { title: 'السيرة الذاتية', text: 'إرشادات عملية لبناء ملف مهني واضح ومناسب للتقديم.', icon: FileText },
+  { title: 'المقابلات والمهارات', text: 'الاستعداد للمقابلات وتطوير المهارات المرتبطة بالمسار المهني.', icon: GraduationCap },
+  { title: 'العقود ونقل الخدمات', text: 'أسئلة ونقاط تحقق مع الرجوع إلى قوى والجهات الرسمية المختصة.', icon: BriefcaseBusiness },
+  { title: 'أدلة المدن والمهن', text: 'محتوى يساعدك على فهم الخيارات بحسب المدينة أو المجال المهني.', icon: MapPin },
+  { title: 'الأمان وتجنب الاحتيال', text: 'علامات تحذيرية لحماية بياناتك ومالك أثناء البحث عن فرصة.', icon: ShieldCheck }
+];
+
+function articleLabel(article: GeneratedArticleMeta) {
+  if (article.city) return `دليل ${article.city}`;
+  if (article.profession) return article.profession;
+  const labels: Record<string, string> = {
+    'cv-guide': 'السيرة الذاتية',
+    'interview-guide': 'المقابلات',
+    'safety-guide': 'البحث الآمن',
+    'city-guide': 'دليل المدن',
+    'skills-guide': 'المهارات',
+    'application-guide': 'التقديم',
+    'contract-guide': 'العقود',
+    'sponsorship-guide': 'نقل الخدمات',
+    'application-message': 'رسائل التقديم'
+  };
+  return labels[article.intent || ''] || 'دليل مهني';
 }
 
 export const SaudiResidentGuide: React.FC = () => {
@@ -25,9 +65,7 @@ export const SaudiResidentGuide: React.FC = () => {
     fetch('/guide/articles.json', { cache: 'no-store' })
       .then(response => response.ok ? response.json() : [])
       .then(data => {
-        if (!cancelled && Array.isArray(data)) {
-          setGeneratedArticles(data.slice(0, 12));
-        }
+        if (!cancelled && Array.isArray(data)) setGeneratedArticles(data.slice(0, 18));
       })
       .catch(() => {
         if (!cancelled) setGeneratedArticles([]);
@@ -40,161 +78,167 @@ export const SaudiResidentGuide: React.FC = () => {
   }, []);
 
   const categories = ['all', 'نقل الخدمات وقوى', 'الإقامة والأنظمة', 'عقود العمل والحقوق', 'نصائح التوظيف والمقابلات'];
-
   const filteredArticles = selectedCategory === 'all'
     ? SAUDI_GUIDE_ARTICLES
-    : SAUDI_GUIDE_ARTICLES.filter(a => a.category === selectedCategory);
+    : SAUDI_GUIDE_ARTICLES.filter(article => article.category === selectedCategory);
 
   return (
-    <section className="py-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-      <div className="text-center space-y-3 max-w-2xl mx-auto">
-        <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold">
-          <BookOpen className="w-4 h-4 text-emerald-600" />
-          <span>المقالات ودليل العمل لليمنيين في السعودية</span>
-        </div>
-        <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-          أحدث المقالات ودليل البحث عن عمل
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-          مقالات محدثة تلقائيًا ومحتوى إرشادي عملي يساعد الباحث اليمني داخل السعودية على تجهيز ملفه، البحث الآمن عن الوظائف، وفهم الأسئلة التي ينبغي مراجعتها مع صاحب العمل والجهات الرسمية.
-        </p>
-      </div>
-
-      <div className="bg-emerald-950 text-white rounded-3xl p-5 sm:p-7 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h3 className="text-lg sm:text-xl font-black">أحدث مقالات وظائف اليمنيين في السعودية</h3>
-            <p className="text-xs text-emerald-100/80 mt-1">كل مقال جديد ينشره نظام NEXT JOB سيظهر هنا تلقائيًا.</p>
+    <main className="bg-slate-50/60">
+      <section className="border-b border-emerald-100 bg-gradient-to-b from-emerald-50 via-white to-slate-50 px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+        <div className="mx-auto max-w-4xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-black text-emerald-800 shadow-sm">
+            <BookOpen className="h-4 w-4" />
+            مركز NEXT JOB الإرشادي
           </div>
-          <a
-            href="/guide/"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white text-emerald-950 text-xs font-black hover:bg-emerald-50 transition-colors shrink-0"
-          >
-            عرض جميع المقالات
-            <ExternalLink className="w-4 h-4" />
-          </a>
+          <h1 className="mt-5 text-3xl font-black leading-[1.4] text-slate-950 sm:text-4xl">
+            معلومات عملية تساعدك في خطوتك المهنية القادمة
+          </h1>
+          <p className="mx-auto mt-4 max-w-3xl text-sm leading-8 text-slate-600">
+            أدلة ومقالات للباحث اليمني داخل السعودية عن البحث عن عمل، السيرة الذاتية، المقابلات، العقود، نقل الخدمات، المدن والمهن، والأمان أثناء التقديم. عند أي موضوع تنظيمي نوصي بالتحقق من المصدر الرسمي الساري لحالتك.
+          </p>
         </div>
+      </section>
 
-        {generatedArticlesLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[0, 1].map(item => (
-              <div key={item} className="rounded-2xl p-4 bg-white/10 border border-white/10 animate-pulse space-y-3">
-                <div className="h-3 w-32 bg-white/15 rounded" />
-                <div className="h-5 w-full bg-white/15 rounded" />
-                <div className="h-3 w-4/5 bg-white/10 rounded" />
-              </div>
-            ))}
-          </div>
-        ) : generatedArticles.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {generatedArticles.map(article => (
-              <a
-                key={article.slug}
-                href={`/guide/${article.slug}/`}
-                className="block bg-white/10 hover:bg-white/15 border border-white/10 rounded-2xl p-4 transition-colors"
-              >
-                <div className="text-[10px] text-emerald-300 mb-1">{article.publishedDate} · {article.keyword}</div>
-                <div className="font-bold text-sm leading-relaxed flex items-start gap-2">
-                  <span className="flex-1">{article.title}</span>
-                  <ExternalLink className="w-4 h-4 shrink-0 mt-1" />
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <span className="text-xs font-black text-emerald-700">اختر مسارك</span>
+          <h2 className="mt-1 text-2xl font-black text-slate-950">موضوعات الدليل</h2>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {guidanceTopics.map(topic => {
+            const Icon = topic.icon;
+            return (
+              <article key={topic.title} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+                  <Icon className="h-5 w-5" />
                 </div>
-                <p className="text-xs text-emerald-50/75 mt-2 line-clamp-2">{article.description}</p>
-                <span className="inline-block mt-3 text-xs font-black text-emerald-300">قراءة المقال</span>
-              </a>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm text-emerald-50">
-            لا توجد مقالات منشورة حاليًا في الفهرس. يمكنك فتح أرشيف المقالات للتحقق من آخر نشر.
-          </div>
-        )}
-      </div>
+                <h3 className="font-black text-slate-900">{topic.title}</h3>
+                <p className="mt-2 text-xs leading-6 text-slate-500">{topic.text}</p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            id={`guide-tab-${cat}`}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-semibold transition-all ${
-              selectedCategory === cat
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            {cat === 'all' ? 'جميع مواضيع الدليل' : cat}
-          </button>
-        ))}
-      </div>
+      <section className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
+        <div className="rounded-[30px] bg-slate-950 p-5 text-white sm:p-8">
+          <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <span className="text-xs font-black text-emerald-300">أحدث ما نشرناه</span>
+              <h2 className="mt-1 text-xl font-black sm:text-2xl">المقالات والأدلة الحديثة</h2>
+              <p className="mt-2 max-w-2xl text-xs leading-6 text-slate-300">نركز على محتوى عملي ومحدد بدل النشر الكثيف، مع بقاء الأرشيف متاحًا للقراءة والفهرسة.</p>
+            </div>
+            <a href="/guide/" className="inline-flex items-center gap-2 text-xs font-black text-emerald-300">
+              عرض الأرشيف <ExternalLink className="h-4 w-4" />
+            </a>
+          </div>
 
-      <div className="space-y-4">
-        {filteredArticles.map(article => {
-          const isExpanded = expandedArticleId === article.id;
-          return (
-            <div
-              key={article.id}
-              id={`guide-card-${article.id}`}
-              className="bg-white rounded-3xl border border-slate-200/90 overflow-hidden shadow-xs hover:shadow-md transition-all"
+          {generatedArticlesLoading ? (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map(item => <div key={item} className="h-36 animate-pulse rounded-2xl border border-white/10 bg-white/10" />)}
+            </div>
+          ) : generatedArticles.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {generatedArticles.map(article => (
+                <a key={article.slug} href={`/guide/${article.slug}/`} className="rounded-2xl border border-white/10 bg-white/10 p-4 transition hover:bg-white/15">
+                  <div className="flex items-center justify-between gap-2 text-[10px] text-emerald-300">
+                    <span>{articleLabel(article)}</span>
+                    <span>{article.publishedDate}</span>
+                  </div>
+                  <h3 className="mt-2 text-sm font-black leading-6">{article.title}</h3>
+                  <p className="mt-2 line-clamp-3 text-xs leading-6 text-slate-300">{article.description}</p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-black text-emerald-300">قراءة المقال <ExternalLink className="h-3.5 w-3.5" /></span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-5 text-sm text-slate-300">لا توجد مقالات في الفهرس حاليًا.</div>
+          )}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 pb-10 sm:px-6 lg:px-8">
+        <div className="mb-6 text-center">
+          <span className="text-xs font-black text-emerald-700">أدلة أساسية</span>
+          <h2 className="mt-1 text-2xl font-black text-slate-950">معلومات مختصرة تحتاجها أثناء العمل والبحث</h2>
+        </div>
+
+        <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
+          {categories.map(category => (
+            <button
+              key={category}
+              id={`guide-tab-${category}`}
+              onClick={() => setSelectedCategory(category)}
+              className={`rounded-2xl px-4 py-2 text-xs font-semibold transition-all sm:text-sm ${
+                selectedCategory === category
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                  : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'
+              }`}
             >
-              <button
-                onClick={() => setExpandedArticleId(isExpanded ? '' : article.id)}
-                className="w-full text-right p-5 sm:p-6 flex items-start justify-between gap-4 focus:outline-none"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-lg border border-emerald-200">
-                      {article.category}
-                    </span>
-                    <span className="text-xs text-slate-400 font-medium">{article.readTime}</span>
-                  </div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">{article.title}</h3>
-                  <p className="text-xs sm:text-sm text-slate-500 line-clamp-1">{article.summary}</p>
-                </div>
-                <div className="p-2 rounded-xl bg-slate-100 text-slate-600 shrink-0 mt-1">
-                  {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </div>
-              </button>
+              {category === 'all' ? 'جميع مواضيع الدليل' : category}
+            </button>
+          ))}
+        </div>
 
-              {isExpanded && (
-                <div className="px-5 sm:px-6 pb-6 pt-2 border-t border-slate-100 space-y-4 text-slate-700 text-sm leading-relaxed">
-                  <div className="space-y-2.5">
-                    {article.content.map((p, idx) => (
-                      <div key={idx} className="flex items-start gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
-                        <p>{p}</p>
-                      </div>
-                    ))}
+        <div className="space-y-4">
+          {filteredArticles.map(article => {
+            const isExpanded = expandedArticleId === article.id;
+            return (
+              <article key={article.id} id={`guide-card-${article.id}`} className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-sm">
+                <button onClick={() => setExpandedArticleId(isExpanded ? '' : article.id)} className="flex w-full items-start justify-between gap-4 p-5 text-right sm:p-6">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">{article.category}</span>
+                      <span className="text-xs font-medium text-slate-400">{article.readTime}</span>
+                    </div>
+                    <h3 className="text-base font-bold leading-snug text-slate-900 sm:text-lg">{article.title}</h3>
+                    <p className="line-clamp-1 text-xs text-slate-500 sm:text-sm">{article.summary}</p>
                   </div>
+                  <div className="mt-1 shrink-0 rounded-xl bg-slate-100 p-2 text-slate-600">
+                    {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  </div>
+                </button>
 
-                  {article.importantNotes && article.importantNotes.length > 0 && (
-                    <div className="bg-amber-50 border border-amber-200/80 p-4 rounded-2xl space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
-                        <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
-                        <span>تنبيه مهم:</span>
-                      </div>
-                      {article.importantNotes.map((note, nIdx) => (
-                        <p key={nIdx} className="text-xs text-amber-800 font-medium pr-6 leading-relaxed">• {note}</p>
+                {isExpanded && (
+                  <div className="space-y-4 border-t border-slate-100 px-5 pb-6 pt-4 text-sm leading-relaxed text-slate-700 sm:px-6">
+                    <div className="space-y-2.5">
+                      {article.content.map((paragraph, index) => (
+                        <div key={index} className="flex items-start gap-2.5">
+                          <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
+                          <p>{paragraph}</p>
+                        </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 space-y-4">
-        <h3 className="text-lg font-bold">تحقق من الإجراءات عبر المصادر الرسمية</h3>
-        <p className="text-xs sm:text-sm text-slate-400">
-          عند التعامل مع عقد أو نقل خدمات أو إجراء حكومي، ارجع دائمًا إلى المنصة والجهة الرسمية المختصة وتحقق من المعلومات السارية لحالتك.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-          <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-1"><h4 className="text-sm font-bold text-emerald-400">قوى (Qiwa)</h4><p className="text-xs text-slate-300">خدمات العمل والعقود والمنشآت بحسب الخدمات المتاحة رسميًا.</p></div>
-          <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-1"><h4 className="text-sm font-bold text-emerald-400">أبشر (Absher)</h4><p className="text-xs text-slate-300">الخدمات الحكومية الفردية المتاحة للمستخدم بحسب حالته.</p></div>
-          <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-1"><h4 className="text-sm font-bold text-emerald-400">الجهة الرسمية المختصة</h4><p className="text-xs text-slate-300">تحقق من المصدر الحكومي قبل الاعتماد على أي معلومة نظامية أو إجراء.</p></div>
+                    {article.importantNotes && article.importantNotes.length > 0 && (
+                      <div className="space-y-2 rounded-2xl border border-amber-200/80 bg-amber-50 p-4">
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
+                          <AlertCircle className="h-4 w-4 shrink-0 text-amber-700" />
+                          <span>تنبيه مهم:</span>
+                        </div>
+                        {article.importantNotes.map((note, index) => <p key={index} className="pr-6 text-xs font-medium leading-relaxed text-amber-800">• {note}</p>)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 pb-14 sm:px-6 lg:px-8">
+        <div className="rounded-3xl bg-slate-900 p-6 text-white sm:p-8">
+          <h2 className="text-lg font-bold">المصدر الرسمي هو المرجع النهائي</h2>
+          <p className="mt-3 text-xs leading-6 text-slate-400 sm:text-sm">
+            عند التعامل مع عقد أو نقل خدمات أو إجراء حكومي، تحقق من المعلومات السارية عبر المنصة أو الجهة الرسمية المختصة قبل اتخاذ أي إجراء. NEXT JOB يقدم محتوى إرشاديًا عامًا ولا ينفذ هذه الإجراءات نيابة عن المستخدم.
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-700 bg-slate-800 p-4"><h3 className="text-sm font-bold text-emerald-400">قوى (Qiwa)</h3><p className="mt-1 text-xs leading-5 text-slate-300">خدمات العمل والعقود والمنشآت بحسب الخدمات المتاحة رسميًا.</p></div>
+            <div className="rounded-2xl border border-slate-700 bg-slate-800 p-4"><h3 className="text-sm font-bold text-emerald-400">وزارة الموارد البشرية</h3><p className="mt-1 text-xs leading-5 text-slate-300">المصدر الحكومي الأساسي للأنظمة والخدمات المرتبطة بسوق العمل.</p></div>
+            <div className="rounded-2xl border border-slate-700 bg-slate-800 p-4"><h3 className="text-sm font-bold text-emerald-400">الجهة المختصة</h3><p className="mt-1 text-xs leading-5 text-slate-300">راجع الجهة الحكومية المناسبة لكل إجراء أو خدمة بحسب حالتك.</p></div>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 };
