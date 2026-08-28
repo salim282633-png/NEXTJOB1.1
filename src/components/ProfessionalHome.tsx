@@ -9,6 +9,7 @@ import {
   MapPin,
   Newspaper,
   SearchCheck,
+  ShieldCheck,
   Sparkles
 } from 'lucide-react';
 import { Job } from '../types';
@@ -27,12 +28,12 @@ interface ProfessionalHomeProps {
 }
 
 const topics = [
-  { title: 'فرص العمل والمسارات المهنية', text: 'استكشف القطاعات والمهن والخيارات المهنية المتاحة.', icon: BriefcaseBusiness },
-  { title: 'البحث عن وظيفة والسيرة الذاتية', text: 'إرشادات تحريرية تساعدك على عرض خبراتك والبحث بوعي.', icon: SearchCheck },
-  { title: 'سوق العمل في السعودية', text: 'محتوى تفسيري يعتمد على المصادر الرسمية كلما كان الموضوع تنظيميًا.', icon: Building2 },
-  { title: 'تطوير المهارات والمقابلات', text: 'أفكار عملية للاستعداد للمقابلات وتطوير المهارات المهنية.', icon: GraduationCap },
-  { title: 'أدلة المدن والقطاعات والمهن', text: 'أدلة تساعدك على فهم الفرص حسب المدينة والقطاع والمسار.', icon: MapPin },
-  { title: 'أخبار وتحديثات مهنية', text: 'تحديثات موثوقة مع ذكر المصدر وتاريخ النشر بوضوح.', icon: Newspaper }
+  { title: 'البحث عن عمل بوعي', text: 'خطوات عملية للبحث، تقييم الإعلان، والوصول إلى المصدر الأصلي قبل التقديم.', icon: SearchCheck },
+  { title: 'السيرة الذاتية والمقابلات', text: 'إرشادات لعرض خبراتك، كتابة ملف مهني واضح، والاستعداد للمقابلات.', icon: GraduationCap },
+  { title: 'العقود ونقل الخدمات', text: 'شرح مبسط للأسئلة التي تحتاج للتحقق منها عبر قوى والجهات الرسمية المختصة.', icon: Building2 },
+  { title: 'أدلة المدن والمهن', text: 'محتوى يساعد الباحث اليمني على فهم المدن والقطاعات والمسارات المهنية المختلفة.', icon: MapPin },
+  { title: 'الأمان وتجنب الاحتيال', text: 'علامات تحذيرية قبل إرسال بياناتك أو دفع أي مبلغ مقابل وعد بالتوظيف.', icon: ShieldCheck },
+  { title: 'تحديثات مهنية موثوقة', text: 'محتوى وتحديثات عملية مع توضيح المصدر والتاريخ عندما يكون الموضوع متغيرًا.', icon: Newspaper }
 ];
 
 export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavigate }) => {
@@ -60,22 +61,27 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
         <div className="relative mx-auto max-w-5xl text-center">
           <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-black text-emerald-800 shadow-sm">
             <BookOpen className="h-4 w-4" />
-            دليل مهني عربي وفرص من مصادرها الأصلية
+            مركز إرشادي للعمل والمسار المهني
           </div>
           <h1 className="mt-5 text-3xl font-black leading-[1.35] text-slate-950 sm:text-5xl font-display">
-            محتوى مهني، فرص عمل، وأدوات تساعدك
-            <span className="block text-emerald-700">في خطوتك المهنية القادمة</span>
+            دليلك للعمل والمسار المهني
+            <span className="block text-emerald-700">لليمنيين في السعودية</span>
           </h1>
           <p className="mx-auto mt-5 max-w-3xl text-sm leading-8 text-slate-600 sm:text-base">
-            NEXT JOB دليل مهني مستقل يقدم محتوى أصليًا، ويجمع روابط فرص وظيفية منشورة لدى مصادر خارجية موثوقة. التقديم يتم لدى المصدر الأصلي، ولا تستقبل المنصة طلبات التوظيف نيابة عن أصحاب العمل ولا تختار المرشحين.
+            NEXT JOB مركز إرشادي مستقل يقدم مقالات وأدلة عملية للباحث اليمني داخل السعودية، مع روابط فرص منشورة لدى مصادر خارجية موثوقة. لا نتوسط في التوظيف، والتقديم يتم مباشرة لدى المصدر الأصلي.
           </p>
           <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-            <button onClick={() => onNavigate('jobs')} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">
-              استعرض الفرص الوظيفية <ArrowLeft className="h-4 w-4" />
+            <button onClick={() => onNavigate('guide')} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700">
+              ابدأ من الدليل المهني <ArrowLeft className="h-4 w-4" />
             </button>
-            <button onClick={() => onNavigate('guide')} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-800 hover:border-emerald-300 hover:text-emerald-800">
-              اكتشف الدليل المهني <BookOpen className="h-4 w-4" />
+            <button onClick={() => onNavigate('jobs')} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-black text-slate-800 hover:border-emerald-300 hover:text-emerald-800">
+              تصفح فرصًا من مصادرها <BriefcaseBusiness className="h-4 w-4" />
             </button>
+          </div>
+          <div className="mx-auto mt-7 grid max-w-3xl grid-cols-1 gap-2 text-xs text-slate-600 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold">محتوى إرشادي عملي</div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold">مصادر رسمية عند الحاجة</div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 font-bold">لا وعود ولا وساطة توظيف</div>
           </div>
         </div>
       </section>
@@ -84,9 +90,9 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
             <span className="text-xs font-black text-emerald-700">مركز المعرفة</span>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">موضوعات تساعدك في مسارك المهني</h2>
+            <h2 className="mt-1 text-2xl font-black text-slate-950">ابدأ بالموضوع الذي تحتاجه</h2>
           </div>
-          <button onClick={() => onNavigate('guide')} className="hidden text-xs font-black text-emerald-700 sm:inline-flex items-center gap-1">كل المقالات <ArrowLeft className="h-4 w-4" /></button>
+          <button onClick={() => onNavigate('guide')} className="hidden text-xs font-black text-emerald-700 sm:inline-flex items-center gap-1">كل الأدلة <ArrowLeft className="h-4 w-4" /></button>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {topics.map(topic => {
@@ -130,9 +136,9 @@ export const ProfessionalHome: React.FC<ProfessionalHomeProps> = ({ jobs, onNavi
       <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <span className="text-xs font-black text-emerald-700">فرص وظيفية</span>
-            <h2 className="mt-1 text-2xl font-black text-slate-950">روابط فرص من مصادر خارجية موثوقة</h2>
-            <p className="mt-2 max-w-2xl text-xs leading-6 text-slate-500">نعرض المعلومات الأساسية ومصدر الإعلان، ثم نوجهك للموقع الأصلي للتفاصيل والتقديم.</p>
+            <span className="text-xs font-black text-emerald-700">دليل الفرص</span>
+            <h2 className="mt-1 text-2xl font-black text-slate-950">فرص منشورة لدى مصادر خارجية</h2>
+            <p className="mt-2 max-w-2xl text-xs leading-6 text-slate-500">هذا القسم مكمل للمحتوى الإرشادي: نعرض المعلومات الأساسية والمصدر، ثم نوجهك إلى الموقع الأصلي للتفاصيل والتقديم.</p>
           </div>
           <button onClick={() => onNavigate('jobs')} className="hidden text-xs font-black text-emerald-700 sm:inline-flex items-center gap-1">كل الفرص <ArrowLeft className="h-4 w-4" /></button>
         </div>
