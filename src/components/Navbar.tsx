@@ -56,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, savedCo
           </nav>
 
           <div className="hidden md:flex items-center rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-800">
-            التقديم يتم لدى المصدر الأصلي
+            {SHOW_OPPORTUNITIES ? 'التقديم يتم لدى المصدر الأصلي' : 'محتوى إرشادي مستقل'}
           </div>
         </div>
 
