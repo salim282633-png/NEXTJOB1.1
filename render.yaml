@@ -15,6 +15,14 @@ services:
       - type: rewrite
         source: /admin/*
         destination: /admin/index.html
+    # Temporary SEO pause for دليل الفرص. Remove these two rules when the section returns.
+    headers:
+      - path: /jobs
+        name: X-Robots-Tag
+        value: "noindex, follow"
+      - path: /jobs/*
+        name: X-Robots-Tag
+        value: "noindex, follow"
 
   - type: cron
     name: nextjob-seo-scheduler
