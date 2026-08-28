@@ -7,7 +7,7 @@ const PREFERRED_MODEL = String(process.env.GEMINI_MODEL || 'gemini-3.6-flash').t
 const MAX_ATTEMPTS = Math.max(8, Math.min(12, Number(process.env.GEMINI_MAX_MODEL_ATTEMPTS || 8)));
 const MODEL_RETRIES = Math.max(1, Math.min(3, Number(process.env.GEMINI_MODEL_RETRIES || 2)));
 const MIN_PUBLISH_INTERVAL_HOURS = Math.max(1, Number(process.env.SEO_MIN_PUBLISH_INTERVAL_HOURS || 6));
-const PUBLISHER_SCRIPT = 'scripts/publish-yemeni-seo.mjs';
+const PUBLISHER_SCRIPT = 'scripts/publish-guidance-seo.mjs';
 const ARTICLES_INDEX = 'public/guide/articles.json';
 
 function modelScore(name) {
@@ -174,8 +174,6 @@ async function main() {
     );
   }
 
-  // Try known stable fallbacks first, then widen to models discovered at runtime.
-  // This prevents a newly listed but quota-blocked model from crowding out proven fallbacks.
   const candidates = discovered.length
     ? unique([...STATIC_FALLBACK_MODELS, ...discovered])
     : STATIC_FALLBACK_MODELS;
