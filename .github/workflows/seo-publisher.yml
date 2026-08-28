@@ -92,7 +92,7 @@ jobs:
         if: steps.eligibility.outputs.eligible == 'true'
         run: npm ci
 
-      - name: Generate one article when eligible
+      - name: Generate one guidance article when eligible
         if: steps.eligibility.outputs.eligible == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -106,6 +106,7 @@ jobs:
           node scripts/normalize-content-hub-seo.mjs
           node scripts/style-guide-index.mjs
           node scripts/style-guide-articles.mjs
+          node scripts/build-guide-categories.mjs
           node scripts/apply-static-typography.mjs public/guide
           node scripts/normalize-content-hub-seo.mjs
 
