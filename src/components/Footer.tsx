@@ -19,7 +19,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
               <span className="text-xl font-black text-white">NEXT<span className="text-emerald-400">JOB</span></span>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed">
-              مركز إرشادي مستقل للعمل والمسار المهني لليمنيين في السعودية، يقدم مقالات وأدلة عملية ويفهرس فرصًا منشورة لدى مصادر خارجية مع إحالة المستخدم إلى المصدر الأصلي للتقديم.
+              مركز إرشادي مستقل للعمل والمسار المهني لليمنيين في السعودية، يقدم مقالات وأدلة عملية تساعد الباحث على اتخاذ خطوات مهنية أوضح وأكثر أمانًا.
             </p>
             <div className="flex items-start gap-2 text-xs text-emerald-400 font-semibold pt-1 leading-relaxed">
               <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
@@ -32,8 +32,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
               <li><button onClick={() => onNavigate('home')} className="hover:text-emerald-400 transition-colors">الرئيسية</button></li>
               <li><button onClick={() => onNavigate('guide')} className="hover:text-emerald-400 transition-colors">المقالات والأدلة</button></li>
-              <li><button onClick={() => onNavigate('jobs')} className="hover:text-emerald-400 transition-colors">دليل الفرص</button></li>
-              <li><button onClick={() => onNavigate('saved')} className="hover:text-emerald-400 transition-colors">الفرص المحفوظة</button></li>
+              <li><button onClick={() => onNavigate('saved')} className="hover:text-emerald-400 transition-colors">المحفوظات</button></li>
             </ul>
           </div>
 
@@ -52,13 +51,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
               {onOpenPrivacy && <li><button onClick={onOpenPrivacy} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><FileLock2 className="w-3.5 h-3.5 text-sky-400" /><span>الخصوصية وشروط الاستخدام</span></button></li>}
               <li><a href="/compliance/" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /><span>سياسة الامتثال والمصادر</span></a></li>
               <li><a href="/admin/" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><Settings className="w-3.5 h-3.5 text-slate-400" /><span>دخول الإدارة</span></a></li>
-              <li className="text-[11px] text-amber-400/90 pt-2 leading-relaxed font-semibold">تحقق من الجهة الناشرة قبل التقديم، ولا تدفع أي مبلغ مقابل وعد بالحصول على وظيفة.</li>
+              <li className="text-[11px] text-amber-400/90 pt-2 leading-relaxed font-semibold">تحقق من أي جهة أو إعلان قبل مشاركة بياناتك أو دفع أي مبلغ.</li>
             </ul>
           </div>
         </div>
 
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} NEXT JOB — مركز إرشادي وفهرس فرص من مصادرها الأصلية.</p>
+          <p>© {new Date().getFullYear()} NEXT JOB — مركز إرشادي للعمل والمسار المهني.</p>
           <div className="flex flex-wrap items-center justify-center gap-2 text-slate-400 text-[11px]">
             <span>ليست جهة حكومية</span><span>•</span><span>ليست مكتب توظيف أو استقدام أو إسناد عمالي</span>
           </div>
