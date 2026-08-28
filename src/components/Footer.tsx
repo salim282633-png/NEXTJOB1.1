@@ -31,15 +31,15 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenWageCalc, onOp
             <h4 className="text-sm font-bold text-white">أقسام NEXT JOB</h4>
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
               <li><button onClick={() => onNavigate('home')} className="hover:text-emerald-400 transition-colors">الرئيسية</button></li>
-              <li><button onClick={() => onNavigate('guide')} className="hover:text-emerald-400 transition-colors">المقالات والأدلة</button></li>
+              <li><button onClick={() => onNavigate('guide')} className="hover:text-emerald-400 transition-colors">المدونة</button></li>
               <li><button onClick={() => onNavigate('saved')} className="hover:text-emerald-400 transition-colors">المحفوظات</button></li>
             </ul>
           </div>
 
           <div className="space-y-3">
-            <h4 className="text-sm font-bold text-white">المحتوى والأدوات</h4>
+            <h4 className="text-sm font-bold text-white">المدونة والأدوات</h4>
             <ul className="space-y-2 text-xs text-slate-400 font-medium">
-              <li><a href="/guide/" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5 text-emerald-500" /><span>أرشيف المقالات والأدلة</span></a></li>
+              <li><a href="/guide/" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5 text-emerald-500" /><span>أرشيف المدونة</span></a></li>
               {onOpenWageCalc && <li><button onClick={onOpenWageCalc} className="hover:text-emerald-400 transition-colors flex items-center gap-1.5"><Calculator className="w-3.5 h-3.5 text-emerald-500" /><span>حاسبة دخل استرشادية</span></button></li>}
               <li className="text-[11px] text-slate-500 leading-relaxed pt-2">المحتوى والخدمات المتاحة حاليًا إرشادية فقط، ولا تتضمن بيع السير الذاتية أو إعلانات تجارية مدفوعة.</li>
             </ul>
