@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bookmark, BookOpen, Home } from 'lucide-react';
+import { Bookmark, BookOpen, Briefcase, Home } from 'lucide-react';
 
 export type PublicTab = 'home' | 'jobs' | 'guide' | 'saved';
 
@@ -16,7 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, savedCo
   const navItems: Array<{ id: PublicTab; label: string; mobileLabel: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'home', label: 'الرئيسية', mobileLabel: 'الرئيسية', icon: Home },
     { id: 'guide', label: 'المقالات والأدلة', mobileLabel: 'الدليل', icon: BookOpen },
-    ...(SHOW_OPPORTUNITIES ? [] : []),
+    ...(SHOW_OPPORTUNITIES ? [{ id: 'jobs' as PublicTab, label: 'دليل الفرص', mobileLabel: 'الفرص', icon: Briefcase }] : []),
     { id: 'saved', label: 'المحفوظات', mobileLabel: 'المحفوظ', icon: Bookmark }
   ];
 
