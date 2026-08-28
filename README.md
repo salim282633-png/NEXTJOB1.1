@@ -1,23 +1,34 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# NEXT JOB
 
-# Run and deploy your AI Studio app
+NEXT JOB مركز إرشادي عربي للعمل والمسار المهني لليمنيين في السعودية. يقدم مقالات وأدلة عملية عن البحث عن عمل، السيرة الذاتية، المقابلات، العقود، نقل الخدمات، الأمان المهني، المدن والمهن.
 
-This contains everything you need to run your app locally.
+الموقع إرشادي مستقل وليس جهة حكومية أو مكتب توظيف أو استقدام أو إسناد عمالي.
 
-View your app in AI Studio: https://ai.studio/apps/1f75dba6-07c5-4de7-ac2b-71822c80a7ea
+## التقنية
 
-## Run Locally
+- React + Vite
+- صفحات دليل ثابتة محسنة لمحركات البحث
+- نشر Static Site على Render
+- فحوص CI للأمان، SEO، الروابط الداخلية وميزانية الأداء
 
-**Prerequisites:** Node.js
+## التشغيل محليًا
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm ci
+npm run dev
+```
 
-## Deployment
+## البناء
 
-NEXT JOB is a Vite static site. On Render use `npm ci && npm run build` as the build command and `dist` as the publish directory. Firebase Phone Authentication is implemented with real SMS verification; the old demo OTP helpers are no longer part of the current `main` branch.
+```bash
+npm run build
+```
+
+أمر البناء يشغّل فحوص المحتوى وSEO، يعيد إنشاء Sitemap، يتحقق من Canonical والروابط الداخلية، ثم يبني نسخة الإنتاج ويتحقق من ميزانية JavaScript/CSS.
+
+## النشر
+
+على Render:
+
+- Build command: `npm ci && npm run build`
+- Publish directory: `dist`
