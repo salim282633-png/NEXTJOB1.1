@@ -8,6 +8,28 @@ const STYLE_ID = 'nextjob-article-polish';
 const MOBILE_TOC_START = '<!-- NEXTJOB_MOBILE_TOC_START -->';
 const MOBILE_TOC_END = '<!-- NEXTJOB_MOBILE_TOC_END -->';
 
+const TOPIC_LABELS = {
+  cv: 'السيرة الذاتية',
+  interviews: 'المقابلات',
+  contracts: 'العقود',
+  sponsorship: 'نقل الخدمات',
+  safety: 'الأمان المهني',
+  cities: 'أدلة المدن',
+  professions: 'أدلة المهن',
+  'job-search': 'البحث عن عمل'
+};
+
+const TOPIC_JOURNEYS = {
+  cv: ['interviews', 'job-search'],
+  interviews: ['cv', 'job-search'],
+  contracts: ['sponsorship', 'safety'],
+  sponsorship: ['contracts', 'safety'],
+  safety: ['job-search', 'contracts'],
+  cities: ['job-search', 'professions'],
+  professions: ['cv', 'interviews'],
+  'job-search': ['cv', 'interviews']
+};
+
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -24,6 +46,48 @@ function readManifest() {
   } catch {
     return [];
   }
+}
+
+function topicOf(item) {
+  if (item?.topic && TOPIC_LABELS[item.topic]) return item.topic;
+  const intent = String(item?.intent || '').toLowerCase();
+  if (intent.includes('interview')) return 'interviews';
+  if (intent.includes('contract')) return 'contracts';
+  if (intent.includes('sponsorship')) return 'sponsorship';
+  if (intent.includes('safety')) return 'safety';
+  if (intent.includes('cv')) return 'cv';
+  if (item?.city || intent.includes('city')) return 'cities';
+  if (item?.profession || intent.includes('profession') || intent === 'sector') return 'professions';
+  return 'job-search';
+}
+
+function relatedFor(item, manifest) {
+  const currentTopic = topicOf(item);
+  const journey = TOPIC_JOURNEYS[currentTopic] || [];
+  return manifest
+    .filter(candidate => candidate?.slug && candidate.slug !== item.slug)
+    .map(candidate => {
+      const candidateTopic = topicOf(candidate);
+      let score = 0;
+      if (candidateTopic === currentTopic) score += 7;
+      const journeyIndex = journey.indexOf(candidateTopic);
+      if (journeyIndex >= 0) score += 5 - journeyIndex;
+      if (item.city && candidate.city === item.city) score += 3;
+      if (item.profession && candidate.profession === item.profession) score += 3;
+      if (item.intent && candidate.intent === item.intent) score += 1;
+      return { candidate, candidateTopic, score };
+    })
+    .sort((a, b) => b.score - a.score || String(b.candidate.publishedAt || '').localeCompare(String(a.candidate.publishedAt || '')))
+    .slice(0, 3);
+}
+
+function relatedMarkup(item, manifest) {
+  return relatedFor(item, manifest).map(({ candidate, candidateTopic }) => `
+          <a class="related-card" href="/guide/${escapeHtml(candidate.slug)}/">
+            <span class="related-tag">${escapeHtml(TOPIC_LABELS[candidateTopic] || 'مقال إرشادي')}</span>
+            <strong>${escapeHtml(candidate.title)}</strong>
+            <small>${escapeHtml(candidate.publishedDate || '')} · ${candidate.wordCount ? `${escapeHtml(candidate.wordCount)} كلمة` : 'مقال إرشادي'}</small>
+          </a>`).join('');
 }
 
 function extractSections(html) {
@@ -69,7 +133,7 @@ const css = `
   @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.related-card,.faq-item,.button{transition:none!important}.related-card:hover{transform:none!important}}
 </style>`;
 
-function polishArticle(file) {
+function polishArticle(file, item, manifest) {
   let html = fs.readFileSync(file, 'utf8');
   const sections = extractSections(html);
 
@@ -81,6 +145,15 @@ function polishArticle(file) {
     html = html.replace('<div class="intro">', `${toc}\n        <div class="intro">`);
   }
 
+  const recommendations = relatedMarkup(item, manifest);
+  if (recommendations) {
+    html = html.replace(/<div class="related-grid">[\s\S]*?<\/div>\s*<\/div>\s*<\/section>/, `<div class="related-grid">${recommendations}\n        </div>\n      </div>\n    </section>`);
+  }
+
+  html = html.replace(/دليل وظائف اليمنيين في السعودية/g, 'مدونة NEXT JOB للعمل والمسار المهني');
+  html = html.replace(/دليل الوظائف/g, 'المدونة');
+  html = html.replace(/دليل NEXT JOB/g, 'مدونة NEXT JOB');
+  html = html.replace(/وظائف لليمنيين في السعودية/g, 'المسار المهني لليمنيين في السعودية');
   html = html.replace(/>العودة إلى دليل المقالات</g, '>العودة إلى المدونة<');
   html = html.replace(/>دليل المقالات</g, '>المدونة<');
   html = html.replace(/>مركز الأدلة المهنية</g, '>المدونة<');
@@ -94,8 +167,8 @@ for (const item of manifest) {
   if (!item?.slug) continue;
   const file = path.join(GUIDE_DIR, item.slug, 'index.html');
   if (!fs.existsSync(file)) continue;
-  polishArticle(file);
+  polishArticle(file, item, manifest);
   count += 1;
 }
 
-console.log(`Guidance article UI polished: ${count} article(s).`);
+console.log(`Guidance article UI polished: ${count} article(s), topic journeys linked.`);
