@@ -13,7 +13,8 @@ const files = {
   readme: read('README.md'),
   home: read('src/components/ProfessionalHome.tsx'),
   blogGenerator: read('scripts/style-guide-index.mjs'),
-  categoryNav: read('scripts/inject-guide-category-nav.mjs')
+  categoryNav: read('scripts/inject-guide-category-nav.mjs'),
+  blogPolish: read('scripts/polish-blog-ui.mjs')
 };
 
 const failures = [];
@@ -38,6 +39,10 @@ requireText('home', 'أحدث المقالات', 'homepage latest articles headi
 requireText('blogGenerator', 'مدونة NEXT JOB لليمنيين في السعودية', 'blog archive SEO title');
 requireText('blogGenerator', 'أحدث المقالات', 'blog archive latest articles heading');
 requireText('categoryNav', 'أقسام المدونة', 'blog category navigation heading');
+requireText('categoryNav', 'blog-category-card', 'structured blog category cards');
+requireText('blogPolish', 'nextjob-blog-polish', 'blog visual polish marker');
+requireText('blogPolish', '.blog-category-grid', 'responsive category grid styling');
+requireText('blogPolish', '.article-card:hover', 'article card interaction styling');
 requireText('candidates', 'الصفحة غير متاحة', 'neutral retired candidates route');
 requireText('jobsPage', 'content="noindex,follow"', 'source-level noindex on paused opportunities page');
 requireText('metadata', 'مدونة إرشادية عربية', 'guidance-blog app metadata');
@@ -71,4 +76,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Public copy verified: blog-first identity and navigation, neutral retired routes, no internal status leakage, advertising consent denied.');
+console.log('Public copy verified: blog-first identity, polished blog UI, neutral retired routes, no internal status leakage, advertising consent denied.');
