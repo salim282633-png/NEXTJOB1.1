@@ -18,9 +18,31 @@ const categories = [
   ['professions', 'المهن والقطاعات', 'مسارات ومهارات حسب المهنة والقطاع']
 ];
 
-const cards = categories.map(([slug, title, text]) => `<a href="/guide/${slug}/" style="display:block;background:#fff;border:1px solid #dfe7e3;border-radius:18px;padding:18px;text-decoration:none;color:#10221d"><strong style="display:block;color:#0b4f3b;font-size:16px;margin-bottom:5px">${title}</strong><span style="font-size:12px;color:#66736f;line-height:1.7">${text}</span></a>`).join('');
+const cards = categories.map(([slug, title, text], index) => `
+  <a class="blog-category-card" href="/guide/${slug}/">
+    <span class="blog-category-number" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span>
+    <span class="blog-category-copy">
+      <strong>${title}</strong>
+      <span>${text}</span>
+    </span>
+    <span class="blog-category-arrow" aria-hidden="true">←</span>
+  </a>`).join('');
 
-const block = `<!-- NEXTJOB_CATEGORY_NAV_START --><section id="blog-categories" aria-labelledby="blog-categories-title" style="max-width:1180px;margin:0 auto 28px;padding:0 20px"><div style="background:#eef8f2;border:1px solid #d8eadf;border-radius:26px;padding:24px"><div style="margin-bottom:16px"><div style="font-size:12px;font-weight:800;color:#0f7a55">تصفح حسب الموضوع</div><h2 id="blog-categories-title" style="margin:5px 0 0;font-size:24px;color:#10221d">أقسام المدونة</h2><p style="margin:7px 0 0;color:#66736f;font-size:13px">اختر القسم الأقرب لما تحتاجه ثم انتقل إلى المقالات المرتبطة به.</p></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">${cards}</div></div></section><!-- NEXTJOB_CATEGORY_NAV_END -->`;
+const block = `<!-- NEXTJOB_CATEGORY_NAV_START -->
+<section id="blog-categories" class="blog-categories-section" aria-labelledby="blog-categories-title">
+  <div class="blog-categories-shell">
+    <div class="blog-categories-head">
+      <div>
+        <div class="blog-categories-kicker">تصفح حسب الموضوع</div>
+        <h2 id="blog-categories-title">أقسام المدونة</h2>
+        <p>اختر الموضوع الأقرب لاحتياجك، ثم انتقل مباشرة إلى المقالات المرتبطة به.</p>
+      </div>
+      <a class="blog-categories-all" href="#all-articles">جميع المقالات <span aria-hidden="true">↓</span></a>
+    </div>
+    <div class="blog-category-grid">${cards}</div>
+  </div>
+</section>
+<!-- NEXTJOB_CATEGORY_NAV_END -->`;
 
 let html = fs.readFileSync(file, 'utf8');
 html = html.replace(/<!-- NEXTJOB_CATEGORY_NAV_START -->[\s\S]*?<!-- NEXTJOB_CATEGORY_NAV_END -->/g, '');
