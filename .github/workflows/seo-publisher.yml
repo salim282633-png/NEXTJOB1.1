@@ -34,6 +34,9 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Sync guide manifest before eligibility
+        run: node scripts/sync-guide-manifest.mjs
+
       - name: Check automated publish eligibility
         id: eligibility
         shell: bash
@@ -102,15 +105,21 @@ jobs:
           PUBLIC_SITE_URL: https://nextjob1-1.onrender.com
           SEO_KEYWORD: ${{ github.event.inputs.keyword || '' }}
         run: |
+          node scripts/sync-guide-manifest.mjs
           node scripts/run-seo-publisher-with-fallback.mjs
+          node scripts/sync-guide-manifest.mjs
           node scripts/normalize-content-hub-seo.mjs
           node scripts/style-guide-index.mjs
           node scripts/style-guide-articles.mjs
           node scripts/build-guide-categories.mjs
+          node scripts/inject-guide-category-nav.mjs
           node scripts/apply-static-typography.mjs public/guide
           node scripts/normalize-content-hub-seo.mjs
           node scripts/normalize-guidance-identity.mjs
           node scripts/hide-opportunities-ui.mjs
+          node scripts/polish-blog-ui.mjs
+          node scripts/polish-guide-articles-ui.mjs
+          node scripts/rebuild-public-sitemap.mjs
 
       - name: Verify article and production build
         if: steps.eligibility.outputs.eligible == 'true'
