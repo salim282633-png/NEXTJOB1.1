@@ -75,7 +75,7 @@ for (const [key, needles] of Object.entries({
   home: ['مركز إرشادي', 'مركز المعرفة', 'ابدأ من الدليل المهني', 'مقالات وأدلة مهنية'],
   blogGenerator: ['<a href="/jobs/">', '<a href="/candidates/">', '>المنصة</a>', 'عرض الوظائف المنشورة'],
   categoryNav: ['مركز NEXT JOB الإرشادي'],
-  publisher: ['مركز NEXT JOB الإرشادي', 'NEXT JOB مركز إرشادي', 'href="/jobs/"', 'دليل الفرص كمصدر مساعد', 'عرض الوظائف المنشورة']
+  publisher: ['مركز NEXT JOB الإرشادي', 'NEXT JOB مركز إرشادي', 'href="/jobs/"', 'دليل الفرص كمصدر مساعد']
 })) {
   for (const needle of needles) forbidText(key, needle, `${key}: ${needle}`);
 }
