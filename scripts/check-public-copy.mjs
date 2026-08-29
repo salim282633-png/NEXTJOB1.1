@@ -14,7 +14,8 @@ const files = {
   home: read('src/components/ProfessionalHome.tsx'),
   blogGenerator: read('scripts/style-guide-index.mjs'),
   categoryNav: read('scripts/inject-guide-category-nav.mjs'),
-  blogPolish: read('scripts/polish-blog-ui.mjs')
+  blogPolish: read('scripts/polish-blog-ui.mjs'),
+  articlePolish: read('scripts/polish-guide-articles-ui.mjs')
 };
 
 const failures = [];
@@ -43,6 +44,12 @@ requireText('categoryNav', 'blog-category-card', 'structured blog category cards
 requireText('blogPolish', 'nextjob-blog-polish', 'blog visual polish marker');
 requireText('blogPolish', '.blog-category-grid', 'responsive category grid styling');
 requireText('blogPolish', '.article-card:hover', 'article card interaction styling');
+requireText('articlePolish', 'nextjob-article-polish', 'article visual polish marker');
+requireText('articlePolish', 'mobile-toc', 'mobile table of contents');
+requireText('articlePolish', '.summary-box', 'article summary box styling');
+requireText('articlePolish', '.faq-item[open]', 'article FAQ interaction styling');
+requireText('articlePolish', '.related-card', 'related article card styling');
+requireText('articlePolish', 'prefers-reduced-motion', 'article reduced motion support');
 requireText('candidates', 'الصفحة غير متاحة', 'neutral retired candidates route');
 requireText('jobsPage', 'content="noindex,follow"', 'source-level noindex on paused opportunities page');
 requireText('metadata', 'مدونة إرشادية عربية', 'guidance-blog app metadata');
@@ -76,4 +83,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Public copy verified: blog-first identity, polished blog UI, neutral retired routes, no internal status leakage, advertising consent denied.');
+console.log('Public copy verified: blog-first identity, polished blog and article reading UI, neutral retired routes, no internal status leakage, advertising consent denied.');
