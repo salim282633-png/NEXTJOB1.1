@@ -15,7 +15,9 @@ const files = {
   blogGenerator: read('scripts/style-guide-index.mjs'),
   categoryNav: read('scripts/inject-guide-category-nav.mjs'),
   blogPolish: read('scripts/polish-blog-ui.mjs'),
-  articlePolish: read('scripts/polish-guide-articles-ui.mjs')
+  articlePolish: read('scripts/polish-guide-articles-ui.mjs'),
+  publisher: read('scripts/publish-guidance-seo.mjs'),
+  roadmap: read('seo/yemeni-keywords.json')
 };
 
 const failures = [];
@@ -50,6 +52,12 @@ requireText('articlePolish', '.summary-box', 'article summary box styling');
 requireText('articlePolish', '.faq-item[open]', 'article FAQ interaction styling');
 requireText('articlePolish', '.related-card', 'related article card styling');
 requireText('articlePolish', 'prefers-reduced-motion', 'article reduced motion support');
+requireText('publisher', 'مدونة NEXT JOB الإرشادية المستقلة', 'guidance-first publisher identity');
+requireText('publisher', 'لا تستقبل طلبات التوظيف نيابة عن أصحاب العمل', 'publisher non-recruitment boundary');
+requireText('publisher', 'موضوعًا إرشاديًا مكملًا داخل المدونة', 'publisher internal guidance linking');
+requireText('roadmap', 'طريقة كتابة سيرة ذاتية لليمني الباحث عن عمل في السعودية', 'CV growth topic');
+requireText('roadmap', 'كيف يستعد اليمني لمقابلة عمل في السعودية', 'interview growth topic');
+requireText('roadmap', 'علامات إعلان العمل الوهمي', 'safety growth topic');
 requireText('candidates', 'الصفحة غير متاحة', 'neutral retired candidates route');
 requireText('jobsPage', 'content="noindex,follow"', 'source-level noindex on paused opportunities page');
 requireText('metadata', 'مدونة إرشادية عربية', 'guidance-blog app metadata');
@@ -66,7 +74,8 @@ for (const [key, needles] of Object.entries({
   readme: ['Firebase Phone Authentication', 'old demo OTP', 'Run and deploy your AI Studio app', 'مركز إرشادي'],
   home: ['مركز إرشادي', 'مركز المعرفة', 'ابدأ من الدليل المهني', 'مقالات وأدلة مهنية'],
   blogGenerator: ['<a href="/jobs/">', '<a href="/candidates/">', '>المنصة</a>', 'عرض الوظائف المنشورة'],
-  categoryNav: ['مركز NEXT JOB الإرشادي']
+  categoryNav: ['مركز NEXT JOB الإرشادي'],
+  publisher: ['مركز NEXT JOB الإرشادي', 'NEXT JOB مركز إرشادي', 'href="/jobs/"', 'دليل الفرص كمصدر مساعد', 'عرض الوظائف المنشورة']
 })) {
   for (const needle of needles) forbidText(key, needle, `${key}: ${needle}`);
 }
@@ -83,4 +92,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Public copy verified: blog-first identity, polished blog and article reading UI, neutral retired routes, no internal status leakage, advertising consent denied.');
+console.log('Public copy verified: blog-first identity, guidance-first publisher and roadmap, polished reading UI, neutral retired routes, no internal status leakage, advertising consent denied.');
