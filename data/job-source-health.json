@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "checkedAt": "2026-08-29T18:44:44.520Z",
+  "checkedAt": "2026-08-30T00:44:48.835Z",
   "enabledSources": 8,
   "successfulSources": 8,
   "totalJobs": 63,
@@ -12,7 +12,7 @@
       "company": "HALA",
       "status": "ok",
       "count": 13,
-      "checkedAt": "2026-08-29T18:44:44.520Z"
+      "checkedAt": "2026-08-30T00:44:48.835Z"
     },
     {
       "id": "tamara-greenhouse",
@@ -20,7 +20,7 @@
       "company": "Tamara",
       "status": "ok",
       "count": 14,
-      "checkedAt": "2026-08-29T18:44:44.520Z"
+      "checkedAt": "2026-08-30T00:44:48.835Z"
     },
     {
       "id": "brkz-greenhouse",
@@ -28,7 +28,7 @@
       "company": "BRKZ",
       "status": "ok",
       "count": 17,
-      "checkedAt": "2026-08-29T18:44:44.520Z"
+      "checkedAt": "2026-08-30T00:44:48.835Z"
     },
     {
       "id": "soum-lever",
@@ -36,7 +36,7 @@
       "company": "SOUM",
       "status": "ok",
       "count": 7,
-      "checkedAt": "2026-08-29T18:44:44.520Z"
+      "checkedAt": "2026-08-30T00:44:48.835Z"
     },
     {
       "id": "infinitepl-lever",
@@ -44,7 +44,7 @@
       "company": "Infinite pl",
       "status": "ok",
       "count": 6,
-      "checkedAt": "2026-08-29T18:44:44.520Z"
+      "checkedAt": "2026-08-30T00:44:48.835Z"
     },
     {
       "id": "lalamove-lever",
@@ -52,7 +52,7 @@
       "company": "Lalamove",
       "status": "ok",
       "count": 2,
-      "checkedAt": "2026-08-29T18:44:44.520Z"
+      "checkedAt": "2026-08-30T00:44:48.835Z"
     },
     {
       "id": "dlocal-lever",
@@ -60,7 +60,7 @@
       "company": "dLocal",
       "status": "ok",
       "count": 2,
-      "checkedAt": "2026-08-29T18:44:44.520Z"
+      "checkedAt": "2026-08-30T00:44:48.835Z"
     },
     {
       "id": "contentsquare-lever",
@@ -68,7 +68,7 @@
       "company": "Contentsquare",
       "status": "ok",
       "count": 2,
-      "checkedAt": "2026-08-29T18:44:44.520Z"
+      "checkedAt": "2026-08-30T00:44:48.835Z"
     }
   ]
 }
