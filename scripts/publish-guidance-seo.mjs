@@ -99,7 +99,7 @@ function chooseKeyword(pool, manifest) {
 
 function slugFor(seed) {
   const topic = topicFor(seed).slug;
-  const hash = crypto.createHash('sha1').update(normalizeArabic(seed.keyword)).digest('hex').slice(0, 8);
+  const hash = crypto.createHash('sha1').update(String(seed.keyword)).digest('hex').slice(0, 8);
   return `guide-yemeni-${topic}-${hash}`;
 }
 
@@ -114,7 +114,7 @@ function buildPrompt(seed, manifest) {
 المهنة/القطاع إن وجد: ${seed.profession || 'غير محدد'}
 
 قواعد إلزامية:
-1) يجب أن يوضح العنوان أن المحتوى موجه لليمني/اليمنيين، وأن يظهر سياق السعودية في العنوان أو الوصف.
+1) العنوان يجب أن يكون طبيعيًا ومشكلة-محوره، ولا يلزم ذكر اليمني/اليمنيين في كل عنوان. حافظ على استهداف الجمهور اليمني داخل الكلمة المفتاحية والوصف والمحتوى، واذكر اليمنيين في العنوان فقط عندما يخدم نية البحث أو يزيل غموضًا. يجب أن يظهر سياق السعودية في العنوان أو الوصف.
 2) اكتب محتوى people-first يجيب عن حاجة القارئ مباشرة، ولا تجعل المقال مجرد إعادة للكلمة المفتاحية.
 3) لا تختلق وظائف حية، أرقام شواغر، رواتب حالية، إحصاءات، شركات، أشخاص، أرقام هواتف أو بيانات اتصال.
 4) NEXT JOB مدونة إرشادية مستقلة وليست مكتب توظيف أو جهة استقدام أو وسيطًا، ولا تستقبل طلبات التوظيف نيابة عن أصحاب العمل ولا تعد القارئ بالحصول على وظيفة أو نقل الخدمات.
@@ -159,7 +159,6 @@ function validateArticle(article, seed, manifest) {
   const topic = topicFor(seed);
 
   if (!title || title.length < 20 || title.length > 80) errors.push('title length');
-  if (!YEMEN_RE.test(normalizeArabic(title))) errors.push('title must mention Yemenis');
   if (!SAUDI_RE.test(normalizeArabic(`${title} ${meta}`))) errors.push('title/meta must identify Saudi context');
   if (!meta || meta.length < 100 || meta.length > 190) errors.push('meta description length');
   if (!YEMEN_RE.test(normalizeArabic(meta))) errors.push('meta must mention Yemenis');
