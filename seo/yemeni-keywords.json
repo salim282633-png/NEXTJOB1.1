@@ -54,5 +54,15 @@
   {"keyword":"دليل العمل في التوصيل لليمنيين في السعودية وما الذي يجب التحقق منه","intent":"profession-guide","profession":"توصيل","priority":78},
   {"keyword":"كيف يبدأ اليمني البحث عن عمل في السعودية بدون خبرة سابقة","intent":"job-search-guide","priority":77},
   {"keyword":"كيف ينظم اليمني البحث عن عمل بدوام جزئي في السعودية","intent":"job-search-guide","priority":76},
-  {"keyword":"كيف يغير اليمني مساره المهني ويبحث عن عمل جديد في السعودية","intent":"career-change-guide","priority":75}
+  {"keyword":"كيف يغير اليمني مساره المهني ويبحث عن عمل جديد في السعودية","intent":"career-change-guide","priority":75},
+  {"keyword":"دليل العمل في خدمة العملاء لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"خدمة العملاء","priority":74},
+  {"keyword":"دليل العمل كموظف استقبال لليمنيين في السعودية وتجهيز الملف المهني","intent":"profession-guide","profession":"موظف استقبال","priority":73},
+  {"keyword":"دليل العمل في إدخال البيانات لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"إدخال البيانات","priority":72},
+  {"keyword":"دليل العمل كمندوب مبيعات لليمنيين في السعودية والاستعداد للمقابلة","intent":"profession-guide","profession":"مندوب مبيعات","priority":71},
+  {"keyword":"دليل العمل في المطاعم لليمنيين في السعودية واختيار الدور المناسب","intent":"profession-guide","profession":"المطاعم","priority":70},
+  {"keyword":"دليل العمل في المشتريات لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"المشتريات","priority":69},
+  {"keyword":"دليل العمل في الدعم الإداري لليمنيين في السعودية وتجهيز السيرة الذاتية","intent":"profession-guide","profession":"الدعم الإداري","priority":68},
+  {"keyword":"دليل العمل في خدمة ما بعد البيع لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"خدمة ما بعد البيع","priority":67},
+  {"keyword":"كيف يعود اليمني للبحث عن عمل في السعودية بعد فترة انقطاع مهني","intent":"career-return-guide","priority":66},
+  {"keyword":"كيف ينظم اليمني البحث عن عمل جديد في السعودية وهو موظف حاليًا","intent":"job-search-guide","priority":65}
 ]
