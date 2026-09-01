@@ -43,6 +43,7 @@ for (const name of files) {
   const description = text(item.description || item.article?.metaDescription);
   const sections = Array.isArray(item.article?.sections) ? item.article.sections : [];
   const faq = Array.isArray(item.article?.faq) ? item.article.faq : [];
+  const legacyFaqs = Array.isArray(item.article?.faqs) ? item.article.faqs : [];
   const wordCount = Number(item.wordCount || 0);
   const canonical = text(item.canonical);
   const body = JSON.stringify(item.article || {});
@@ -57,7 +58,8 @@ for (const name of files) {
   if (description.length < 100 || description.length > 190) fail(slug, `meta description length is ${description.length}, expected 100-190`);
   if (!Number.isFinite(wordCount) || wordCount < 750) fail(slug, `wordCount is ${wordCount}, expected at least 750`);
   if (sections.length < 5) fail(slug, `only ${sections.length} content section(s)`);
-  if (faq.length > 0 && faq.length < 3) fail(slug, `only ${faq.length} FAQ item(s)`);
+  if (legacyFaqs.length > 0) fail(slug, 'uses legacy article.faqs; normalize it to article.faq');
+  if (faq.length < 3 || faq.length > 6) fail(slug, `has ${faq.length} FAQ item(s), expected 3-6`);
   if (canonical !== `${SITE_URL}/guide/${slug}/`) fail(slug, 'canonical does not match slug');
 
   if (/(?:قدم|قدّم) عبر NEXT JOB|NEXT JOB (?:تعرض|تنشر|تستقبل) (?:وظائف|طلبات)|فرص مؤكدة|نضمن لك|نضمن التوظيف|نضمن نقل الخدمات/u.test(body)) {
