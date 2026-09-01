@@ -6,7 +6,7 @@ const API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
 const PREFERRED_MODEL = String(process.env.GEMINI_MODEL || 'gemini-3.6-flash').trim().replace(/^models\//, '');
 const MAX_ATTEMPTS = Math.max(8, Math.min(12, Number(process.env.GEMINI_MAX_MODEL_ATTEMPTS || 8)));
 const MODEL_RETRIES = Math.max(1, Math.min(3, Number(process.env.GEMINI_MODEL_RETRIES || 2)));
-const MIN_PUBLISH_INTERVAL_HOURS = Math.max(1, Number(process.env.SEO_MIN_PUBLISH_INTERVAL_HOURS || 6));
+const MIN_PUBLISH_INTERVAL_HOURS = Math.max(0, Number(process.env.SEO_MIN_PUBLISH_INTERVAL_HOURS ?? 6));
 const PUBLISHER_SCRIPT = 'scripts/publish-guidance-seo.mjs';
 const ARTICLES_INDEX = 'public/guide/articles.json';
 
