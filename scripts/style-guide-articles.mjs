@@ -118,18 +118,21 @@ function renderArticlePage(meta, article, manifest) {
 
   const articleSchema = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': 'BlogPosting',
+    '@id': `${canonical}#article`,
+    url: canonical,
     headline: title,
     description,
     datePublished: meta.publishedAt || meta.publishedDate,
     dateModified: meta.modifiedAt || meta.publishedAt || meta.publishedDate,
     inLanguage: 'ar-SA',
-    mainEntityOfPage: canonical,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
     wordCount: wordCount || undefined,
     keywords: [meta.keyword, ...(article.relatedKeywords || [])].filter(Boolean),
-    author: { '@type': 'Organization', name: 'NEXT JOB' },
-    publisher: { '@type': 'Organization', name: 'NEXT JOB' },
-    about: ['وظائف لليمنيين في السعودية', meta.keyword].filter(Boolean)
+    author: { '@type': 'Organization', name: 'NEXT JOB', url: `${SITE_URL}/` },
+    publisher: { '@type': 'Organization', name: 'NEXT JOB', url: `${SITE_URL}/` },
+    isPartOf: { '@type': 'Blog', '@id': `${SITE_URL}/guide/#blog`, name: 'مدونة NEXT JOB', url: `${SITE_URL}/guide/` },
+    about: ['العمل والمسار المهني لليمنيين في السعودية', meta.keyword].filter(Boolean)
   };
 
   const faqSchema = {
@@ -176,7 +179,7 @@ function renderArticlePage(meta, article, manifest) {
 
   const relatedMarkup = related.length ? related.map(item => `
           <a class="related-card" href="/guide/${escapeHtml(item.slug)}/">
-            <span class="related-tag">${escapeHtml(item.city || item.profession || 'دليل الوظائف')}</span>
+            <span class="related-tag">${escapeHtml(item.city || item.profession || 'مدونة NEXT JOB')}</span>
             <strong>${escapeHtml(item.title)}</strong>
             <small>${escapeHtml(item.publishedDate || '')} · ${item.wordCount ? `${escapeHtml(item.wordCount)} كلمة` : 'مقال إرشادي'}</small>
           </a>`).join('\n') : `
@@ -224,9 +227,7 @@ function renderArticlePage(meta, article, manifest) {
       <a class="brand" href="/"><span class="brand-mark">NJ</span><span>NEXT JOB</span></a>
       <nav class="navlinks" aria-label="التنقل الرئيسي">
         <a href="/guide/">المقالات</a>
-        <a href="/jobs/">فرص العمل</a>
-        <a href="/candidates/">الباحثون</a>
-        <a href="/">المنصة</a>
+        <a href="/">الرئيسية</a>
       </nav>
     </div>
   </header>
@@ -238,7 +239,7 @@ function renderArticlePage(meta, article, manifest) {
           <a href="/">NEXT JOB</a><span>←</span><a href="/guide/">المقالات</a><span>←</span><span>هذا المقال</span>
         </nav>
         <div class="hero-card">
-          <span class="kicker">دليل وظائف اليمنيين في السعودية</span>
+          <span class="kicker">مدونة العمل والمسار المهني لليمنيين في السعودية</span>
           <h1>${escapeHtml(title)}</h1>
           <p class="hero-description">${escapeHtml(description)}</p>
           <div class="hero-meta">
@@ -248,7 +249,7 @@ function renderArticlePage(meta, article, manifest) {
           </div>
           ${topicTags ? `<div class="topic-tags">${topicTags}</div>` : ''}
           <div class="hero-actions">
-            <a class="button button-primary" href="/jobs/">عرض الوظائف المنشورة</a>
+            <a class="button button-primary" href="/guide/">استعراض المقالات</a>
             <button class="button button-secondary" type="button" id="shareArticle">مشاركة المقال</button>
           </div>
         </div>
@@ -275,10 +276,10 @@ function renderArticlePage(meta, article, manifest) {
         </div>
 
         <section class="cta">
-          <h2>هل تبحث عن فرصة مناسبة الآن؟</h2>
-          <p>راجع الوظائف المنشورة فعليًا على NEXT JOB واستخدم فلاتر المدينة والمهنة للوصول إلى الفرص الأقرب لملفك.</p>
+          <h2>واصل تطوير خطتك المهنية</h2>
+          <p>راجع المقالات والأدلة المهنية المنشورة في NEXT JOB واختر الموضوع المكمل لخطوتك الحالية.</p>
           <div class="cta-actions">
-            <a class="button button-primary" href="/jobs/">استعراض الوظائف</a>
+            <a class="button button-primary" href="/guide/">استعراض المقالات</a>
             <a class="button button-secondary" href="/guide/">العودة إلى دليل المقالات</a>
           </div>
         </section>
@@ -290,9 +291,9 @@ function renderArticlePage(meta, article, manifest) {
           <nav class="toc" aria-label="فهرس المقال">${toc}</nav>
         </section>
         <section class="side-card">
-          <h2>وظائف فعلية وليست وعودًا</h2>
-          <p class="side-note">المقال للتوجيه فقط. فرص العمل الفعلية تجدها في قسم الوظائف ويمكنك تصفيتها حسب المدينة والمهنة.</p>
-          <a class="side-jobs" href="/jobs/">اذهب إلى الوظائف</a>
+          <h2>محتوى إرشادي مستقل</h2>
+          <p class="side-note">المقال للتوجيه العام. تحقق من المعلومات المتغيرة والعروض الفردية عبر الجهة الرسمية أو صاحب العلاقة.</p>
+          <a class="side-jobs" href="/guide/">تصفح المدونة</a>
         </section>
       </aside>
     </div>
@@ -307,8 +308,8 @@ function renderArticlePage(meta, article, manifest) {
 
   <footer class="footer">
     <div class="shell footer-inner">
-      <div>© ${new Date().getFullYear()} NEXT JOB · منصة تقنية للتواصل المباشر حول فرص العمل دون عمولات توظيف.</div>
-      <div class="footer-links"><a href="/guide/">المقالات</a><a href="/jobs/">الوظائف</a><a href="/">الرئيسية</a></div>
+      <div>© ${new Date().getFullYear()} NEXT JOB · مدونة إرشادية مستقلة للعمل والمسار المهني.</div>
+      <div class="footer-links"><a href="/guide/">المقالات</a><a href="/compliance/">سياسة المحتوى</a><a href="/">الرئيسية</a></div>
     </div>
   </footer>
 
