@@ -7,6 +7,7 @@ on:
     paths:
       - 'seo/yemeni-keywords.json'
       - '.github/workflows/seo-publisher.yml'
+      - 'scripts/run-seo-publisher-with-fallback.mjs'
   schedule:
     # Editorial cadence: three strong articles per week.
     # 04:15 UTC = 07:15 Saudi Arabia time.
