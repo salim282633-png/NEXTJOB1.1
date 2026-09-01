@@ -1,78 +1,479 @@
 [
-  {"keyword":"طريقة كتابة سيرة ذاتية لليمني الباحث عن عمل في السعودية","intent":"cv-guide","priority":130},
-  {"keyword":"كيف يستعد اليمني لمقابلة عمل في السعودية","intent":"interview-guide","priority":129},
-  {"keyword":"طريقة البحث عن عمل لليمنيين في السعودية بدون الوقوع في الاحتيال","intent":"safety-guide","priority":128},
-  {"keyword":"كيف يختار اليمني مدينة مناسبة للبحث عن عمل في السعودية","intent":"city-guide","priority":127},
-  {"keyword":"مهارات مهمة لليمني الباحث عن عمل في السعودية","intent":"skills-guide","priority":126},
-  {"keyword":"طريقة التقديم على عمل لليمنيين في السعودية عبر مواقع الشركات","intent":"application-guide","priority":125},
-  {"keyword":"أسئلة مقابلة العمل لليمنيين في السعودية وكيفية الاستعداد","intent":"interview-guide","priority":124},
-  {"keyword":"كيف يراجع اليمني عقد العمل في السعودية قبل التوقيع","intent":"contract-guide","priority":123},
-  {"keyword":"نقل الخدمات لليمني عند تغيير العمل في السعودية وما الذي يجب التحقق منه","intent":"sponsorship-guide","priority":122},
-  {"keyword":"كيفية كتابة رسالة واتساب للتقديم على عمل لليمنيين في السعودية","intent":"application-message","priority":121},
-  {"keyword":"سيرة ذاتية لليمني بدون خبرة في السعودية وكيف يبدأ","intent":"cv-guide","priority":120},
-  {"keyword":"كيف يكتب اليمني نبذة مهنية في السيرة الذاتية في السعودية","intent":"cv-guide","priority":119},
-  {"keyword":"أخطاء السيرة الذاتية التي يجب على اليمني تجنبها في السعودية","intent":"cv-guide","priority":118},
-  {"keyword":"تهيئة السيرة الذاتية لليمني لأنظمة فرز المتقدمين في السعودية","intent":"cv-guide","priority":117},
-  {"keyword":"كيف يكتب اليمني خطاب تقديم على عمل في السعودية","intent":"application-guide","priority":116},
-  {"keyword":"طريقة كتابة بريد إلكتروني للتقديم على عمل لليمني في السعودية","intent":"application-message","priority":115},
-  {"keyword":"كيف يتابع اليمني طلب التوظيف بعد التقديم في السعودية","intent":"application-guide","priority":114},
-  {"keyword":"كيف يبني اليمني ملف لينكدإن للبحث عن عمل في السعودية","intent":"application-guide","priority":113},
-  {"keyword":"كيف يجهز اليمني ملف أعمال مهني للبحث عن عمل في السعودية","intent":"skills-guide","priority":112},
-  {"keyword":"الاستعداد للمقابلة الهاتفية لليمني الباحث عن عمل في السعودية","intent":"interview-guide","priority":111},
-  {"keyword":"كيف يجيب اليمني عن سؤال الراتب المتوقع في مقابلة عمل بالسعودية","intent":"interview-guide","priority":110},
-  {"keyword":"كيف يجيب اليمني عن نقاط القوة والضعف في مقابلة عمل بالسعودية","intent":"interview-guide","priority":109},
-  {"keyword":"رسالة متابعة بعد مقابلة العمل لليمني في السعودية","intent":"interview-guide","priority":108},
-  {"keyword":"كيف يتحقق اليمني من عرض العمل قبل قبوله في السعودية","intent":"safety-guide","priority":107},
-  {"keyword":"بنود مهمة يراجعها اليمني في عقد العمل بالسعودية","intent":"contract-guide","priority":106},
-  {"keyword":"فترة التجربة في عقد العمل وما الذي يتحقق منه اليمني في السعودية","intent":"contract-guide","priority":105},
-  {"keyword":"كيف يراجع اليمني المسمى والراتب والمزايا في عرض العمل بالسعودية","intent":"contract-guide","priority":104},
-  {"keyword":"ما الذي يتحقق منه اليمني عند انتهاء عقد العمل في السعودية","intent":"contract-guide","priority":103},
-  {"keyword":"كيف يتحقق اليمني من إجراءات نقل الخدمات عبر قوى في السعودية","intent":"sponsorship-guide","priority":102},
-  {"keyword":"كيف يراجع اليمني عقده الإلكتروني عبر قوى في السعودية","intent":"contract-guide","priority":101},
-  {"keyword":"علامات إعلان العمل الوهمي التي يجب أن يعرفها اليمني في السعودية","intent":"safety-guide","priority":100},
-  {"keyword":"كيف يتحقق اليمني من جهة العمل قبل إرسال بياناته في السعودية","intent":"safety-guide","priority":99},
-  {"keyword":"ماذا يفعل اليمني إذا طلبت منه جهة مبلغًا مقابل وظيفة في السعودية","intent":"safety-guide","priority":98},
-  {"keyword":"حماية البيانات الشخصية لليمني أثناء البحث عن عمل في السعودية","intent":"safety-guide","priority":97},
-  {"keyword":"كيف يبحث اليمني عن عمل في مكة المكرمة بطريقة منظمة","intent":"city-guide","city":"مكة المكرمة","priority":96},
-  {"keyword":"كيف يبحث اليمني عن عمل في المدينة المنورة بطريقة منظمة","intent":"city-guide","city":"المدينة المنورة","priority":95},
-  {"keyword":"كيف يبحث اليمني عن عمل في الخبر بطريقة منظمة","intent":"city-guide","city":"الخبر","priority":94},
-  {"keyword":"كيف يبحث اليمني عن عمل في الجبيل بطريقة منظمة","intent":"city-guide","city":"الجبيل","priority":93},
-  {"keyword":"كيف يبحث اليمني عن عمل في القصيم بطريقة منظمة","intent":"city-guide","city":"القصيم","priority":92},
-  {"keyword":"كيف يبحث اليمني عن عمل في أبها وخميس مشيط بطريقة منظمة","intent":"city-guide","city":"أبها وخميس مشيط","priority":91},
-  {"keyword":"كيف يبحث اليمني عن عمل في تبوك بطريقة منظمة","intent":"city-guide","city":"تبوك","priority":90},
-  {"keyword":"كيف يبحث اليمني عن عمل في نجران بطريقة منظمة","intent":"city-guide","city":"نجران","priority":89},
-  {"keyword":"كيف يبحث اليمني عن عمل في الطائف بطريقة منظمة","intent":"city-guide","city":"الطائف","priority":88},
-  {"keyword":"كيف يبحث اليمني عن عمل في حائل بطريقة منظمة","intent":"city-guide","city":"حائل","priority":87},
-  {"keyword":"دليل العمل في المبيعات لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"مبيعات","priority":86},
-  {"keyword":"دليل العمل في المحاسبة لليمنيين في السعودية وتجهيز الملف المهني","intent":"profession-guide","profession":"محاسب","priority":85},
-  {"keyword":"دليل العمل ككاشير لليمنيين في السعودية والمهارات المهمة","intent":"profession-guide","profession":"كاشير","priority":84},
-  {"keyword":"دليل العمل كباريستا لليمنيين في السعودية وتجهيز السيرة الذاتية","intent":"profession-guide","profession":"باريستا","priority":83},
-  {"keyword":"دليل العمل كسائق لليمنيين في السعودية وتجهيز الملف المهني","intent":"profession-guide","profession":"سائق","priority":82},
-  {"keyword":"دليل العمل كفني تكييف لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"فني تكييف","priority":81},
-  {"keyword":"دليل العمل كفني كهرباء لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"كهربائي","priority":80},
-  {"keyword":"دليل العمل في المستودعات لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"مستودعات","priority":79},
-  {"keyword":"دليل العمل في التوصيل لليمنيين في السعودية وما الذي يجب التحقق منه","intent":"profession-guide","profession":"توصيل","priority":78},
-  {"keyword":"كيف يبدأ اليمني البحث عن عمل في السعودية بدون خبرة سابقة","intent":"job-search-guide","priority":77},
-  {"keyword":"كيف ينظم اليمني البحث عن عمل بدوام جزئي في السعودية","intent":"job-search-guide","priority":76},
-  {"keyword":"كيف يغير اليمني مساره المهني ويبحث عن عمل جديد في السعودية","intent":"career-change-guide","priority":75},
-  {"keyword":"دليل العمل في خدمة العملاء لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"خدمة العملاء","priority":74},
-  {"keyword":"دليل العمل كموظف استقبال لليمنيين في السعودية وتجهيز الملف المهني","intent":"profession-guide","profession":"موظف استقبال","priority":73},
-  {"keyword":"دليل العمل في إدخال البيانات لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"إدخال البيانات","priority":72},
-  {"keyword":"دليل العمل كمندوب مبيعات لليمنيين في السعودية والاستعداد للمقابلة","intent":"profession-guide","profession":"مندوب مبيعات","priority":71},
-  {"keyword":"دليل العمل في المطاعم لليمنيين في السعودية واختيار الدور المناسب","intent":"profession-guide","profession":"المطاعم","priority":70},
-  {"keyword":"دليل العمل في المشتريات لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"المشتريات","priority":69},
-  {"keyword":"دليل العمل في الدعم الإداري لليمنيين في السعودية وتجهيز السيرة الذاتية","intent":"profession-guide","profession":"الدعم الإداري","priority":68},
-  {"keyword":"دليل العمل في خدمة ما بعد البيع لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"خدمة ما بعد البيع","priority":67},
-  {"keyword":"كيف يعود اليمني للبحث عن عمل في السعودية بعد فترة انقطاع مهني","intent":"career-return-guide","priority":66},
-  {"keyword":"كيف ينظم اليمني البحث عن عمل جديد في السعودية وهو موظف حاليًا","intent":"job-search-guide","priority":65},
-  {"keyword":"دليل العمل في السكرتارية لليمنيين في السعودية وتجهيز الملف المهني","intent":"profession-guide","profession":"سكرتارية","priority":64},
-  {"keyword":"دليل العمل في مراكز الاتصال لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"مراكز الاتصال","priority":63},
-  {"keyword":"دليل العمل كمساعد موارد بشرية لليمنيين في السعودية وتجهيز السيرة الذاتية","intent":"profession-guide","profession":"مساعد موارد بشرية","priority":62},
-  {"keyword":"دليل العمل في التسويق الرقمي لليمنيين في السعودية وبناء ملف مهني مقنع","intent":"profession-guide","profession":"التسويق الرقمي","priority":61},
-  {"keyword":"دليل العمل كمصمم جرافيك لليمنيين في السعودية وبناء ملف أعمال مهني","intent":"profession-guide","profession":"مصمم جرافيك","priority":60},
-  {"keyword":"دليل العمل في العمليات لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"العمليات","priority":59},
-  {"keyword":"دليل العمل كمراقب جودة لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"مراقب جودة","priority":58},
-  {"keyword":"دليل العمل في الصيانة العامة لليمنيين في السعودية وتجهيز الملف المهني","intent":"profession-guide","profession":"الصيانة العامة","priority":57},
-  {"keyword":"دليل العمل كموظف حجوزات لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"موظف حجوزات","priority":56},
-  {"keyword":"دليل العمل كمشرف متجر لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"مشرف متجر","priority":55}
+  {
+    "keyword": "طريقة كتابة سيرة ذاتية لليمني الباحث عن عمل في السعودية",
+    "intent": "cv-guide",
+    "priority": 130
+  },
+  {
+    "keyword": "كيف يستعد اليمني لمقابلة عمل في السعودية",
+    "intent": "interview-guide",
+    "priority": 129
+  },
+  {
+    "keyword": "طريقة البحث عن عمل لليمنيين في السعودية بدون الوقوع في الاحتيال",
+    "intent": "safety-guide",
+    "priority": 128
+  },
+  {
+    "keyword": "كيف يختار اليمني مدينة مناسبة للبحث عن عمل في السعودية",
+    "intent": "city-guide",
+    "priority": 127
+  },
+  {
+    "keyword": "مهارات مهمة لليمني الباحث عن عمل في السعودية",
+    "intent": "skills-guide",
+    "priority": 126
+  },
+  {
+    "keyword": "طريقة التقديم على عمل لليمنيين في السعودية عبر مواقع الشركات",
+    "intent": "application-guide",
+    "priority": 125
+  },
+  {
+    "keyword": "أسئلة مقابلة العمل لليمنيين في السعودية وكيفية الاستعداد",
+    "intent": "interview-guide",
+    "priority": 124
+  },
+  {
+    "keyword": "كيف يراجع اليمني عقد العمل في السعودية قبل التوقيع",
+    "intent": "contract-guide",
+    "priority": 123
+  },
+  {
+    "keyword": "نقل الخدمات لليمني عند تغيير العمل في السعودية وما الذي يجب التحقق منه",
+    "intent": "sponsorship-guide",
+    "priority": 122
+  },
+  {
+    "keyword": "كيفية كتابة رسالة واتساب للتقديم على عمل لليمنيين في السعودية",
+    "intent": "application-message",
+    "priority": 121
+  },
+  {
+    "keyword": "سيرة ذاتية لليمني بدون خبرة في السعودية وكيف يبدأ",
+    "intent": "cv-guide",
+    "priority": 120
+  },
+  {
+    "keyword": "كيف يكتب اليمني نبذة مهنية في السيرة الذاتية في السعودية",
+    "intent": "cv-guide",
+    "priority": 119
+  },
+  {
+    "keyword": "أخطاء السيرة الذاتية التي يجب على اليمني تجنبها في السعودية",
+    "intent": "cv-guide",
+    "priority": 118
+  },
+  {
+    "keyword": "تهيئة السيرة الذاتية لليمني لأنظمة فرز المتقدمين في السعودية",
+    "intent": "cv-guide",
+    "priority": 117
+  },
+  {
+    "keyword": "كيف يكتب اليمني خطاب تقديم على عمل في السعودية",
+    "intent": "application-guide",
+    "priority": 116
+  },
+  {
+    "keyword": "طريقة كتابة بريد إلكتروني للتقديم على عمل لليمني في السعودية",
+    "intent": "application-message",
+    "priority": 115
+  },
+  {
+    "keyword": "كيف يتابع اليمني طلب التوظيف بعد التقديم في السعودية",
+    "intent": "application-guide",
+    "priority": 114
+  },
+  {
+    "keyword": "كيف يبني اليمني ملف لينكدإن للبحث عن عمل في السعودية",
+    "intent": "application-guide",
+    "priority": 113
+  },
+  {
+    "keyword": "كيف يجهز اليمني ملف أعمال مهني للبحث عن عمل في السعودية",
+    "intent": "skills-guide",
+    "priority": 112
+  },
+  {
+    "keyword": "الاستعداد للمقابلة الهاتفية لليمني الباحث عن عمل في السعودية",
+    "intent": "interview-guide",
+    "priority": 111
+  },
+  {
+    "keyword": "كيف يجيب اليمني عن سؤال الراتب المتوقع في مقابلة عمل بالسعودية",
+    "intent": "interview-guide",
+    "priority": 110
+  },
+  {
+    "keyword": "كيف يجيب اليمني عن نقاط القوة والضعف في مقابلة عمل بالسعودية",
+    "intent": "interview-guide",
+    "priority": 109
+  },
+  {
+    "keyword": "رسالة متابعة بعد مقابلة العمل لليمني في السعودية",
+    "intent": "interview-guide",
+    "priority": 108
+  },
+  {
+    "keyword": "كيف يتحقق اليمني من عرض العمل قبل قبوله في السعودية",
+    "intent": "safety-guide",
+    "priority": 107
+  },
+  {
+    "keyword": "بنود مهمة يراجعها اليمني في عقد العمل بالسعودية",
+    "intent": "contract-guide",
+    "priority": 106
+  },
+  {
+    "keyword": "فترة التجربة في عقد العمل وما الذي يتحقق منه اليمني في السعودية",
+    "intent": "contract-guide",
+    "priority": 105
+  },
+  {
+    "keyword": "كيف يراجع اليمني المسمى والراتب والمزايا في عرض العمل بالسعودية",
+    "intent": "contract-guide",
+    "priority": 104
+  },
+  {
+    "keyword": "ما الذي يتحقق منه اليمني عند انتهاء عقد العمل في السعودية",
+    "intent": "contract-guide",
+    "priority": 103
+  },
+  {
+    "keyword": "كيف يتحقق اليمني من إجراءات نقل الخدمات عبر قوى في السعودية",
+    "intent": "sponsorship-guide",
+    "priority": 102
+  },
+  {
+    "keyword": "كيف يراجع اليمني عقده الإلكتروني عبر قوى في السعودية",
+    "intent": "contract-guide",
+    "priority": 101
+  },
+  {
+    "keyword": "علامات إعلان العمل الوهمي التي يجب أن يعرفها اليمني في السعودية",
+    "intent": "safety-guide",
+    "priority": 100
+  },
+  {
+    "keyword": "كيف يتحقق اليمني من جهة العمل قبل إرسال بياناته في السعودية",
+    "intent": "safety-guide",
+    "priority": 99
+  },
+  {
+    "keyword": "ماذا يفعل اليمني إذا طلبت منه جهة مبلغًا مقابل وظيفة في السعودية",
+    "intent": "safety-guide",
+    "priority": 98
+  },
+  {
+    "keyword": "حماية البيانات الشخصية لليمني أثناء البحث عن عمل في السعودية",
+    "intent": "safety-guide",
+    "priority": 97
+  },
+  {
+    "keyword": "كيف يبحث اليمني عن عمل في مكة المكرمة بطريقة منظمة",
+    "intent": "city-guide",
+    "city": "مكة المكرمة",
+    "priority": 96
+  },
+  {
+    "keyword": "كيف يبحث اليمني عن عمل في المدينة المنورة بطريقة منظمة",
+    "intent": "city-guide",
+    "city": "المدينة المنورة",
+    "priority": 95
+  },
+  {
+    "keyword": "كيف يبحث اليمني عن عمل في الخبر بطريقة منظمة",
+    "intent": "city-guide",
+    "city": "الخبر",
+    "priority": 94
+  },
+  {
+    "keyword": "كيف يبحث اليمني عن عمل في الجبيل بطريقة منظمة",
+    "intent": "city-guide",
+    "city": "الجبيل",
+    "priority": 93
+  },
+  {
+    "keyword": "كيف يبحث اليمني عن عمل في القصيم بطريقة منظمة",
+    "intent": "city-guide",
+    "city": "القصيم",
+    "priority": 92
+  },
+  {
+    "keyword": "كيف يبحث اليمني عن عمل في أبها وخميس مشيط بطريقة منظمة",
+    "intent": "city-guide",
+    "city": "أبها وخميس مشيط",
+    "priority": 91
+  },
+  {
+    "keyword": "كيف يبحث اليمني عن عمل في تبوك بطريقة منظمة",
+    "intent": "city-guide",
+    "city": "تبوك",
+    "priority": 90
+  },
+  {
+    "keyword": "كيف يبحث اليمني عن عمل في نجران بطريقة منظمة",
+    "intent": "city-guide",
+    "city": "نجران",
+    "priority": 89
+  },
+  {
+    "keyword": "كيف يبحث اليمني عن عمل في الطائف بطريقة منظمة",
+    "intent": "city-guide",
+    "city": "الطائف",
+    "priority": 88
+  },
+  {
+    "keyword": "كيف يبحث اليمني عن عمل في حائل بطريقة منظمة",
+    "intent": "city-guide",
+    "city": "حائل",
+    "priority": 87
+  },
+  {
+    "keyword": "دليل العمل في المبيعات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مبيعات",
+    "priority": 86
+  },
+  {
+    "keyword": "دليل العمل في المحاسبة لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "محاسب",
+    "priority": 85
+  },
+  {
+    "keyword": "دليل العمل ككاشير لليمنيين في السعودية والمهارات المهمة",
+    "intent": "profession-guide",
+    "profession": "كاشير",
+    "priority": 84
+  },
+  {
+    "keyword": "دليل العمل كباريستا لليمنيين في السعودية وتجهيز السيرة الذاتية",
+    "intent": "profession-guide",
+    "profession": "باريستا",
+    "priority": 83
+  },
+  {
+    "keyword": "دليل العمل كسائق لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "سائق",
+    "priority": 82
+  },
+  {
+    "keyword": "دليل العمل كفني تكييف لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني تكييف",
+    "priority": 81
+  },
+  {
+    "keyword": "دليل العمل كفني كهرباء لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "كهربائي",
+    "priority": 80
+  },
+  {
+    "keyword": "دليل العمل في المستودعات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مستودعات",
+    "priority": 79
+  },
+  {
+    "keyword": "دليل العمل في التوصيل لليمنيين في السعودية وما الذي يجب التحقق منه",
+    "intent": "profession-guide",
+    "profession": "توصيل",
+    "priority": 78
+  },
+  {
+    "keyword": "كيف يبدأ اليمني البحث عن عمل في السعودية بدون خبرة سابقة",
+    "intent": "job-search-guide",
+    "priority": 77
+  },
+  {
+    "keyword": "كيف ينظم اليمني البحث عن عمل بدوام جزئي في السعودية",
+    "intent": "job-search-guide",
+    "priority": 76
+  },
+  {
+    "keyword": "كيف يغير اليمني مساره المهني ويبحث عن عمل جديد في السعودية",
+    "intent": "career-change-guide",
+    "priority": 75
+  },
+  {
+    "keyword": "دليل العمل في خدمة العملاء لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "خدمة العملاء",
+    "priority": 74
+  },
+  {
+    "keyword": "دليل العمل كموظف استقبال لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "موظف استقبال",
+    "priority": 73
+  },
+  {
+    "keyword": "دليل العمل في إدخال البيانات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "إدخال البيانات",
+    "priority": 72
+  },
+  {
+    "keyword": "دليل العمل كمندوب مبيعات لليمنيين في السعودية والاستعداد للمقابلة",
+    "intent": "profession-guide",
+    "profession": "مندوب مبيعات",
+    "priority": 71
+  },
+  {
+    "keyword": "دليل العمل في المطاعم لليمنيين في السعودية واختيار الدور المناسب",
+    "intent": "profession-guide",
+    "profession": "المطاعم",
+    "priority": 70
+  },
+  {
+    "keyword": "دليل العمل في المشتريات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "المشتريات",
+    "priority": 69
+  },
+  {
+    "keyword": "دليل العمل في الدعم الإداري لليمنيين في السعودية وتجهيز السيرة الذاتية",
+    "intent": "profession-guide",
+    "profession": "الدعم الإداري",
+    "priority": 68
+  },
+  {
+    "keyword": "دليل العمل في خدمة ما بعد البيع لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "خدمة ما بعد البيع",
+    "priority": 67
+  },
+  {
+    "keyword": "كيف يعود اليمني للبحث عن عمل في السعودية بعد فترة انقطاع مهني",
+    "intent": "career-return-guide",
+    "priority": 66
+  },
+  {
+    "keyword": "كيف ينظم اليمني البحث عن عمل جديد في السعودية وهو موظف حاليًا",
+    "intent": "job-search-guide",
+    "priority": 65
+  },
+  {
+    "keyword": "دليل العمل في السكرتارية لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "سكرتارية",
+    "priority": 64
+  },
+  {
+    "keyword": "دليل العمل في مراكز الاتصال لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مراكز الاتصال",
+    "priority": 63
+  },
+  {
+    "keyword": "دليل العمل كمساعد موارد بشرية لليمنيين في السعودية وتجهيز السيرة الذاتية",
+    "intent": "profession-guide",
+    "profession": "مساعد موارد بشرية",
+    "priority": 62
+  },
+  {
+    "keyword": "دليل العمل في التسويق الرقمي لليمنيين في السعودية وبناء ملف مهني مقنع",
+    "intent": "profession-guide",
+    "profession": "التسويق الرقمي",
+    "priority": 61
+  },
+  {
+    "keyword": "دليل العمل كمصمم جرافيك لليمنيين في السعودية وبناء ملف أعمال مهني",
+    "intent": "profession-guide",
+    "profession": "مصمم جرافيك",
+    "priority": 60
+  },
+  {
+    "keyword": "دليل العمل في العمليات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "العمليات",
+    "priority": 59
+  },
+  {
+    "keyword": "دليل العمل كمراقب جودة لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مراقب جودة",
+    "priority": 58
+  },
+  {
+    "keyword": "دليل العمل في الصيانة العامة لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "الصيانة العامة",
+    "priority": 57
+  },
+  {
+    "keyword": "دليل العمل كموظف حجوزات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "موظف حجوزات",
+    "priority": 56
+  },
+  {
+    "keyword": "دليل العمل كمشرف متجر لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مشرف متجر",
+    "priority": 55
+  },
+  {
+    "keyword": "دليل العمل كمنسق لوجستي لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "منسق لوجستي",
+    "priority": 54
+  },
+  {
+    "keyword": "دليل العمل كمراقب مخزون لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مراقب مخزون",
+    "priority": 53
+  },
+  {
+    "keyword": "دليل العمل كمشغل إنتاج لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "مشغل إنتاج",
+    "priority": 52
+  },
+  {
+    "keyword": "دليل العمل في الدعم التقني لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "الدعم التقني",
+    "priority": 51
+  },
+  {
+    "keyword": "دليل العمل في إدارة وسائل التواصل الاجتماعي لليمنيين في السعودية وبناء ملف مهني",
+    "intent": "profession-guide",
+    "profession": "إدارة وسائل التواصل الاجتماعي",
+    "priority": 50
+  },
+  {
+    "keyword": "دليل العمل في مونتاج الفيديو لليمنيين في السعودية وبناء ملف أعمال مهني",
+    "intent": "profession-guide",
+    "profession": "مونتاج الفيديو",
+    "priority": 49
+  },
+  {
+    "keyword": "دليل العمل كمنسق فعاليات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "منسق فعاليات",
+    "priority": 48
+  },
+  {
+    "keyword": "دليل العمل في الفنادق لليمنيين في السعودية واختيار الدور المناسب",
+    "intent": "profession-guide",
+    "profession": "الفنادق",
+    "priority": 47
+  },
+  {
+    "keyword": "دليل العمل في السلامة المهنية لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "السلامة المهنية",
+    "priority": 46
+  },
+  {
+    "keyword": "دليل العمل في التجارة الإلكترونية لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "التجارة الإلكترونية",
+    "priority": 45
+  }
 ]
