@@ -1,13 +1,6 @@
 name: NEXT JOB SEO Publisher
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'seo/yemeni-keywords.json'
-      - '.github/workflows/seo-publisher.yml'
-      - 'scripts/run-seo-publisher-with-fallback.mjs'
   schedule:
     # Editorial cadence: three strong articles per week.
     # 04:15 UTC = 07:15 Saudi Arabia time.
@@ -50,15 +43,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Ordinary manual runs and approved keyword-map expansions are explicit overrides.
+          # Ordinary manual runs are explicit overrides.
           # GitHub schedule and Render Cron must respect the editorial cooldown.
           EVENT_NAME="${{ github.event_name }}"
           SCHEDULER="${{ github.event.inputs.scheduler || '' }}"
-          if [ "$EVENT_NAME" = "push" ]; then
-            echo "eligible=true" >> "$GITHUB_OUTPUT"
-            echo "Approved keyword-map expansion: publisher enabled."
-            exit 0
-          fi
           if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$SCHEDULER" != "render-cron" ]; then
             echo "eligible=true" >> "$GITHUB_OUTPUT"
             echo "Manual editorial run: publisher enabled."
@@ -117,18 +105,8 @@ jobs:
           PUBLIC_SITE_URL: https://nextjob1-1.onrender.com
           SEO_KEYWORD: ${{ github.event.inputs.keyword || '' }}
         run: |
-          BATCH_SIZE=1
-          if [ "${{ github.event_name }}" = "push" ]; then
-            BATCH_SIZE=10
-            export SEO_MIN_PUBLISH_INTERVAL_HOURS=0
-          fi
-
-          for RUN_INDEX in $(seq 1 "$BATCH_SIZE"); do
-            echo "Publishing approved guidance article $RUN_INDEX of $BATCH_SIZE"
-            node scripts/sync-guide-manifest.mjs
-            node scripts/run-seo-publisher-with-fallback.mjs
-          done
-
+          node scripts/sync-guide-manifest.mjs
+          node scripts/run-seo-publisher-with-fallback.mjs
           node scripts/sync-guide-manifest.mjs
           node scripts/normalize-content-hub-seo.mjs
           node scripts/style-guide-index.mjs
