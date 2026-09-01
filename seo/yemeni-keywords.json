@@ -475,5 +475,65 @@
     "intent": "profession-guide",
     "profession": "التجارة الإلكترونية",
     "priority": 45
+  },
+  {
+    "keyword": "دليل العمل ككاتب محتوى لليمنيين في السعودية وبناء ملف أعمال مهني",
+    "intent": "profession-guide",
+    "profession": "كاتب محتوى",
+    "priority": 44
+  },
+  {
+    "keyword": "دليل العمل في تصميم UI UX لليمنيين في السعودية وبناء ملف أعمال مهني",
+    "intent": "profession-guide",
+    "profession": "تصميم UI UX",
+    "priority": 43
+  },
+  {
+    "keyword": "دليل العمل كمحلل بيانات مبتدئ لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "محلل بيانات",
+    "priority": 42
+  },
+  {
+    "keyword": "دليل العمل كمنسق مشاريع لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "منسق مشاريع",
+    "priority": 41
+  },
+  {
+    "keyword": "دليل العمل كمراقب وثائق لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مراقب وثائق",
+    "priority": 40
+  },
+  {
+    "keyword": "دليل العمل في الطباعة الرقمية لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "الطباعة الرقمية",
+    "priority": 39
+  },
+  {
+    "keyword": "دليل العمل كمصور منتجات لليمنيين في السعودية وبناء ملف أعمال مهني",
+    "intent": "profession-guide",
+    "profession": "مصور منتجات",
+    "priority": 38
+  },
+  {
+    "keyword": "دليل العمل كفني سباكة لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني سباكة",
+    "priority": 37
+  },
+  {
+    "keyword": "دليل العمل كفني لحام لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني لحام",
+    "priority": 36
+  },
+  {
+    "keyword": "دليل العمل كدهان مباني لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "دهان مباني",
+    "priority": 35
   }
 ]
