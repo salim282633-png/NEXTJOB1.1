@@ -715,5 +715,29 @@
     "intent": "profession-guide",
     "profession": "نقل الأثاث",
     "priority": 5
+  },
+  {
+    "keyword": "دليل العمل كفني مصاعد لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني مصاعد",
+    "priority": 4
+  },
+  {
+    "keyword": "دليل العمل كفني أنظمة إنذار وإطفاء الحريق لليمنيين في السعودية وما الذي يجب التحقق منه",
+    "intent": "profession-guide",
+    "profession": "أنظمة إنذار وإطفاء الحريق",
+    "priority": 3
+  },
+  {
+    "keyword": "دليل العمل كفني طاقة شمسية لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "فني طاقة شمسية",
+    "priority": 2
+  },
+  {
+    "keyword": "دليل العمل كفني مضخات مياه لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني مضخات مياه",
+    "priority": 1
   }
 ]
