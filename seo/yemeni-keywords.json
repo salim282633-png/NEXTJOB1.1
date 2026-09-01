@@ -655,5 +655,65 @@
     "intent": "profession-guide",
     "profession": "صيانة الأجهزة المنزلية",
     "priority": 15
+  },
+  {
+    "keyword": "دليل العمل في صيانة الجوالات لليمنيين في السعودية وبناء ملف مهني",
+    "intent": "profession-guide",
+    "profession": "صيانة الجوالات",
+    "priority": 14
+  },
+  {
+    "keyword": "دليل العمل في صيانة الحاسب الآلي لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "صيانة الحاسب الآلي",
+    "priority": 13
+  },
+  {
+    "keyword": "دليل العمل كفني شبكات لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "فني شبكات",
+    "priority": 12
+  },
+  {
+    "keyword": "دليل العمل في تركيب كاميرات المراقبة لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "تركيب كاميرات المراقبة",
+    "priority": 11
+  },
+  {
+    "keyword": "دليل العمل كفني طابعات وآلات تصوير لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني طابعات وآلات تصوير",
+    "priority": 10
+  },
+  {
+    "keyword": "دليل العمل كميكانيكي ديزل لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "ميكانيكي ديزل",
+    "priority": 9
+  },
+  {
+    "keyword": "دليل العمل كفني إطارات وميزان لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني إطارات وميزان",
+    "priority": 8
+  },
+  {
+    "keyword": "دليل العمل في غسيل وتلميع السيارات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "غسيل وتلميع السيارات",
+    "priority": 7
+  },
+  {
+    "keyword": "دليل العمل في مكافحة الآفات لليمنيين في السعودية وما الذي يجب التحقق منه",
+    "intent": "profession-guide",
+    "profession": "مكافحة الآفات",
+    "priority": 6
+  },
+  {
+    "keyword": "دليل العمل في نقل الأثاث لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "نقل الأثاث",
+    "priority": 5
   }
 ]
