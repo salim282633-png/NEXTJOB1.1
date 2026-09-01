@@ -64,5 +64,15 @@
   {"keyword":"دليل العمل في الدعم الإداري لليمنيين في السعودية وتجهيز السيرة الذاتية","intent":"profession-guide","profession":"الدعم الإداري","priority":68},
   {"keyword":"دليل العمل في خدمة ما بعد البيع لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"خدمة ما بعد البيع","priority":67},
   {"keyword":"كيف يعود اليمني للبحث عن عمل في السعودية بعد فترة انقطاع مهني","intent":"career-return-guide","priority":66},
-  {"keyword":"كيف ينظم اليمني البحث عن عمل جديد في السعودية وهو موظف حاليًا","intent":"job-search-guide","priority":65}
+  {"keyword":"كيف ينظم اليمني البحث عن عمل جديد في السعودية وهو موظف حاليًا","intent":"job-search-guide","priority":65},
+  {"keyword":"دليل العمل في السكرتارية لليمنيين في السعودية وتجهيز الملف المهني","intent":"profession-guide","profession":"سكرتارية","priority":64},
+  {"keyword":"دليل العمل في مراكز الاتصال لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"مراكز الاتصال","priority":63},
+  {"keyword":"دليل العمل كمساعد موارد بشرية لليمنيين في السعودية وتجهيز السيرة الذاتية","intent":"profession-guide","profession":"مساعد موارد بشرية","priority":62},
+  {"keyword":"دليل العمل في التسويق الرقمي لليمنيين في السعودية وبناء ملف مهني مقنع","intent":"profession-guide","profession":"التسويق الرقمي","priority":61},
+  {"keyword":"دليل العمل كمصمم جرافيك لليمنيين في السعودية وبناء ملف أعمال مهني","intent":"profession-guide","profession":"مصمم جرافيك","priority":60},
+  {"keyword":"دليل العمل في العمليات لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"العمليات","priority":59},
+  {"keyword":"دليل العمل كمراقب جودة لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"مراقب جودة","priority":58},
+  {"keyword":"دليل العمل في الصيانة العامة لليمنيين في السعودية وتجهيز الملف المهني","intent":"profession-guide","profession":"الصيانة العامة","priority":57},
+  {"keyword":"دليل العمل كموظف حجوزات لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"موظف حجوزات","priority":56},
+  {"keyword":"دليل العمل كمشرف متجر لليمنيين في السعودية والمهارات المطلوبة","intent":"profession-guide","profession":"مشرف متجر","priority":55}
 ]
