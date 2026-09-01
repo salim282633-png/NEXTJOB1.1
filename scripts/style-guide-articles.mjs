@@ -50,14 +50,54 @@ function paragraphs(value) {
     .filter(Boolean);
 }
 
+const RELATED_STOP_WORDS = new Set(['دليل', 'العمل', 'كيف', 'في', 'من', 'على', 'إلى', 'الى', 'عن', 'مع', 'السعودية', 'اليمنيين', 'يمني', 'لليمنيين', 'المهارات', 'المطلوبة', 'تجهيز', 'ملف', 'مهني']);
+const RELATED_CLUSTERS = [
+  /مصاعد|كهرباء|تكييف|صيانة|شبكات|كاميرات|طاقة شمسية|مضخات|أجهزة منزلية|دعم تقني|طابعات|إنذار|إطفاء الحريق/,
+  /سيارات|ميكانيكي|ديزل|إطارات|ميزان|غسيل وتلميع|سائق|توصيل/,
+  /مستودعات|مخزون|لوجستي|إنتاج|عمليات|جودة|رافعة شوكية|معدات ثقيلة|تعبئة|تغليف/,
+  /فنادق|مطاعم|باريستا|كاشير|حجوزات|استقبال|فعاليات|مخبوزات|طباخ/,
+  /تسويق رقمي|جرافيك|UI|UX|مونتاج|سوشيال|كتابة محتوى|تصوير المنتجات|تجارة إلكترونية|طباعة رقمية/iu,
+  /نجار|سباكة|لحام|دهان|بلاط|سيراميك|جبس|ألمنيوم|زجاج|لوحات إعلانية|تنجيد|نقل الأثاث/,
+  /محاسبة|مبيعات|مشتريات|موارد بشرية|سكرتارية|دعم إداري|وثائق|مشاريع|خدمة العملاء|مراكز الاتصال/
+];
+
+function relatedTokens(value) {
+  return new Set(String(value || '')
+    .normalize('NFKC')
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter(token => token.length > 2 && !RELATED_STOP_WORDS.has(token)));
+}
+
+function relatedCluster(item) {
+  const value = `${item.profession || ''} ${item.title || ''} ${item.keyword || ''}`;
+  return RELATED_CLUSTERS.findIndex(pattern => pattern.test(value));
+}
+
+function tokenOverlap(left, right) {
+  let count = 0;
+  for (const token of left) if (right.has(token)) count += 1;
+  return count;
+}
+
 function relatedArticles(meta, manifest) {
+  const sourceTokens = relatedTokens(`${meta.title || ''} ${meta.keyword || ''} ${meta.profession || ''} ${meta.city || ''}`);
+  const sourceCluster = relatedCluster(meta);
   return manifest
     .filter(item => item.slug && item.slug !== meta.slug)
     .map(item => {
       let score = 0;
-      if (meta.city && item.city === meta.city) score += 3;
-      if (meta.profession && item.profession === meta.profession) score += 3;
-      if (meta.intent && item.intent === meta.intent) score += 1;
+      if (meta.city && item.city === meta.city) score += 10;
+      if (meta.profession && item.profession === meta.profession) score += 10;
+      if (meta.topic && item.topic === meta.topic) score += 4;
+      if (meta.intent && item.intent === meta.intent) score += 2;
+      const itemCluster = relatedCluster(item);
+      if (sourceCluster >= 0 && itemCluster === sourceCluster) score += 7;
+      score += tokenOverlap(sourceTokens, relatedTokens(`${item.title || ''} ${item.keyword || ''} ${item.profession || ''} ${item.city || ''}`)) * 3;
       return { item, score };
     })
     .sort((a, b) => b.score - a.score || String(b.item.publishedAt || '').localeCompare(String(a.item.publishedAt || '')))
@@ -82,7 +122,7 @@ function renderArticlePage(meta, article, manifest) {
     headline: title,
     description,
     datePublished: meta.publishedAt || meta.publishedDate,
-    dateModified: meta.publishedAt || meta.publishedDate,
+    dateModified: meta.modifiedAt || meta.publishedAt || meta.publishedDate,
     inLanguage: 'ar-SA',
     mainEntityOfPage: canonical,
     wordCount: wordCount || undefined,

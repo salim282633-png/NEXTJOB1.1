@@ -58,9 +58,9 @@
     "profession": "فني مصاعد",
     "publishedAt": "2026-09-01T13:59:49.561Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T13:59:49.561Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-yemeni-professions-ea1745f7/",
-    "wordCount": 890,
+    "wordCount": 894,
     "source": "gemini-guidance-publisher"
   },
   {
@@ -609,7 +609,7 @@
   },
   {
     "slug": "guide-digital-printing-career-08f802ac",
-    "title": "العمل في الطباعة الرقمية في السعودية: كيف تجهز ملفًا يثبت فهمك من التصميم إلى التسليم؟",
+    "title": "العمل في الطباعة الرقمية في السعودية: من التصميم إلى التسليم",
     "description": "دليل عملي لليمنيين في السعودية لمسار الطباعة الرقمية: تجهيز الملفات، الألوان، الخامات، التشغيل، الفحص، التشطيب، السيرة الذاتية والاستعداد للمقابلة.",
     "keyword": "دليل العمل في الطباعة الرقمية لليمنيين في السعودية وتجهيز الملف المهني",
     "intent": "profession-guide",
@@ -618,9 +618,9 @@
     "profession": "الطباعة الرقمية",
     "publishedAt": "2026-09-01T09:09:00.000Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T09:09:00.000Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-digital-printing-career-08f802ac/",
-    "wordCount": 1205,
+    "wordCount": 859,
     "source": "editorial-guidance"
   },
   {
@@ -705,7 +705,7 @@
   },
   {
     "slug": "guide-ecommerce-career-2d8a4af7",
-    "title": "العمل في التجارة الإلكترونية في السعودية: كيف تبني ملفًا يفهم المتجر من الطلب إلى العميل؟",
+    "title": "العمل في التجارة الإلكترونية في السعودية: كيف تبني ملفًا مهنيًا قويًا؟",
     "description": "دليل عملي لليمنيين في السعودية لمسار التجارة الإلكترونية: المنتجات، الطلبات، المحتوى، خدمة العميل، التحليلات، التشغيل وبناء ملف مهني مقنع.",
     "keyword": "دليل العمل في التجارة الإلكترونية لليمنيين في السعودية والمهارات المطلوبة",
     "intent": "profession-guide",
@@ -714,9 +714,9 @@
     "profession": "التجارة الإلكترونية",
     "publishedAt": "2026-09-01T08:45:00Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T08:45:00Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-ecommerce-career-2d8a4af7/",
-    "wordCount": 588,
+    "wordCount": 770,
     "source": "editorial-guidance"
   },
   {
@@ -730,9 +730,9 @@
     "profession": "السلامة المهنية",
     "publishedAt": "2026-09-01T08:40:00Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T08:40:00Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-occupational-safety-career-792d7ed1/",
-    "wordCount": 592,
+    "wordCount": 752,
     "source": "editorial-guidance"
   },
   {
@@ -746,9 +746,9 @@
     "profession": "الفنادق",
     "publishedAt": "2026-09-01T08:35:00Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T08:35:00Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-hotel-career-4713cb1b/",
-    "wordCount": 557,
+    "wordCount": 769,
     "source": "editorial-guidance"
   },
   {
@@ -762,9 +762,9 @@
     "profession": "منسق فعاليات",
     "publishedAt": "2026-09-01T08:30:00Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T08:30:00Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-events-coordinator-career-1979b58e/",
-    "wordCount": 580,
+    "wordCount": 751,
     "source": "editorial-guidance"
   },
   {
@@ -778,9 +778,9 @@
     "profession": "مونتاج الفيديو",
     "publishedAt": "2026-09-01T08:25:00Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T08:25:00Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-video-editing-career-6b0b9bab/",
-    "wordCount": 636,
+    "wordCount": 788,
     "source": "editorial-guidance"
   },
   {
@@ -794,9 +794,9 @@
     "profession": "إدارة وسائل التواصل الاجتماعي",
     "publishedAt": "2026-09-01T08:20:00Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T08:20:00Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-social-media-career-5637eeab/",
-    "wordCount": 621,
+    "wordCount": 775,
     "source": "editorial-guidance"
   },
   {
@@ -810,9 +810,9 @@
     "profession": "الدعم التقني",
     "publishedAt": "2026-09-01T08:15:00Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T08:15:00Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-it-support-career-8489dcf3/",
-    "wordCount": 632,
+    "wordCount": 789,
     "source": "editorial-guidance"
   },
   {
@@ -826,9 +826,9 @@
     "profession": "مشغل إنتاج",
     "publishedAt": "2026-09-01T08:10:00Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T08:10:00Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-production-operator-career-e60ec79d/",
-    "wordCount": 642,
+    "wordCount": 813,
     "source": "editorial-guidance"
   },
   {
@@ -842,9 +842,9 @@
     "profession": "مراقب مخزون",
     "publishedAt": "2026-09-01T08:05:00Z",
     "publishedDate": "2026-09-01",
-    "modifiedAt": "2026-09-01T08:05:00Z",
+    "modifiedAt": "2026-09-01T14:17:56.179Z",
     "canonical": "https://nextjob1-1.onrender.com/guide/guide-inventory-controller-career-abfd3eb7/",
-    "wordCount": 697,
+    "wordCount": 861,
     "source": "editorial-guidance"
   },
   {
