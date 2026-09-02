@@ -29,6 +29,7 @@ jobs:
       - run: npm ci
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run seo:check
+      - run: npm run seo:publisher-check
       - run: npm run jobs:sources-check
       - run: npm run jobs:check
       - run: npm run security:check

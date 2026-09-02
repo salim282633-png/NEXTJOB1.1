@@ -35,8 +35,9 @@ services:
     runtime: node
     repo: https://github.com/salim282633-png/NEXTJOB1.1
     branch: main
-    # Monday, Wednesday, Saturday at 07:15 Saudi time (04:15 UTC).
-    schedule: '15 4 * * 1,3,6'
+    # Hourly recovery dispatch, 30 minutes after GitHub's primary minute-17 run.
+    # Duplicate dispatches are harmless because the workflow enforces one article per UTC hour.
+    schedule: '47 * * * *'
     buildCommand: echo "No build required"
     startCommand: node scripts/trigger-seo-workflow.mjs
     envVars:

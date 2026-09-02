@@ -12,11 +12,17 @@ const SITE_URL = (process.env.PUBLIC_SITE_URL || 'https://nextjob1-1.onrender.co
 const GEMINI_API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
 const GEMINI_MODEL = String(process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
 const MANUAL_KEYWORD = String(process.env.SEO_KEYWORD || '').trim();
+const REQUIRE_ARTICLE = /^(1|true|yes)$/i.test(String(process.env.SEO_REQUIRE_ARTICLE || ''));
 
 const YEMEN_RE = /(يمنيين|اليمنيين|يمني|يمنية|اليمن)/;
 const SAUDI_RE = /(السعودية|السعوديه|الرياض|جدة|جده|مكة|مكه|المدينة المنورة|المدينه المنوره|الدمام|الخبر|الأحساء|الاحساء|القصيم|أبها|ابها|خميس مشيط|جازان|تبوك|نجران|الطائف|حائل|الجبيل|ينبع)/;
 const CAREER_RE = /(وظائف|وظيفة|فرص عمل|عمل|سيرة ذاتية|السيرة الذاتية|مقابلة|مقابلات|عقد|العقود|نقل الخدمات|مهارات|التقديم|باحث عن عمل|المسار المهني)/;
-const COMMON_TOKENS = new Set(['وظائف','وظيفة','لليمنيين','اليمنيين','يمني','يمنية','في','من','إلى','الى','السعودية','السعوديه','عمل','عن','كيف','طريقة','دليل']);
+const COMMON_TOKENS = new Set([
+  'وظائف','وظيفة','لليمنيين','اليمنيين','يمني','يمنية','في','من','إلى','الى',
+  'السعودية','السعوديه','عمل','العمل','عن','كيف','طريقة','دليل','المهارات',
+  'والمهارات','المطلوبة','المطلوبه','تجهيز','الملف','المهني','المهنية','المهنيه',
+  'بناء','وبناء','وما','الذي','يجب','التحقق','منه','متطلبات','ومتطلبات','السلامة','السلامه'
+]);
 const OPERATIONAL_CLAIMS = [
   'منصة NEXT JOB',
   'عرض الوظائف المنشورة',
@@ -60,6 +66,14 @@ function jaccard(a, b) {
   return intersection / new Set([...A, ...B]).size;
 }
 
+function isHighlySimilar(a, b) {
+  const A = tokens(a); const B = tokens(b);
+  if (!A.size || !B.size) return false;
+  const intersection = [...A].filter(token => B.has(token)).length;
+  const overlap = intersection / Math.min(A.size, B.size);
+  return jaccard(a, b) >= 0.82 || (intersection >= 3 && overlap >= 0.75);
+}
+
 function isGuidanceScope(value) {
   const text = normalizeArabic(value);
   return YEMEN_RE.test(text) && SAUDI_RE.test(text) && CAREER_RE.test(text);
@@ -82,7 +96,11 @@ function articleText(article) {
 
 function keywordCovered(keyword, manifest) {
   const normalized = normalizeArabic(keyword);
-  return manifest.some(item => normalizeArabic(item.keyword) === normalized || jaccard(keyword, `${item.keyword || ''} ${item.title || ''}`) >= 0.82);
+  return manifest.some(item =>
+    normalizeArabic(item.keyword) === normalized ||
+    isHighlySimilar(keyword, item.keyword || '') ||
+    isHighlySimilar(keyword, item.title || '')
+  );
 }
 
 function chooseKeyword(pool, manifest) {
@@ -176,7 +194,7 @@ function validateArticle(article, seed, manifest) {
   if (['contracts','sponsorship'].includes(topic.slug) && !/(قوى|وزارة الموارد البشرية|الجهة الرسمية|المصدر الرسمي)/.test(content)) errors.push('official-source reminder required');
 
   for (const previous of manifest) {
-    if (jaccard(title, `${previous.title || ''} ${previous.keyword || ''}`) >= 0.82) { errors.push('too similar to a published article'); break; }
+    if (isHighlySimilar(title, previous.title || '') || isHighlySimilar(title, previous.keyword || '')) { errors.push('too similar to a published article'); break; }
   }
   return { ok: errors.length === 0, errors, words };
 }
@@ -207,7 +225,12 @@ async function main() {
   const pool = readJson(KEYWORDS_FILE, []);
   const manifest = readJson(MANIFEST_FILE, []);
   const seed = chooseKeyword(Array.isArray(pool) ? pool : [], Array.isArray(manifest) ? manifest : []);
-  if (!seed) { console.log('Guidance publisher: all approved topics are already covered. No article published.'); return; }
+  if (!seed) {
+    const message = 'Guidance publisher: all approved topics are already covered. Replenish seo/yemeni-keywords.json.';
+    if (REQUIRE_ARTICLE) throw new Error(message);
+    console.log(`${message} No article published.`);
+    return;
+  }
 
   const topic = topicFor(seed);
   console.log(`Guidance publisher selected: ${seed.keyword} [${topic.slug}]`);

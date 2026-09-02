@@ -1,12 +1,15 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import process from 'node:process';
+import { evaluatePublishSlot, readLatestPublishedAt } from './seo-publish-cadence.mjs';
 
 const API_KEY = String(process.env.GEMINI_API_KEY || '').trim();
 const PREFERRED_MODEL = String(process.env.GEMINI_MODEL || 'gemini-3.6-flash').trim().replace(/^models\//, '');
 const MAX_ATTEMPTS = Math.max(8, Math.min(12, Number(process.env.GEMINI_MAX_MODEL_ATTEMPTS || 8)));
 const MODEL_RETRIES = Math.max(1, Math.min(3, Number(process.env.GEMINI_MODEL_RETRIES || 2)));
 const MIN_PUBLISH_INTERVAL_HOURS = Math.max(0, Number(process.env.SEO_MIN_PUBLISH_INTERVAL_HOURS ?? 6));
+const PUBLISH_CADENCE_MODE = String(process.env.SEO_PUBLISH_CADENCE_MODE || 'interval').trim();
+const PUBLISH_SLOT_MINUTES = Math.max(5, Number(process.env.SEO_PUBLISH_SLOT_MINUTES || 60));
+const FORCE_PUBLISH = /^(1|true|yes)$/i.test(String(process.env.SEO_FORCE_PUBLISH || ''));
 const PUBLISHER_SCRIPT = 'scripts/publish-guidance-seo.mjs';
 const ARTICLES_INDEX = 'public/guide/articles.json';
 
@@ -33,30 +36,25 @@ const STATIC_FALLBACK_MODELS = unique([
   'gemini-2.5-flash-lite'
 ]);
 
-function getLatestPublishedAt() {
-  try {
-    const raw = readFileSync(ARTICLES_INDEX, 'utf8');
-    const articles = JSON.parse(raw);
-    if (!Array.isArray(articles) || articles.length === 0) return null;
+function shouldSkipForCadence() {
+  if (FORCE_PUBLISH) return false;
 
-    let latest = null;
-    for (const article of articles) {
-      const value = article?.publishedAt || article?.publishedDate;
-      if (!value) continue;
-      const timestamp = Date.parse(value);
-      if (!Number.isFinite(timestamp)) continue;
-      if (latest === null || timestamp > latest) latest = timestamp;
-    }
-    return latest;
-  } catch (error) {
-    console.warn(`SEO publisher could not read ${ARTICLES_INDEX}; continuing without cooldown history:`, error?.message || error);
-    return null;
-  }
-}
-
-function shouldSkipForCooldown() {
-  const latestPublishedAt = getLatestPublishedAt();
+  const latestPublishedAt = readLatestPublishedAt(ARTICLES_INDEX);
   if (latestPublishedAt === null) return false;
+
+  if (PUBLISH_CADENCE_MODE === 'hourly-slot') {
+    const slot = evaluatePublishSlot({
+      latestPublishedAt,
+      slotMinutes: PUBLISH_SLOT_MINUTES
+    });
+    if (slot.eligible) return false;
+
+    console.log(
+      `SEO publisher hourly slot already filled: ${new Date(slot.currentSlotStart).toISOString()}; ` +
+      `last successful article ${new Date(latestPublishedAt).toISOString()}.`
+    );
+    return true;
+  }
 
   const intervalMs = MIN_PUBLISH_INTERVAL_HOURS * 60 * 60 * 1000;
   const nextEligibleAt = latestPublishedAt + intervalMs;
@@ -156,8 +154,11 @@ function runPublisher(model) {
 }
 
 async function main() {
-  if (shouldSkipForCooldown()) {
-    console.log(`SEO publisher skipped safely; minimum interval is ${MIN_PUBLISH_INTERVAL_HOURS} hour(s).`);
+  if (shouldSkipForCadence()) {
+    const cadence = PUBLISH_CADENCE_MODE === 'hourly-slot'
+      ? `one article per ${PUBLISH_SLOT_MINUTES}-minute slot`
+      : `minimum interval ${MIN_PUBLISH_INTERVAL_HOURS} hour(s)`;
+    console.log(`SEO publisher skipped safely; cadence is ${cadence}.`);
     return;
   }
 

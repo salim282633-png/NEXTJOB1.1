@@ -2,9 +2,8 @@ name: NEXT JOB SEO Publisher
 
 on:
   schedule:
-    # Editorial cadence: three strong articles per week.
-    # 04:15 UTC = 07:15 Saudi Arabia time.
-    - cron: '15 4 * * 1,3,6'
+    # One article per UTC hour. Minute 17 avoids GitHub's start-of-hour load peak.
+    - cron: '17 * * * *'
   workflow_dispatch:
     inputs:
       keyword:
@@ -13,6 +12,10 @@ on:
         type: string
       scheduler:
         description: 'مصدر التشغيل الآلي'
+        required: false
+        type: string
+      scheduled_slot:
+        description: 'الساعة المجدولة بصيغة ISO للتتبع ومنع الانزلاق'
         required: false
         type: string
 
@@ -26,7 +29,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 50
     steps:
       - name: Checkout latest main
         uses: actions/checkout@v4
@@ -40,49 +43,17 @@ jobs:
       - name: Check automated publish eligibility
         id: eligibility
         shell: bash
+        env:
+          SEO_FORCE_PUBLISH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.scheduler != 'render-cron' }}
+          SEO_PUBLISH_SLOT_MINUTES: 60
         run: |
           set -euo pipefail
-
-          # Ordinary manual runs are explicit overrides.
-          # GitHub schedule and Render Cron must respect the editorial cooldown.
-          EVENT_NAME="${{ github.event_name }}"
-          SCHEDULER="${{ github.event.inputs.scheduler || '' }}"
-          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$SCHEDULER" != "render-cron" ]; then
-            echo "eligible=true" >> "$GITHUB_OUTPUT"
-            echo "Manual editorial run: publisher enabled."
-            exit 0
-          fi
-
-          node <<'NODE'
-          const fs = require('fs');
-          const path = 'public/guide/articles.json';
-          const output = process.env.GITHUB_OUTPUT;
-          const intervalMs = 36 * 60 * 60 * 1000;
-          let latest = null;
-
-          try {
-            const articles = JSON.parse(fs.readFileSync(path, 'utf8'));
-            for (const article of Array.isArray(articles) ? articles : []) {
-              const value = article?.publishedAt || article?.publishedDate;
-              const timestamp = value ? Date.parse(value) : NaN;
-              if (Number.isFinite(timestamp) && (latest === null || timestamp > latest)) latest = timestamp;
-            }
-          } catch (error) {
-            console.warn(`Could not read ${path}; allowing publisher to decide eligibility: ${error.message}`);
-          }
-
-          const eligible = latest === null || Date.now() >= latest + intervalMs;
-          fs.appendFileSync(output, `eligible=${eligible}\n`);
-
-          if (latest === null) {
-            console.log('No valid previous publication timestamp found; publisher is eligible.');
-          } else {
-            console.log(`Latest article: ${new Date(latest).toISOString()}`);
-            console.log(eligible
-              ? 'Editorial interval has passed; publisher is eligible.'
-              : `Editorial cooldown active until ${new Date(latest + intervalMs).toISOString()}; automated check ends safely.`);
-          }
-          NODE
+          echo "Requested slot: ${{ github.event.inputs.scheduled_slot || github.event.schedule || 'manual' }}"
+          node --check scripts/seo-publish-cadence.mjs
+          node --check scripts/check-seo-publish-eligibility.mjs
+          node --check scripts/check-hourly-publisher-config.mjs
+          node scripts/check-hourly-publisher-config.mjs
+          node scripts/check-seo-publish-eligibility.mjs
 
       - name: Setup Node
         if: steps.eligibility.outputs.eligible == 'true'
@@ -101,7 +72,10 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.6-flash
           GEMINI_MAX_MODEL_ATTEMPTS: 8
-          SEO_MIN_PUBLISH_INTERVAL_HOURS: 36
+          SEO_PUBLISH_CADENCE_MODE: hourly-slot
+          SEO_PUBLISH_SLOT_MINUTES: 60
+          SEO_FORCE_PUBLISH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.scheduler != 'render-cron' }}
+          SEO_REQUIRE_ARTICLE: true
           PUBLIC_SITE_URL: https://nextjob1-1.onrender.com
           SEO_KEYWORD: ${{ github.event.inputs.keyword || '' }}
         run: |

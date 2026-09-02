@@ -55,16 +55,6 @@
     "priority": 120
   },
   {
-    "keyword": "كيف يكتب اليمني نبذة مهنية في السيرة الذاتية في السعودية",
-    "intent": "cv-guide",
-    "priority": 119
-  },
-  {
-    "keyword": "أخطاء السيرة الذاتية التي يجب على اليمني تجنبها في السعودية",
-    "intent": "cv-guide",
-    "priority": 118
-  },
-  {
     "keyword": "تهيئة السيرة الذاتية لليمني لأنظمة فرز المتقدمين في السعودية",
     "intent": "cv-guide",
     "priority": 117
@@ -739,5 +729,293 @@
     "intent": "profession-guide",
     "profession": "فني مضخات مياه",
     "priority": 1
+  },
+  {
+    "keyword": "دليل العمل كمساعد تنفيذي لليمنيين في السعودية وتنظيم المهام المهنية",
+    "intent": "profession-guide",
+    "profession": "مساعد تنفيذي",
+    "priority": 0
+  },
+  {
+    "keyword": "دليل العمل كمسؤول تحصيل لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مسؤول تحصيل",
+    "priority": -1
+  },
+  {
+    "keyword": "دليل العمل كمنسق شحن لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "منسق شحن",
+    "priority": -2
+  },
+  {
+    "keyword": "دليل العمل كمخلص جمركي لليمنيين في السعودية وما الذي يجب التحقق منه",
+    "intent": "profession-guide",
+    "profession": "مخلص جمركي",
+    "priority": -3
+  },
+  {
+    "keyword": "دليل العمل كمنسق أسطول لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "منسق أسطول",
+    "priority": -4
+  },
+  {
+    "keyword": "دليل العمل كمشغل ميزان شاحنات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مشغل ميزان شاحنات",
+    "priority": -5
+  },
+  {
+    "keyword": "دليل العمل كبائع قطع غيار لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "بائع قطع غيار",
+    "priority": -6
+  },
+  {
+    "keyword": "دليل العمل كمشغل آلات CNC لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "مشغل آلات CNC",
+    "priority": -7
+  },
+  {
+    "keyword": "دليل العمل كرسام هندسي أوتوكاد لليمنيين في السعودية وبناء ملف أعمال",
+    "intent": "profession-guide",
+    "profession": "رسام هندسي أوتوكاد",
+    "priority": -8
+  },
+  {
+    "keyword": "دليل العمل كمساح أراض لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مساح أراض",
+    "priority": -9
+  },
+  {
+    "keyword": "دليل العمل كفني ألياف بصرية لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "فني ألياف بصرية",
+    "priority": -10
+  },
+  {
+    "keyword": "دليل العمل كفني مولدات كهربائية لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني مولدات كهربائية",
+    "priority": -11
+  },
+  {
+    "keyword": "دليل العمل كفني هيدروليك لليمنيين في السعودية وتجهيز الخبرة المهنية",
+    "intent": "profession-guide",
+    "profession": "فني هيدروليك",
+    "priority": -12
+  },
+  {
+    "keyword": "دليل العمل كفني صيانة معدات المطاعم لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "صيانة معدات المطاعم",
+    "priority": -13
+  },
+  {
+    "keyword": "دليل العمل كفني أبواب أوتوماتيكية لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "فني أبواب أوتوماتيكية",
+    "priority": -14
+  },
+  {
+    "keyword": "دليل العمل كفني عزل مائي وحراري لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني عزل مائي وحراري",
+    "priority": -15
+  },
+  {
+    "keyword": "دليل العمل كفني تمديدات غاز لليمنيين في السعودية ومتطلبات السلامة",
+    "intent": "profession-guide",
+    "profession": "فني تمديدات غاز",
+    "priority": -16
+  },
+  {
+    "keyword": "دليل العمل كفني أجهزة نقاط البيع لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني أجهزة نقاط البيع",
+    "priority": -17
+  },
+  {
+    "keyword": "دليل العمل في إنتاج الأغذية لليمنيين في السعودية وما الذي يجب التحقق منه",
+    "intent": "profession-guide",
+    "profession": "إنتاج الأغذية",
+    "priority": -18
+  },
+  {
+    "keyword": "دليل العمل كمقدم طعام لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مقدم طعام",
+    "priority": -19
+  },
+  {
+    "keyword": "دليل العمل كمساعد طباخ لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "مساعد طباخ",
+    "priority": -20
+  },
+  {
+    "keyword": "دليل العمل كجزار لليمنيين في السعودية والمهارات ومتطلبات السلامة",
+    "intent": "profession-guide",
+    "profession": "جزار",
+    "priority": -21
+  },
+  {
+    "keyword": "دليل العمل كمشرف نظافة لليمنيين في السعودية وتنظيم فريق العمل",
+    "intent": "profession-guide",
+    "profession": "مشرف نظافة",
+    "priority": -22
+  },
+  {
+    "keyword": "دليل العمل كمراقب مواقع لليمنيين في السعودية وتجهيز الخبرة المهنية",
+    "intent": "profession-guide",
+    "profession": "مراقب مواقع",
+    "priority": -23
+  },
+  {
+    "keyword": "دليل العمل كمنسق رفوف لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "منسق رفوف",
+    "priority": -24
+  },
+  {
+    "keyword": "دليل العمل كفني صيانة دراجات نارية لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "صيانة دراجات نارية",
+    "priority": -25
+  },
+  {
+    "keyword": "دليل العمل كسمكري سيارات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "سمكري سيارات",
+    "priority": -26
+  },
+  {
+    "keyword": "دليل العمل كفني دهان سيارات لليمنيين في السعودية وبناء ملف مهني",
+    "intent": "profession-guide",
+    "profession": "دهان سيارات",
+    "priority": -27
+  },
+  {
+    "keyword": "دليل العمل كفني زجاج سيارات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني زجاج سيارات",
+    "priority": -28
+  },
+  {
+    "keyword": "دليل العمل كفني تكييف سيارات لليمنيين في السعودية وتجهيز الخبرة المهنية",
+    "intent": "profession-guide",
+    "profession": "فني تكييف سيارات",
+    "priority": -29
+  },
+  {
+    "keyword": "دليل العمل كفني تنجيد سيارات لليمنيين في السعودية وبناء ملف أعمال",
+    "intent": "profession-guide",
+    "profession": "تنجيد سيارات",
+    "priority": -30
+  },
+  {
+    "keyword": "دليل العمل كفني أقفال ومفاتيح لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "فني أقفال ومفاتيح",
+    "priority": -31
+  },
+  {
+    "keyword": "دليل العمل كفني تركيب ورق جدران لليمنيين في السعودية وبناء ملف أعمال",
+    "intent": "profession-guide",
+    "profession": "تركيب ورق جدران",
+    "priority": -32
+  },
+  {
+    "keyword": "دليل العمل كفني تركيب ستائر لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "تركيب ستائر",
+    "priority": -33
+  },
+  {
+    "keyword": "دليل العمل كفني صيانة أجهزة القهوة لليمنيين في السعودية وتجهيز الملف المهني",
+    "intent": "profession-guide",
+    "profession": "صيانة أجهزة القهوة",
+    "priority": -34
+  },
+  {
+    "keyword": "دليل العمل كفني صيانة ألعاب ترفيهية لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "صيانة ألعاب ترفيهية",
+    "priority": -35
+  },
+  {
+    "keyword": "دليل العمل كمشغل آلات تغليف لليمنيين في السعودية وتجهيز الخبرة المهنية",
+    "intent": "profession-guide",
+    "profession": "مشغل آلات تغليف",
+    "priority": -36
+  },
+  {
+    "keyword": "دليل العمل كمراقب خط إنتاج لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "مراقب خط إنتاج",
+    "priority": -37
+  },
+  {
+    "keyword": "دليل العمل كفني معالجة مياه لليمنيين في السعودية وما الذي يجب التحقق منه",
+    "intent": "profession-guide",
+    "profession": "فني معالجة مياه",
+    "priority": -38
+  },
+  {
+    "keyword": "دليل العمل كفني صيانة مسابح لليمنيين في السعودية ومتطلبات السلامة",
+    "intent": "profession-guide",
+    "profession": "صيانة مسابح",
+    "priority": -39
+  },
+  {
+    "keyword": "دليل العمل كفني تبريد مستودعات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "تبريد مستودعات",
+    "priority": -40
+  },
+  {
+    "keyword": "دليل العمل كفني تركيب سقالات لليمنيين في السعودية ومتطلبات السلامة",
+    "intent": "profession-guide",
+    "profession": "تركيب سقالات",
+    "priority": -41
+  },
+  {
+    "keyword": "دليل العمل كفني واجهات كلادينج لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "واجهات كلادينج",
+    "priority": -42
+  },
+  {
+    "keyword": "دليل العمل في تحميل وتنزيل البضائع لليمنيين في السعودية وما الذي يجب التحقق منه",
+    "intent": "profession-guide",
+    "profession": "تحميل وتنزيل البضائع",
+    "priority": -43
+  },
+  {
+    "keyword": "دليل العمل كمنسق مرتجعات لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "منسق مرتجعات",
+    "priority": -44
+  },
+  {
+    "keyword": "دليل العمل كمسؤول تجهيز طلبات لليمنيين في السعودية وتنظيم المهام",
+    "intent": "profession-guide",
+    "profession": "تجهيز الطلبات",
+    "priority": -45
+  },
+  {
+    "keyword": "دليل العمل كفني صيانة ماكينات خياطة لليمنيين في السعودية والمهارات المطلوبة",
+    "intent": "profession-guide",
+    "profession": "صيانة ماكينات خياطة",
+    "priority": -46
+  },
+  {
+    "keyword": "دليل العمل كفني تركيب مطابخ لليمنيين في السعودية وبناء ملف أعمال",
+    "intent": "profession-guide",
+    "profession": "تركيب مطابخ",
+    "priority": -47
   }
 ]
