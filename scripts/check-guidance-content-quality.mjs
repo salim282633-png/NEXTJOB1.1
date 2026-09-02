@@ -27,6 +27,7 @@ if (files.length < MIN_ARTICLES) {
 
 const slugs = new Set();
 const titles = new Set();
+const articlesBySlug = new Map();
 
 for (const name of files) {
   const file = path.join(PUBLISHED_DIR, name);
@@ -48,6 +49,8 @@ for (const name of files) {
   const canonical = text(item.canonical);
   const body = JSON.stringify(item.article || {});
 
+  if (slug) articlesBySlug.set(slug, item);
+
   if (!slug) fail(name, 'missing slug');
   else if (slugs.has(slug)) fail(slug, 'duplicate slug');
   else slugs.add(slug);
@@ -68,6 +71,51 @@ for (const name of files) {
   if (/(?:يتوجب|يجب|قم|استخدم).{0,100}(?:تحرير الفرامل|تحريك الكابينة|فتح أبواب المصعد)/u.test(body)) {
     fail(slug, 'contains sensitive procedural elevator-rescue guidance');
   }
+}
+
+const distinctSaudiGuideIntents = {
+  'yemeni-jobs-saudi-jobs-9c0f8017': {
+    title: /خطة البحث عن عمل.+متابعة الطلبات/u,
+    keyword: /خطة البحث عن عمل/u,
+    intent: 'jobs',
+    body: /قياس النتائج|جدول.+الطلبات/u
+  },
+  'yemeni-jobs-saudi-jobs-98305259': {
+    title: /نقل الخدمات بعد العرض الوظيفي.+قائمة تحقق/u,
+    keyword: /نقل الخدمات بعد العرض الوظيفي/u,
+    intent: 'sponsorship',
+    body: /افصل مراجعة العقد عن طلب نقل الخدمات/u
+  },
+  'yemeni-jobs-saudi-jobs-639efa4e': {
+    title: /الوظائف المكتبية/u,
+    keyword: /الوظائف المكتبية/u,
+    intent: 'professions',
+    profession: 'الوظائف المكتبية',
+    body: /مهارات البرامج|نماذج عمل/u
+  },
+  'yemeni-jobs-saudi-jobs-25065961': {
+    title: /المهن التشغيلية/u,
+    keyword: /المهن التشغيلية/u,
+    intent: 'professions',
+    profession: 'المهن التشغيلية',
+    body: /السلامة والجودة|الوردية/u
+  }
+};
+
+for (const [slug, focus] of Object.entries(distinctSaudiGuideIntents)) {
+  const item = articlesBySlug.get(slug);
+  if (!item) {
+    fail(slug, 'missing from the distinct Saudi guide intent guard');
+    continue;
+  }
+  const title = text(item.title || item.article?.title);
+  const keyword = text(item.keyword);
+  const body = JSON.stringify(item.article || {});
+  if (!focus.title.test(title)) fail(slug, 'title no longer preserves its distinct search intent');
+  if (!focus.keyword.test(keyword)) fail(slug, 'keyword no longer preserves its distinct search intent');
+  if (text(item.intent) !== focus.intent) fail(slug, `intent must remain ${focus.intent}`);
+  if (focus.profession && text(item.profession) !== focus.profession) fail(slug, `profession must remain ${focus.profession}`);
+  if (!focus.body.test(body)) fail(slug, 'body no longer provides the evidence required for its distinct intent');
 }
 
 if (errors.length) {
