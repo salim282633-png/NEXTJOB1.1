@@ -35,4 +35,3 @@ if (result.forced) {
 } else {
   console.log(`Hourly slot ${currentSlot} already contains an article; duplicate run ends safely.`);
 }
-
