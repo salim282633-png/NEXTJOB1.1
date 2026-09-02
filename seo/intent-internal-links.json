@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "targets": {
+    "yemeni-jobs-saudi-jobs-9c0f8017": {
+      "intent": "خطة البحث عن عمل ومتابعة الطلبات",
+      "minimumInboundPages": 5
+    },
+    "yemeni-jobs-saudi-jobs-98305259": {
+      "intent": "قائمة التحقق من نقل الخدمات بعد العرض",
+      "minimumInboundPages": 5
+    },
+    "yemeni-jobs-saudi-jobs-639efa4e": {
+      "intent": "تجهيز ملف الوظائف المكتبية",
+      "minimumInboundPages": 5
+    },
+    "yemeni-jobs-saudi-jobs-25065961": {
+      "intent": "تجهيز ملف المهن التشغيلية",
+      "minimumInboundPages": 5
+    }
+  },
+  "pages": {
+    "guide-no-experience-job-search-5f3f67f7": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-9c0f8017",
+        "anchor": "ابنِ خطة بحث أسبوعية وتابع الطلبات",
+        "note": "خطوة تالية لتحويل البداية من دون خبرة إلى نشاط منظم يمكن قياسه."
+      }
+    ],
+    "guide-career-return-job-search-5f6f4634": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-9c0f8017",
+        "anchor": "استخدم خطة البحث عن عمل بعد الانقطاع",
+        "note": "رتّب الهدف والقنوات والمتابعة بدل محاولة تعويض فترة الانقطاع بالتقديم العشوائي."
+      }
+    ],
+    "guide-employed-job-search-c482787b": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-9c0f8017",
+        "anchor": "نظّم البحث عن عمل أثناء بقائك في وظيفتك",
+        "note": "وزّع البحث والتخصيص والمتابعة على أسبوع واقعي يحافظ على خصوصيتك ووقتك."
+      }
+    ],
+    "guide-career-change-job-search-759697fa": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-9c0f8017",
+        "anchor": "ابدأ بخطة بحث قابلة للقياس لمسارك الجديد",
+        "note": "استخدم مؤشرات الطلبات والردود لمعرفة ما إذا كان الاستهداف الجديد يعمل."
+      }
+    ],
+    "guide-part-time-job-search-8f09e201": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-9c0f8017",
+        "anchor": "طبّق خطة أسبوعية على البحث عن دوام جزئي",
+        "note": "حدّد الوقت والقنوات وسجل الطلبات حتى لا يتحول البحث الجزئي إلى متابعة متقطعة."
+      }
+    ],
+    "guide-qiwa-electronic-contract-bde84a8c": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-98305259",
+        "anchor": "راجع قائمة نقل الخدمات بعد استلام العرض",
+        "note": "افصل بين مراجعة العقد وحالة طلب النقل قبل اتخاذ قرار يصعب الرجوع عنه."
+      }
+    ],
+    "guide-qiwa-service-transfer-736600aa": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-98305259",
+        "anchor": "طبّق قائمة التحقق من نقل الخدمات بعد العرض",
+        "note": "حوّل معلومات الخدمة إلى أسئلة عملية للمنشأة وإشارات تتحقق منها داخل قوى."
+      }
+    ],
+    "guide-yemeni-sponsorship-c508e143": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-98305259",
+        "anchor": "تحقق من العرض والعقد وطلب نقل الخدمات كلًا على حدة",
+        "note": "قائمة عملية تمنع الخلط بين موافقة مبدئية واكتمال الإجراء الرسمي."
+      }
+    ],
+    "guide-yemeni-contract-review-4c8a9e31": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-98305259",
+        "anchor": "انتقل من مراجعة العقد إلى قائمة تحقق نقل الخدمات",
+        "note": "بعد فهم البنود، راجع هوية المنشأة وحالة الطلب والخطوات الرسمية التالية."
+      }
+    ],
+    "guide-job-offer-title-salary-benefits-d9d322ff": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-98305259",
+        "anchor": "راجع نقل الخدمات بعد تدقيق تفاصيل العرض الوظيفي",
+        "note": "تأكد من توافق العرض مع العقد ثم تحقق من مسار النقل رسميًا بحسب حالتك."
+      }
+    ],
+    "guide-secretary-career-c605b36f": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-639efa4e",
+        "anchor": "وسّع ملف السكرتارية إلى ملف للوظائف المكتبية",
+        "note": "اربط التنظيم والمراسلات والمواعيد بنماذج عمل تناسب الأدوار المكتبية القريبة."
+      }
+    ],
+    "guide-admin-support-career-40f3a16b": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-639efa4e",
+        "anchor": "جهّز ملفًا موحدًا لمسار الوظائف المكتبية",
+        "note": "حوّل مهام الدعم الإداري إلى أدلة برامج وتنظيم يمكن شرحها في التقييم."
+      }
+    ],
+    "guide-data-entry-career-35487a71": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-639efa4e",
+        "anchor": "أضف دقة إدخال البيانات إلى ملف الوظائف المكتبية",
+        "note": "ادمج أمثلة الجداول والمراجعة مع بقية مهارات المكتب من دون توسيع السيرة عشوائيًا."
+      }
+    ],
+    "guide-receptionist-career-1b72b972": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-639efa4e",
+        "anchor": "حوّل خبرة الاستقبال إلى ملف مكتبي قابل للإثبات",
+        "note": "أظهر المواعيد والمكالمات والتنظيم ضمن مسار مكتبي واضح بدل الاكتفاء بالمسمى."
+      }
+    ],
+    "guide-document-controller-career-1577f89b": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-639efa4e",
+        "anchor": "اربط ضبط الوثائق بملف الوظائف المكتبية",
+        "note": "وضّح إدارة النسخ والتسمية والمراجعة كأدلة على الدقة والتنظيم المكتبي."
+      }
+    ],
+    "guide-production-operator-career-e60ec79d": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-25065961",
+        "anchor": "حوّل خبرة الإنتاج إلى ملف للمهن التشغيلية",
+        "note": "اربط الوردية والجودة والسلامة بمسؤوليات ميدانية تستطيع شرحها بوضوح."
+      }
+    ],
+    "guide-warehouses-career-4236b122": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-25065961",
+        "anchor": "أدرج خبرة المستودعات ضمن ملف المهن التشغيلية",
+        "note": "قدّم الاستلام والتخزين والتسليم كجزء واضح من سير العمل التشغيلي."
+      }
+    ],
+    "guide-packaging-career-7d91bc6a": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-25065961",
+        "anchor": "ابنِ ملفًا تشغيليًا من خبرة التعبئة والتغليف",
+        "note": "أظهر ثبات الجودة ومطابقة الكمية والملصق بدل وصف الخبرة بعبارات عامة."
+      }
+    ],
+    "guide-forklift-operator-career-c6cb2e15": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-25065961",
+        "anchor": "ضع خبرة الرافعة ضمن مسار مهني تشغيلي واضح",
+        "note": "فرّق بين التأهيل الفعلي والمهام المساندة واربط الخبرة بالسلامة والوردية."
+      }
+    ],
+    "guide-inventory-controller-career-abfd3eb7": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-25065961",
+        "anchor": "اربط مراقبة المخزون بملف المهن التشغيلية",
+        "note": "وضّح نقاط الفحص والحركة والتسليم التي تثبت فهمك لسير العمل الميداني."
+      }
+    ],
+    "yemeni-jobs-saudi-jobs-9c0f8017": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-639efa4e",
+        "anchor": "انتقل إلى تجهيز ملف الوظائف المكتبية",
+        "note": "إذا كان هدفك استقبالًا أو دعمًا إداريًا أو بيانات، خصص أدلة البرامج والتنظيم."
+      },
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-25065961",
+        "anchor": "انتقل إلى تجهيز ملف المهن التشغيلية",
+        "note": "إذا كان هدفك إنتاجًا أو مستودعًا أو تعبئة، ركز على الوردية والجودة والسلامة."
+      },
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-98305259",
+        "anchor": "بعد وصول العرض استخدم قائمة تحقق نقل الخدمات",
+        "note": "افصل بين العرض والعقد وطلب النقل وتحقق من كل خطوة عبر المصدر الرسمي."
+      }
+    ],
+    "yemeni-jobs-saudi-jobs-98305259": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-9c0f8017",
+        "anchor": "ارجع إلى خطة البحث عن عمل ومتابعة الطلبات",
+        "note": "استخدم الدليل العام إذا لم تصل بعد إلى مرحلة العرض ومراجعة النقل."
+      }
+    ],
+    "yemeni-jobs-saudi-jobs-639efa4e": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-9c0f8017",
+        "anchor": "ابدأ بخطة البحث عن عمل للوظائف المكتبية",
+        "note": "حدّد الجهات ونظم الطلبات بعد الانتهاء من تجهيز الملف المكتبي."
+      },
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-98305259",
+        "anchor": "بعد العرض راجع قائمة التحقق من نقل الخدمات",
+        "note": "انتقل إلى الأسئلة النظامية فقط بعد وجود عرض يمكن مراجعته."
+      }
+    ],
+    "yemeni-jobs-saudi-jobs-25065961": [
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-9c0f8017",
+        "anchor": "طبّق خطة البحث على الأدوار التشغيلية المستهدفة",
+        "note": "نظّم الجهات والطلبات بعد تحديد البيئة التشغيلية التي تناسب خبرتك."
+      },
+      {
+        "targetSlug": "yemeni-jobs-saudi-jobs-98305259",
+        "anchor": "راجع نقل الخدمات بعد وصول عرض تشغيلي",
+        "note": "تحقق من الوردية والموقع والعقد ثم افصل ذلك عن حالة طلب النقل الرسمي."
+      }
+    ]
+  }
+}
