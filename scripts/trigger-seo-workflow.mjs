@@ -8,7 +8,8 @@ if (!token) {
 }
 
 const endpoint = 'https://api.github.com/repos/salim282633-png/NEXTJOB1.1/actions/workflows/seo-publisher.yml/dispatches';
-const currentHour = new Date(Math.floor(Date.now() / 3600000) * 3600000).toISOString();
+const publishSlotMs = 6 * 60 * 60 * 1000;
+const currentPublishSlot = new Date(Math.floor(Date.now() / publishSlotMs) * publishSlotMs).toISOString();
 const maxAttempts = 4;
 
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -31,7 +32,7 @@ async function dispatch() {
           ref: 'main',
           inputs: {
             scheduler: 'render-cron',
-            scheduled_slot: currentHour
+            scheduled_slot: currentPublishSlot
           }
         })
       });
@@ -71,4 +72,4 @@ try {
   // GitHub may return an empty successful response on older API behavior.
 }
 
-console.log(`Render SEO scheduler dispatched slot ${currentHour} successfully.${runId}`);
+console.log(`Render SEO scheduler dispatched six-hour slot ${currentPublishSlot} successfully.${runId}`);
