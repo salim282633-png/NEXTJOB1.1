@@ -10,7 +10,7 @@ const latestPublishedAt = readLatestPublishedAt(manifestPath);
 const result = evaluatePublishSlot({
   now,
   latestPublishedAt,
-  slotMinutes: process.env.SEO_PUBLISH_SLOT_MINUTES || 60,
+  slotMinutes: process.env.SEO_PUBLISH_SLOT_MINUTES || 360,
   force
 });
 
@@ -31,7 +31,7 @@ if (result.forced) {
 } else if (result.latestSlotStart === null) {
   console.log(`No valid previous publication found; slot ${currentSlot} is eligible.`);
 } else if (result.eligible) {
-  console.log(`Hourly slot ${currentSlot} is eligible; ${result.missedSlots} earlier slot(s) were missed.`);
+  console.log(`Six-hour slot ${currentSlot} is eligible; ${result.missedSlots} earlier slot(s) were missed.`);
 } else {
-  console.log(`Hourly slot ${currentSlot} already contains an article; duplicate run ends safely.`);
+  console.log(`Six-hour slot ${currentSlot} already contains an article; duplicate run ends safely.`);
 }
