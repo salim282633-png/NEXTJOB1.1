@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-export const DEFAULT_SLOT_MINUTES = 60;
+export const DEFAULT_SLOT_MINUTES = 360;
 
 export function readLatestPublishedAt(manifestPath = 'public/guide/articles.json') {
   try {
