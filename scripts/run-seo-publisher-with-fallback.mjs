@@ -8,7 +8,7 @@ const MAX_ATTEMPTS = Math.max(8, Math.min(12, Number(process.env.GEMINI_MAX_MODE
 const MODEL_RETRIES = Math.max(1, Math.min(3, Number(process.env.GEMINI_MODEL_RETRIES || 2)));
 const MIN_PUBLISH_INTERVAL_HOURS = Math.max(0, Number(process.env.SEO_MIN_PUBLISH_INTERVAL_HOURS ?? 6));
 const PUBLISH_CADENCE_MODE = String(process.env.SEO_PUBLISH_CADENCE_MODE || 'interval').trim();
-const PUBLISH_SLOT_MINUTES = Math.max(5, Number(process.env.SEO_PUBLISH_SLOT_MINUTES || 60));
+const PUBLISH_SLOT_MINUTES = Math.max(5, Number(process.env.SEO_PUBLISH_SLOT_MINUTES || 360));
 const FORCE_PUBLISH = /^(1|true|yes)$/i.test(String(process.env.SEO_FORCE_PUBLISH || ''));
 const PUBLISHER_SCRIPT = 'scripts/publish-guidance-seo.mjs';
 const ARTICLES_INDEX = 'public/guide/articles.json';
@@ -42,7 +42,7 @@ function shouldSkipForCadence() {
   const latestPublishedAt = readLatestPublishedAt(ARTICLES_INDEX);
   if (latestPublishedAt === null) return false;
 
-  if (PUBLISH_CADENCE_MODE === 'hourly-slot') {
+  if (PUBLISH_CADENCE_MODE === 'hourly-slot' || PUBLISH_CADENCE_MODE === 'six-hour-slot') {
     const slot = evaluatePublishSlot({
       latestPublishedAt,
       slotMinutes: PUBLISH_SLOT_MINUTES
@@ -50,7 +50,7 @@ function shouldSkipForCadence() {
     if (slot.eligible) return false;
 
     console.log(
-      `SEO publisher hourly slot already filled: ${new Date(slot.currentSlotStart).toISOString()}; ` +
+      `SEO publisher aligned slot already filled: ${new Date(slot.currentSlotStart).toISOString()}; ` +
       `last successful article ${new Date(latestPublishedAt).toISOString()}.`
     );
     return true;
