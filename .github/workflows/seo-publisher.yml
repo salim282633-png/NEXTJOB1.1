@@ -2,8 +2,8 @@ name: NEXT JOB SEO Publisher
 
 on:
   schedule:
-    # One article per UTC hour. Minute 17 avoids GitHub's start-of-hour load peak.
-    - cron: '17 * * * *'
+    # One article every six hours. Minute 17 avoids GitHub's start-of-hour load peak.
+    - cron: '17 */6 * * *'
   workflow_dispatch:
     inputs:
       keyword:
@@ -15,7 +15,7 @@ on:
         required: false
         type: string
       scheduled_slot:
-        description: 'الساعة المجدولة بصيغة ISO للتتبع ومنع الانزلاق'
+        description: 'نافذة الست ساعات المجدولة بصيغة ISO للتتبع ومنع الانزلاق'
         required: false
         type: string
 
@@ -45,7 +45,7 @@ jobs:
         shell: bash
         env:
           SEO_FORCE_PUBLISH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.scheduler != 'render-cron' }}
-          SEO_PUBLISH_SLOT_MINUTES: 60
+          SEO_PUBLISH_SLOT_MINUTES: 360
         run: |
           set -euo pipefail
           echo "Requested slot: ${{ github.event.inputs.scheduled_slot || github.event.schedule || 'manual' }}"
@@ -72,8 +72,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.6-flash
           GEMINI_MAX_MODEL_ATTEMPTS: 8
-          SEO_PUBLISH_CADENCE_MODE: hourly-slot
-          SEO_PUBLISH_SLOT_MINUTES: 60
+          SEO_PUBLISH_CADENCE_MODE: six-hour-slot
+          SEO_PUBLISH_SLOT_MINUTES: 360
           SEO_FORCE_PUBLISH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.scheduler != 'render-cron' }}
           SEO_REQUIRE_ARTICLE: true
           PUBLIC_SITE_URL: https://nextjob1-1.onrender.com
