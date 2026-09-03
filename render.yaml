@@ -35,8 +35,8 @@ services:
     runtime: node
     repo: https://github.com/salim282633-png/NEXTJOB1.1
     branch: main
-    # Hourly recovery dispatch, 30 minutes after GitHub's primary minute-17 run.
-    # Duplicate dispatches are harmless because the workflow enforces one article per UTC hour.
+    # Hourly recovery check. It retries a missed six-hour slot at minute 47 without creating duplicates.
+    # Duplicate dispatches are harmless because the workflow enforces one article per aligned six-hour slot.
     schedule: '47 * * * *'
     buildCommand: echo "No build required"
     startCommand: node scripts/trigger-seo-workflow.mjs
