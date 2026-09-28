@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "checkedAt": "2026-09-28T05:48:50.227Z",
+  "checkedAt": "2026-09-28T14:25:39.189Z",
   "enabledSources": 8,
   "successfulSources": 8,
-  "totalJobs": 52,
+  "totalJobs": 50,
   "preservedFailureWindowHours": 72,
   "sources": [
     {
@@ -11,8 +11,8 @@
       "provider": "greenhouse",
       "company": "HALA",
       "status": "ok",
-      "count": 12,
-      "checkedAt": "2026-09-28T05:48:50.227Z"
+      "count": 10,
+      "checkedAt": "2026-09-28T14:25:39.189Z"
     },
     {
       "id": "tamara-greenhouse",
@@ -20,7 +20,7 @@
       "company": "Tamara",
       "status": "ok",
       "count": 8,
-      "checkedAt": "2026-09-28T05:48:50.227Z"
+      "checkedAt": "2026-09-28T14:25:39.189Z"
     },
     {
       "id": "brkz-greenhouse",
@@ -28,7 +28,7 @@
       "company": "BRKZ",
       "status": "ok",
       "count": 17,
-      "checkedAt": "2026-09-28T05:48:50.227Z"
+      "checkedAt": "2026-09-28T14:25:39.189Z"
     },
     {
       "id": "soum-lever",
@@ -36,7 +36,7 @@
       "company": "SOUM",
       "status": "ok",
       "count": 7,
-      "checkedAt": "2026-09-28T05:48:50.227Z"
+      "checkedAt": "2026-09-28T14:25:39.189Z"
     },
     {
       "id": "infinitepl-lever",
@@ -44,7 +44,7 @@
       "company": "Infinite pl",
       "status": "ok",
       "count": 2,
-      "checkedAt": "2026-09-28T05:48:50.227Z"
+      "checkedAt": "2026-09-28T14:25:39.189Z"
     },
     {
       "id": "lalamove-lever",
@@ -52,7 +52,7 @@
       "company": "Lalamove",
       "status": "ok",
       "count": 2,
-      "checkedAt": "2026-09-28T05:48:50.227Z"
+      "checkedAt": "2026-09-28T14:25:39.189Z"
     },
     {
       "id": "dlocal-lever",
@@ -60,7 +60,7 @@
       "company": "dLocal",
       "status": "ok",
       "count": 2,
-      "checkedAt": "2026-09-28T05:48:50.227Z"
+      "checkedAt": "2026-09-28T14:25:39.189Z"
     },
     {
       "id": "contentsquare-lever",
@@ -68,7 +68,7 @@
       "company": "Contentsquare",
       "status": "ok",
       "count": 2,
-      "checkedAt": "2026-09-28T05:48:50.227Z"
+      "checkedAt": "2026-09-28T14:25:39.189Z"
     }
   ]
 }
